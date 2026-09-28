@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #070b1a;
+        --bg-2: #0f1633;
+        --ink: #f5f7ff;
+        --muted: #a9b1d6;
+        --violet: #7c5cff;
+        --cyan: #22d3ee;
+        --pink: #ff5ca8;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        color: var(--ink);
+      }
+
+      /* ---------- background ---------- */
+      #bg {
+        position: absolute;
+        inset: 0;
+      }
+      .grid {
+        position: absolute;
+        inset: -200px;
+        background-image:
+          linear-gradient(rgba(124, 92, 255, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(124, 92, 255, 0.12) 1px, transparent 1px);
+        background-size: 90px 90px;
+      }
+      .orb {
+        position: absolute;
+        width: 900px;
+        height: 900px;
+        border-radius: 50%;
+        filter: blur(40px);
+      }
+      #orb-a {
+        left: -300px;
+        top: -200px;
+        background: radial-gradient(circle, rgba(124, 92, 255, 0.55), transparent 65%);
+      }
+      #orb-b {
+        right: -350px;
+        bottom: -250px;
+        background: radial-gradient(circle, rgba(34, 211, 238, 0.4), transparent 65%);
+      }
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 45%, rgba(3, 5, 14, 0.85) 100%);
+      }
+
+      /* ---------- shared scene layout ---------- */
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+      .scene-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 160px 90px;
+        gap: 28px;
+        text-align: center;
+      }
+      .grad {
+        background: linear-gradient(90deg, var(--violet), var(--cyan));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .kicker {
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: var(--cyan);
+      }
+
+      /* ---------- S1 brand ---------- */
+      #brand-word {
+        display: flex;
+        gap: 6px;
+      }
+      #brand-word span {
+        display: inline-block;
+        font-size: 190px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      #brand-bar {
+        display: block;
+        width: 640px;
+        height: 12px;
+        border-radius: 6px;
+        background: linear-gradient(90deg, var(--violet), var(--cyan));
+        transform-origin: left center;
+      }
+      #brand-sub {
+        font-size: 48px;
+        font-weight: 500;
+        color: var(--muted);
+        max-width: 860px;
+      }
+
+      /* ---------- S2/S3 route ---------- */
+      #route-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+      .city-label {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #label-pkd {
+        left: 110px;
+        top: 1330px;
+        align-items: flex-start;
+      }
+      #label-blr {
+        right: 110px;
+        top: 540px;
+        align-items: flex-end;
+        text-align: right;
+      }
+      .city-name {
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+      .city-note {
+        font-size: 32px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      #route-headline {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        bottom: 190px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        text-align: center;
+      }
+      #route-h1 {
+        font-size: 60px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      #route-h2 {
+        font-size: 128px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      #route-top {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        top: 200px;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ---------- S4 services ---------- */
+      #svc-title {
+        font-size: 72px;
+        font-weight: 800;
+        line-height: 1.1;
+        max-width: 880px;
+      }
+      #svc-list {
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        width: 820px;
+        margin-top: 30px;
+      }
+      .svc {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        width: 100%;
+        padding: 30px 40px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(124, 92, 255, 0.35);
+        text-align: left;
+      }
+      .svc-dot {
+        display: block;
+        flex: 0 0 auto;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--violet), var(--cyan));
+      }
+      .svc-text {
+        font-size: 54px;
+        font-weight: 700;
+      }
+
+      /* ---------- S5 lockup ---------- */
+      #end-word {
+        font-size: 200px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      #end-city {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 22px 44px;
+        border-radius: 999px;
+        border: 3px solid var(--cyan);
+        background: rgba(34, 211, 238, 0.08);
+      }
+      #end-pin {
+        display: block;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--cyan);
+      }
+      #end-city-text {
+        font-size: 50px;
+        font-weight: 700;
+      }
+      #end-tag {
+        font-size: 52px;
+        font-weight: 600;
+        color: var(--muted);
+        max-width: 860px;
+        margin-top: 20px;
+      }
+      #end-cta {
+        margin-top: 40px;
+        padding: 30px 64px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--violet), var(--cyan));
+        font-size: 46px;
+        font-weight: 800;
+        color: #050814;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="20"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- Background: full duration -->
+      <div id="bg" class="clip" data-start="0" data-duration="20" data-track-index="0">
+        <div id="grid" class="grid"></div>
+        <div id="orb-a" class="orb"></div>
+        <div id="orb-b" class="orb"></div>
+        <div class="vignette"></div>
+      </div>
+
+      <!-- S1: brand slam (0 - 3.6) -->
+      <div id="s1" class="scene clip" data-start="0" data-duration="3.6" data-track-index="1">
+        <div class="scene-content">
+          <div id="s1-kicker" class="kicker">Big news</div>
+          <div id="brand-word">
+            <span class="bl">X</span><span class="bl">E</span><span class="bl">E</span
+            ><span class="bl">N</span><span class="bl">O</span><span class="bl grad">X</span>
+          </div>
+          <div id="brand-bar"></div>
+          <div id="brand-sub">AI-Powered Digital Marketing</div>
+        </div>
+      </div>
+
+      <!-- S2+S3: Palakkad to Bengaluru route (3.6 - 11.6) -->
+      <div id="s2" class="scene clip" data-start="3.6" data-duration="8" data-track-index="2">
+        <svg id="route-svg" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="route-grad" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#7c5cff" />
+              <stop offset="1" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+          <path
+            id="route-ghost"
+            d="M 250 1250 C 250 1000, 520 1060, 600 900 S 760 700, 830 690"
+            fill="none"
+            stroke="rgba(169,177,214,0.18)"
+            stroke-width="6"
+            stroke-dasharray="4 18"
+            stroke-linecap="round"
+          />
+          <path
+            id="route-line"
+            d="M 250 1250 C 250 1000, 520 1060, 600 900 S 760 700, 830 690"
+            fill="none"
+            stroke="url(#route-grad)"
+            stroke-width="10"
+            stroke-linecap="round"
+          />
+          <circle id="pkd-ring" cx="250" cy="1250" r="30" fill="none" stroke="#7c5cff" stroke-width="4" />
+          <circle id="pkd-dot" cx="250" cy="1250" r="20" fill="#7c5cff" />
+          <circle id="blr-ring" cx="830" cy="690" r="34" fill="none" stroke="#22d3ee" stroke-width="5" />
+          <circle id="blr-dot" cx="830" cy="690" r="24" fill="#22d3ee" />
+        </svg>
+
+        <div id="route-top"><div id="route-kicker" class="kicker">Our journey</div></div>
+
+        <div id="label-pkd" class="city-label">
+          <div class="city-name">Palakkad</div>
+          <div class="city-note">Where it all started</div>
+        </div>
+        <div id="label-blr" class="city-label">
+          <div class="city-name grad">Bengaluru</div>
+          <div class="city-note">India's tech capital</div>
+        </div>
+
+        <div id="route-headline">
+          <div id="route-h1">Xeenox is now in</div>
+          <div id="route-h2" class="grad">Bangalore</div>
+        </div>
+      </div>
+
+      <!-- S4: services (11.6 - 16.4) -->
+      <div id="s4" class="scene clip" data-start="11.6" data-duration="4.8" data-track-index="3">
+        <div class="scene-content">
+          <div id="svc-kicker" class="kicker">What we bring</div>
+          <div id="svc-title">Marketing, <span class="grad" style="white-space: nowrap">powered by AI</span></div>
+          <div id="svc-list">
+            <div class="svc"><span class="svc-dot"></span><span class="svc-text">AI-driven Ad Campaigns</span></div>
+            <div class="svc"><span class="svc-dot"></span><span class="svc-text">Social Media Growth</span></div>
+            <div class="svc"><span class="svc-dot"></span><span class="svc-text">SEO &amp; Content</span></div>
+            <div class="svc"><span class="svc-dot"></span><span class="svc-text">Performance Marketing</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S5: lockup (16.4 - 20) -->
+      <div id="s5" class="scene clip" data-start="16.4" data-duration="3.6" data-track-index="4">
+        <div class="scene-content">
+          <div id="end-word">XEENO<span class="grad">X</span></div>
+          <div id="end-city"><span id="end-pin"></span><span id="end-city-text">Now in Bangalore</span></div>
+          <div id="end-tag">Grow smarter with AI-first marketing</div>
+          <div id="end-cta">Let's grow together</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- background drift (full duration) ----------
+      tl.fromTo("#grid", { y: 0 }, { y: 180, duration: 20, ease: "none" }, 0);
+      tl.fromTo("#orb-a", { x: 0, y: 0 }, { x: 260, y: 420, duration: 20, ease: "sine.inOut" }, 0);
+      tl.fromTo("#orb-b", { x: 0, y: 0 }, { x: -240, y: -520, duration: 20, ease: "sine.inOut" }, 0);
+
+      // ---------- S1 brand slam ----------
+      tl.fromTo("#s1-kicker", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.15);
+      tl.fromTo(
+        "#brand-word .bl",
+        { autoAlpha: 0, scale: 1.5, y: 40 },
+        { autoAlpha: 1, scale: 1, y: 0, duration: 0.45, ease: "back.out(2)", stagger: 0.08 },
+        0.35,
+      );
+      tl.fromTo("#brand-bar", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: "expo.out" }, 1.0);
+      tl.fromTo("#brand-sub", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: "power3.out" }, 1.25);
+      tl.to("#s1 .scene-content", { autoAlpha: 0, scale: 0.92, duration: 0.4, ease: "power2.in" }, 3.2);
+
+      // ---------- S2/S3 route ----------
+      const route = document.getElementById("route-line");
+      const routeLen = route.getTotalLength();
+      route.style.strokeDasharray = routeLen;
+
+      tl.fromTo("#route-kicker", { autoAlpha: 0, y: -20 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 3.7);
+      tl.fromTo("#route-ghost", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 3.7);
+      tl.fromTo(
+        "#pkd-dot",
+        { scale: 0, transformOrigin: "50% 50%" },
+        { scale: 1, duration: 0.5, ease: "back.out(3)" },
+        3.9,
+      );
+      tl.fromTo(
+        "#pkd-ring",
+        { scale: 0.6, autoAlpha: 1, transformOrigin: "50% 50%" },
+        { scale: 2.6, autoAlpha: 0, duration: 1.2, ease: "power2.out", repeat: 2 },
+        4.0,
+      );
+      tl.fromTo("#label-pkd", { autoAlpha: 0, x: -40 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: "power3.out" }, 4.1);
+
+      // draw the route
+      tl.fromTo(route, { strokeDashoffset: routeLen }, { strokeDashoffset: 0, duration: 2.0, ease: "power2.inOut" }, 5.7);
+      tl.fromTo(
+        "#blr-dot",
+        { scale: 0, transformOrigin: "50% 50%" },
+        { scale: 1, duration: 0.5, ease: "back.out(3)" },
+        7.6,
+      );
+      tl.fromTo(
+        "#blr-ring",
+        { scale: 0.6, autoAlpha: 1, transformOrigin: "50% 50%" },
+        { scale: 2.8, autoAlpha: 0, duration: 1.2, ease: "power2.out", repeat: 2 },
+        7.7,
+      );
+      tl.fromTo("#label-blr", { autoAlpha: 0, x: 40 }, { autoAlpha: 1, x: 0, duration: 0.6, ease: "power3.out" }, 7.8);
+
+      tl.fromTo("#route-h1", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 8.3);
+      tl.fromTo(
+        "#route-h2",
+        { autoAlpha: 0, scale: 1.6 },
+        { autoAlpha: 1, scale: 1, duration: 0.55, ease: "expo.out" },
+        8.6,
+      );
+      tl.to("#route-h2", { scale: 1.06, duration: 0.25, ease: "power2.out", yoyo: true, repeat: 1 }, 9.3);
+      tl.to("#s2 > *", { autoAlpha: 0, duration: 0.4, ease: "power2.in" }, 11.2);
+
+      // ---------- S4 services ----------
+      tl.fromTo("#svc-kicker", { autoAlpha: 0, y: 20 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, 11.7);
+      tl.fromTo("#svc-title", { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.55, ease: "power3.out" }, 11.85);
+      tl.fromTo(
+        "#svc-list .svc",
+        { autoAlpha: 0, x: -120 },
+        { autoAlpha: 1, x: 0, duration: 0.5, ease: "power3.out", stagger: 0.35 },
+        12.4,
+      );
+      tl.fromTo(
+        "#svc-list .svc-dot",
+        { scale: 0 },
+        { scale: 1, duration: 0.35, ease: "back.out(3)", stagger: 0.35 },
+        12.6,
+      );
+      tl.to("#s4 .scene-content", { autoAlpha: 0, y: -60, duration: 0.4, ease: "power2.in" }, 16.0);
+
+      // ---------- S5 lockup ----------
+      tl.fromTo(
+        "#end-word",
+        { autoAlpha: 0, scale: 0.7, filter: "blur(18px)" },
+        { autoAlpha: 1, scale: 1, filter: "blur(0px)", duration: 0.7, ease: "expo.out" },
+        16.5,
+      );
+      tl.fromTo("#end-city", { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "back.out(2)" }, 17.0);
+      tl.fromTo(
+        "#end-pin",
+        { scale: 0.6 },
+        { scale: 1.2, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 5 },
+        17.3,
+      );
+      tl.fromTo("#end-tag", { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" }, 17.4);
+      tl.fromTo("#end-cta", { autoAlpha: 0, scale: 0.8 }, { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 17.8);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
