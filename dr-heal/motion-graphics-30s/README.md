@@ -22,9 +22,10 @@ The audio is an original synthesised music bed with SFX, normalised to −14 LUF
 
 | Time | Scene |
 |---|---|
-| 0–4.5s | **Hook**: "Everyday PAIN holds life back." Pulsing red pain points on a body figure, with a heartbeat sound |
-| 4.5–9.3s | **Conditions**: labels for Neck, Shoulder, Back, Arthritis, Sciatica and Knee pain pop out from the figure |
-| 9.3–13.8s | **Turn**: a teal "healing" wipe turns the pain points green, then "NO SURGERY. NO RISKY PROCEDURES." lands with an impact sound, followed by "Advanced Non-Surgical Pain Treatment" |
+| 0–2s | **Logo sting**: teal and orange rings burst open, the Dr Heal logo pops in, then "Advanced Non-Surgical Pain Care · HSR Layout, Bengaluru" |
+| 2–6s | **Kinetic panels** (0.8s each, cut on the beat): BACK PAIN, KNEE PAIN, NECK PAIN, SCIATICA (nerve pain), ARTHRITIS (joint pain), each with a body-part icon and a pulsing pain point |
+| 6–9.3s | **Bridge**: "Pain is common." **SURGERY** gets struck through in orange, then "isn't the only answer." and "There's a better way →" |
+| 9.3–13.8s | **Turn**: a teal "healing" wipe, then "NO SURGERY. NO RISKY PROCEDURES." lands with an impact sound, followed by "Advanced Non-Surgical Pain Treatment" |
 | 13.8–19.8s | **Why Dr Heal?**: four benefit cards (No Surgery/No Scalpel, Root Cause, Faster Recovery, Affordable) |
 | 19.8–24.3s | **Trust**: counters for 15+ Years and 15K+ Patients, the lead doctor and the HSR Layout location |
 | 24.3–30s | **CTA**: logo, "Book Your Consultation Today", a pulsing **CALL NOW 079 6928 8000** button and www.drheal.in |

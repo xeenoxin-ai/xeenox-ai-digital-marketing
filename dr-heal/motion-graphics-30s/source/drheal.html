@@ -13,6 +13,11 @@ html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sa
 .dot{width:18px;height:18px;border-radius:50%;background:#e53935;box-shadow:0 0 12px #e53935}
 .card{left:70px;width:940px;height:196px;background:#fff;border-radius:36px;box-shadow:0 18px 40px rgba(15,76,129,.16);display:flex;align-items:center;padding:0 34px;gap:32px;border-left:12px solid #f08a24}
 .ic{width:128px;height:128px;border-radius:50%;background:linear-gradient(135deg,#2a9bbf,#16708e);display:flex;align-items:center;justify-content:center;flex:none}
+.pin{position:absolute;left:0;width:1080px;height:1350px}
+.pico{position:absolute;left:390px;top:200px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.14);border:6px solid rgba(255,255,255,.35)}
+.pw1{position:absolute;left:0;width:1080px;text-align:center;top:560px;font-weight:900;color:#fff;line-height:1;letter-spacing:4px}
+.pw2{position:absolute;left:0;width:1080px;text-align:center;top:790px;font-size:118px;font-weight:900;color:transparent;-webkit-text-stroke:4px #fff;line-height:1;letter-spacing:6px}
+.pnum{position:absolute;left:0;width:1080px;text-align:center;top:960px;font-size:34px;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:10px}
 .ct{font-size:46px;font-weight:800;color:#0b2e44;line-height:1.1}
 .cs{font-size:31px;font-weight:500;color:#5b6b78;margin-top:8px}
 </style></head>
@@ -20,8 +25,15 @@ html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sa
 <div id="stage">
   <!-- backgrounds -->
   <div class="full" id="bgDark" style="background:radial-gradient(ellipse at 50% 45%,#123f5c 0%,#0a2a40 45%,#04121d 100%)"></div>
-  <div class="full" id="bgRed" style="background:radial-gradient(circle at 50% 55%,rgba(229,57,53,.55) 0%,rgba(229,57,53,.15) 35%,rgba(0,0,0,0) 65%)"></div>
   <div class="full" id="particles"></div>
+  <div class="full" id="bgIntro" style="background:radial-gradient(ellipse at 50% 42%,#ffffff 0%,#eef7fb 60%,#d3eaf4 100%)">
+    <svg class="full" id="waves3" viewBox="0 0 1080 400" preserveAspectRatio="none" style="height:400px;top:auto;bottom:0">
+      <path id="w5" fill="#1f86a5" opacity=".16"/><path id="w6" fill="#f08a24" opacity=".14"/>
+    </svg>
+  </div>
+  <div class="full" id="ringT" style="border-radius:50%;border:26px solid #1f86a5;width:200px;height:200px"></div>
+  <div class="full" id="ringO" style="border-radius:50%;border:18px solid #f08a24;width:200px;height:200px"></div>
+  <div id="panels"></div>
   <div class="full" id="bgTeal" style="background:radial-gradient(ellipse at 50% 40%,#2aa3c6 0%,#1a7f9f 45%,#0d4f68 100%)"></div>
   <div class="full" id="bgLight" style="background:linear-gradient(180deg,#f6fbfd 0%,#e4f2f8 100%)">
     <svg class="full" id="waves" viewBox="0 0 1080 400" preserveAspectRatio="none" style="height:400px;top:auto;bottom:0">
@@ -36,36 +48,17 @@ html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sa
   </div>
 
   <div id="safe">
-    <!-- ===== S1 / S2 : pain ===== -->
-    <div class="a c" id="s1a" style="top:20px;font-size:72px;font-weight:700;color:#fff">Everyday</div>
-    <div class="a c" id="s1b" style="top:88px;font-size:240px;font-weight:900;color:#ff4b47;letter-spacing:6px;line-height:1;text-shadow:0 0 40px rgba(229,57,53,.8)">PAIN</div>
-    <div class="a c" id="s1c" style="top:335px;font-size:66px;font-weight:700;color:#fff">holds life back.</div>
+    <!-- ===== Intro A : logo sting ===== -->
+    <img class="a" id="introLogo" src="logo.png" style="left:150px;top:400px;width:780px">
+    <div class="a c" id="introTag" style="top:740px;font-size:46px;font-weight:700;color:#1f86a5">Advanced Non-Surgical Pain Care</div>
+    <div class="a c" id="introLoc" style="top:810px;font-size:36px;font-weight:600;color:#6b7c88;letter-spacing:6px">HSR LAYOUT · BENGALURU</div>
 
-    <div class="a c" id="s2a" style="top:60px;font-size:64px;font-weight:700;color:#cfe8f2">Expert care for</div>
-    <div class="a c" id="s2b" style="top:140px;font-size:92px;font-weight:900;color:#fff;line-height:1.05">every kind<br>of <span style="color:#ff5a55">pain</span></div>
-
-    <svg class="a" id="figure" viewBox="0 0 400 800" style="left:340px;top:440px;width:400px;height:800px;overflow:visible">
-      <defs>
-        <linearGradient id="fg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="800"><stop offset="0" stop-color="#3f8fb8"/><stop offset="1" stop-color="#1d5878"/></linearGradient>
-        <filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <g id="body" stroke="url(#fg)" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".95">
-        <circle cx="200" cy="72" r="56" fill="url(#fg)" stroke="none"/>
-        <path d="M200 150 L200 410" stroke-width="118"/>
-        <path d="M128 192 L272 192" stroke-width="72"/>
-        <path d="M120 200 L92 330 L82 455" stroke-width="46"/>
-        <path d="M280 200 L308 330 L318 455" stroke-width="46"/>
-        <path d="M168 425 L232 425" stroke-width="84"/>
-        <path d="M165 430 L158 600 L152 770" stroke-width="62"/>
-        <path d="M235 430 L242 600 L248 770" stroke-width="62"/>
-      </g>
-      <g id="spine" stroke="#9fd8ec" stroke-width="5" stroke-linecap="round" opacity="0">
-        <path d="M200 165 L200 410" stroke-dasharray="14 12"/>
-      </g>
-      <g id="pts"></g>
-    </svg>
-    <svg class="a" id="links" viewBox="0 0 1080 1350" style="left:0;top:0;width:1080px;height:1350px;overflow:visible"></svg>
-    <div id="labels"></div>
+    <!-- ===== Intro C : surgery isn't the only answer ===== -->
+    <div class="a c" id="cA" style="top:330px;font-size:76px;font-weight:800;color:#0b2e44">Pain is common.</div>
+    <div class="a c" id="cB" style="top:460px;font-size:172px;font-weight:900;color:#0b2e44;line-height:1;letter-spacing:4px">SURGERY</div>
+    <div class="a" id="cStrike" style="left:100px;top:530px;width:880px;height:24px;border-radius:12px;background:#f08a24;box-shadow:0 6px 18px rgba(240,138,36,.45);transform-origin:0 50%"></div>
+    <div class="a c" id="cC" style="top:680px;font-size:72px;font-weight:800;color:#1f86a5">isn't the only answer.</div>
+    <div class="a c" id="cD" style="top:830px;font-size:50px;font-weight:700;color:#f08a24">There's a better way &rarr;</div>
 
     <div class="a" id="badge" style="left:390px;top:1250px;width:300px;height:96px;background:#fff;border-radius:999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.35)">
       <img src="logo.png" style="width:230px">
@@ -163,44 +156,43 @@ for (let i = 0; i < 26; i++) {
   parts.push({ d, x: rnd() * W, y: rnd() * H, sp: 20 + rnd() * 60, ph: rnd() * 6.28, a: .08 + rnd() * .25 });
 }
 
-// ---------- pain points / labels ----------
-const FX = 340, FY = 440; // figure offset in safe
-const PTS = [
-  { x: 200, y: 150, label: 'Neck Pain', side: 'R', ly: 560, t: 4.9 },
-  { x: 127, y: 192, label: 'Shoulder Pain', side: 'L', ly: 600, t: 5.4 },
-  { x: 200, y: 385, label: 'Back Pain', side: 'R', ly: 790, t: 5.9 },
-  { x: 84, y: 450, label: 'Arthritis', side: 'L', ly: 860, t: 6.4 },
-  { x: 236, y: 505, label: 'Sciatica', side: 'R', ly: 960, t: 6.9 },
-  { x: 158, y: 600, label: 'Knee Pain', side: 'L', ly: 1030, t: 7.4 },
+// ---------- intro panels ----------
+const ICON = {
+  back: '<rect x="70" y="22" width="60" height="20" rx="8"/><rect x="66" y="48" width="64" height="20" rx="8"/><rect x="64" y="74" width="66" height="20" rx="8"/><rect x="66" y="100" width="66" height="20" rx="8"/><rect x="70" y="126" width="64" height="20" rx="8"/><rect x="74" y="152" width="60" height="20" rx="8"/>',
+  knee: '<path d="M86 18 L94 88" stroke="#fff" stroke-width="30" stroke-linecap="round"/><path d="M104 116 L110 184" stroke="#fff" stroke-width="28" stroke-linecap="round"/><circle cx="128" cy="102" r="14"/>',
+  neck: '<circle cx="100" cy="50" r="34"/><rect x="86" y="92" width="28" height="14" rx="5"/><rect x="86" y="110" width="28" height="14" rx="5"/><rect x="86" y="128" width="28" height="14" rx="5"/><path d="M28 186 Q100 132 172 186" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round"/>',
+  sciatica: '<path d="M76 14 L124 14 L120 104 L128 184 L94 188 L86 104 Z" fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round"/><path d="M104 26 L94 66 L112 94 L96 130 L112 168" fill="none" stroke="#ffd36b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>',
+  joint: '<rect x="56" y="112" width="96" height="70" rx="22"/><path d="M68 112 V40 M92 112 V24 M116 112 V28 M140 112 V48" stroke="#fff" stroke-width="18" stroke-linecap="round"/><path d="M58 148 L34 112" stroke="#fff" stroke-width="18" stroke-linecap="round"/>',
+};
+const PANELS = [
+  { w1: 'BACK', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#0f3c58,#0b2e44)', ic: 'back', px: 100, py: 136 },
+  { w1: 'KNEE', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#2496b8,#16708e)', ic: 'knee', px: 100, py: 102 },
+  { w1: 'NECK', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#f39a3f,#e2701a)', ic: 'neck', px: 100, py: 116 },
+  { w1: 'SCIATICA', w2: 'NERVE PAIN', fs: 150, bg: 'linear-gradient(160deg,#123f5c,#08263a)', ic: 'sciatica', px: 104, py: 40 },
+  { w1: 'ARTHRITIS', w2: 'JOINT PAIN', fs: 140, bg: 'linear-gradient(160deg,#1f8fb2,#0f5a75)', ic: 'joint', px: 116, py: 76 },
 ];
-const NS = 'http://www.w3.org/2000/svg';
-PTS.forEach((p, i) => {
-  const g = document.createElementNS(NS, 'g'); g.setAttribute('filter', 'url(#gl)');
-  p.r1 = document.createElementNS(NS, 'circle'); p.r2 = document.createElementNS(NS, 'circle'); p.core = document.createElementNS(NS, 'circle');
-  [p.r1, p.r2].forEach(c => { c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('fill', 'none'); c.setAttribute('stroke-width', '5'); g.appendChild(c); });
-  p.core.setAttribute('cx', p.x); p.core.setAttribute('cy', p.y); g.appendChild(p.core);
-  $('pts').appendChild(g); p.g = g;
-  // label pill
-  const L = document.createElement('div'); L.className = 'a pill'; L.innerHTML = `<span class="dot"></span>${p.label}`;
-  $('labels').appendChild(L); p.L = L;
-  const ln = document.createElementNS(NS, 'path'); ln.setAttribute('fill', 'none'); ln.setAttribute('stroke', '#ff7a76'); ln.setAttribute('stroke-width', '4');
-  $('links').appendChild(ln); p.ln = ln;
-  p.appear = 0.7 + i * 0.35;
+const PDUR = 0.8, PSTART = 2.1;
+const DIRS = ['b', 'r', 't', 'l', 'b'];
+PANELS.forEach((q, i) => {
+  const d = document.createElement('div'); d.className = 'full'; d.style.height = H + 'px'; d.style.background = q.bg;
+  d.innerHTML = `<div class="pin" style="top:${TOP}px">
+     <div class="pico"><svg viewBox="0 0 200 200" width="200" height="200" style="position:absolute;left:44px;top:44px;overflow:visible" fill="#fff">${ICON[q.ic]}
+       <circle class="pr1" cx="${q.px}" cy="${q.py}" r="14" fill="none" stroke="#ff4b47" stroke-width="5"/>
+       <circle class="pr2" cx="${q.px}" cy="${q.py}" r="14" fill="none" stroke="#ff4b47" stroke-width="5"/>
+       <circle cx="${q.px}" cy="${q.py}" r="13" fill="#ff4b47" stroke="#fff" stroke-width="4"/></svg></div>
+     <div class="pw1" style="font-size:${q.fs}px;top:${560 + (210 - q.fs) * .6}px">${q.w1}</div>
+     <div class="pw2">${q.w2}</div>
+     <div class="pnum">0${i + 1} / 05</div></div>`;
+  $('panels').appendChild(d);
+  q.el = d; q.pin = d.querySelector('.pin'); q.ico = d.querySelector('.pico'); q.a = d.querySelector('.pw1'); q.b = d.querySelector('.pw2'); q.n = d.querySelector('.pnum');
+  q.rings = [d.querySelector('.pr1'), d.querySelector('.pr2')];
+  q.s = PSTART + i * PDUR;
 });
-// measure pills once fonts ready
-function layoutPills() {
-  PTS.forEach(p => {
-    const w = p.L.offsetWidth, h = p.L.offsetHeight;
-    const px = FX + p.x, py = FY + p.y;
-    const lx = p.side === 'R' ? 1060 - w : 20, ly = p.ly - h / 2;
-    p.L.style.left = lx + 'px'; p.L.style.top = ly + 'px';
-    const ex = p.side === 'R' ? lx : lx + w, ey = p.ly;
-    const mx = p.side === 'R' ? ex - 40 : ex + 40;
-    const d = `M${px} ${py} L${mx} ${ey} L${ex} ${ey}`;
-    p.ln.setAttribute('d', d); p.len = Math.hypot(mx - px, ey - py) + 40;
-    p.ln.setAttribute('stroke-dasharray', p.len);
-  });
+function clipFor(dir, x) { // x: 0 hidden -> 1 shown
+  const h = (1 - x) * 100;
+  return dir === 'b' ? `inset(${h}% 0 0 0)` : dir === 'r' ? `inset(0 0 0 ${h}%)` : dir === 't' ? `inset(0 0 ${h}% 0)` : `inset(0 ${h}% 0 0)`;
 }
+function layoutPills() {}
 
 function wave(path, t, amp, base, k, sp, ph) {
   let d = `M0 400 L0 ${base}`;
@@ -211,16 +203,37 @@ function wave(path, t, amp, base, k, sp, ph) {
 // ---------- main render ----------
 window.render = function (t) {
   // particles
-  const pAlpha = t < 14 ? 1 : (t < 19.8 ? 0 : (t < 24.5 ? 1 : 0));
+  const pAlpha = t < 9.2 ? 0 : t < 14 ? 1 : (t < 19.8 ? 0 : (t < 24.5 ? 1 : 0));
   parts.forEach(q => {
     const y = ((q.y - t * q.sp) % H + H) % H, x = q.x + Math.sin(t * .8 + q.ph) * 30;
     q.d.style.transform = `translate(${x}px,${y}px)`; q.d.style.opacity = q.a * pAlpha;
   });
 
   // backgrounds
-  const heart = Math.pow(Math.max(0, Math.sin(t * Math.PI * 2 / 1.1)), 6);
-  $('bgRed').style.opacity = t < 9.6 ? (0.45 + heart * 0.55) * eo(P(t, 0, .6)) : 0;
-  const cx = FX + 200, cy = TOP + FY + 385;
+  $('bgIntro').style.visibility = t < 10.3 ? 'visible' : 'hidden';
+  wave($('w5'), t, 22, 250, 1.5, 1.6, 0); wave($('w6'), t, 18, 300, 2, -1.2, 1);
+  [['ringT', 0.0, 0.9, 1500], ['ringO', 0.12, 1.05, 1250]].forEach(([id, a, b, R]) => {
+    const x = P(t, a, b), r = 40 + R * eo(x), e = $(id);
+    e.style.width = e.style.height = 2 * r + 'px';
+    e.style.left = 540 - r + 'px'; e.style.top = TOP + 560 - r + 'px';
+    e.style.opacity = x > 0 && x < 1 ? 1 - eio(x) : 0;
+  });
+  // kinetic pain panels
+  PANELS.forEach((q, i) => {
+    const inX = eio(P(t, q.s, q.s + .28));
+    const last = i === PANELS.length - 1, outX = last ? eio(P(t, 6.1, 6.42)) : 0;
+    const gone = (!last && t > q.s + PDUR + .3) || t < q.s || outX >= 1;
+    q.el.style.display = gone ? 'none' : 'block';
+    q.el.style.clipPath = last && outX > 0 ? `inset(0 0 ${outX * 100}% 0)` : clipFor(DIRS[i], inX);
+    const lt = t - q.s;
+    q.pin.style.transform = `scale(${1.08 - .08 * eo(P(lt, 0, PDUR))})`;
+    const ic = P(lt, .08, .4); set(q.ico, eo(ic), 0, 0, lerp(.3, 1, bk(ic)), lerp(-30, 0, eo(ic)));
+    const wa = P(lt, .12, .4); set(q.a, eo(wa), 0, lerp(90, 0, eo(wa)), lerp(1.25, 1, eo(wa)));
+    const wb = P(lt, .2, .48); set(q.b, eo(wb), 0, lerp(70, 0, eo(wb)));
+    set(q.n, eo(P(lt, .28, .5)), 0, 0);
+    q.rings.forEach((c, k) => { const ph = ((lt * 1.6 + k * .5) % 1 + 1) % 1; c.setAttribute('r', 14 + ph * 44); c.setAttribute('opacity', (1 - ph) * eo(ic)); });
+  });
+  const cx = 540, cy = TOP + 560;
   const rT = 2400 * eio(P(t, 9.25, 10.15));
   $('bgTeal').style.clipPath = `circle(${rT}px at ${cx}px ${cy}px)`;
   $('bgTeal').style.visibility = t > 9.2 && t < 15 ? 'visible' : 'hidden';
@@ -235,42 +248,25 @@ window.render = function (t) {
   wave($('w1'), t, 22, 250, 1.5, 1.6, 0); wave($('w2'), t, 18, 300, 2, -1.2, 1);
   wave($('w3'), t, 22, 250, 1.5, 1.6, 0); wave($('w4'), t, 18, 300, 2, -1.2, 1);
 
-  // ---- S1 ----
-  const s1out = eio(P(t, 4.2, 4.7));
-  set('s1a', vis(t, .15, .6, 4.2, 4.6), lerp(-80, 0, eo(P(t, .15, .6))), -60 * s1out);
-  const pIn = P(t, .45, .85), shake = t < 4.2 ? Math.sin(t * 70) * 7 * (heart * .8 + (1 - P(t, .85, 1.6))) : 0;
-  set('s1b', vis(t, .45, .7, 4.2, 4.6), shake, -60 * s1out, lerp(2.4, 1, bk(pIn)) * (1 + heart * .05));
-  set('s1c', vis(t, 1.1, 1.5, 4.2, 4.6), lerp(80, 0, eo(P(t, 1.1, 1.5))), -60 * s1out);
+  // ---- Intro A: logo sting ----
+  const lA = P(t, .2, .85), lOut = eio(P(t, 1.85, 2.15));
+  set('introLogo', eo(lA) * (1 - lOut), 0, 0, lerp(.55, 1, bk(lA)) * (1 + .35 * lOut));
+  set('introTag', eo(P(t, .7, 1.05)) * (1 - lOut), 0, lerp(30, 0, eo(P(t, .7, 1.05))));
+  set('introLoc', eo(P(t, .9, 1.25)) * (1 - lOut), 0, lerp(30, 0, eo(P(t, .9, 1.25))));
 
-  // ---- S2 ----
-  set('s2a', vis(t, 4.6, 5.0, 9.0, 9.4), 0, lerp(40, 0, eo(P(t, 4.6, 5.0))));
-  set('s2b', vis(t, 4.75, 5.2, 9.0, 9.4), 0, lerp(40, 0, eo(P(t, 4.75, 5.2))), lerp(.85, 1, bk(P(t, 4.75, 5.2))));
-
-  // figure
-  const fIn = eo(P(t, .3, 1.2)), fOut = eio(P(t, 9.9, 10.5));
-  set('figure', fIn * (1 - fOut), 0, lerp(60, 0, fIn) + fOut * 40, lerp(.92, 1, fIn) * (1 - .15 * fOut));
-  const heal = eio(P(t, 9.35, 9.9));
-  $('spine').style.opacity = heal;
-  PTS.forEach((p, i) => {
-    const a = eo(P(t, p.appear, p.appear + .35));
-    const col = mixColor('ff3b36', '7af0d6', heal);
-    p.core.setAttribute('r', 13 * bk(P(t, p.appear, p.appear + .35)) * (1 + .15 * heart));
-    p.core.setAttribute('fill', col);
-    [p.r1, p.r2].forEach((c, k) => {
-      const ph = ((t * .9 + k * .5 + i * .13) % 1);
-      c.setAttribute('r', 14 + ph * 46); c.setAttribute('stroke', col);
-      c.setAttribute('opacity', a * (1 - ph) * (heal > .99 ? 0 : 1));
-    });
-    p.g.style.opacity = a;
-    // labels (S2)
-    const lIn = P(t, p.t, p.t + .45), lOut = eio(P(t, 9.15, 9.5));
-    p.ln.setAttribute('stroke-dashoffset', p.len * (1 - eo(P(t, p.t, p.t + .3))));
-    p.ln.style.opacity = 1 - lOut;
-    set(p.L, eo(lIn) * (1 - lOut), (p.side === 'R' ? 1 : -1) * 60 * (1 - eo(lIn)), 0, lerp(.6, 1, bk(lIn)));
-  });
+  // ---- Intro C: surgery isn't the only answer ----
+  const cOut = 1 - eio(P(t, 9.05, 9.4));
+  set('cA', eo(P(t, 6.35, 6.7)) * cOut, 0, lerp(40, 0, eo(P(t, 6.35, 6.7))));
+  const sb = P(t, 6.85, 7.1);
+  set('cB', clamp(sb * 3) * cOut, t < 7.3 ? Math.sin(t * 90) * 9 * (1 - P(t, 7.1, 7.3)) * (sb > 0 ? 1 : 0) : 0, 0, lerp(1.8, 1, eo(sb)));
+  const st = eio(P(t, 7.45, 7.75));
+  $('cStrike').style.opacity = (st > 0 ? 1 : 0) * cOut; $('cStrike').style.transform = `rotate(-3deg) scaleX(${st})`;
+  $('cB').style.color = mixColor('0b2e44', '8fa3b0', st);
+  set('cC', eo(P(t, 7.9, 8.25)) * cOut, 0, lerp(40, 0, eo(P(t, 7.9, 8.25))));
+  set('cD', eo(P(t, 8.35, 8.65)) * cOut, lerp(-60, 0, eo(P(t, 8.35, 8.65))) + (t > 8.65 ? Math.sin((t - 8.65) * 9) * 8 : 0), 0);
 
   // badge
-  set('badge', vis(t, 1.4, 1.9, 13.4, 13.8), 0, lerp(40, 0, eo(P(t, 1.4, 1.9))));
+  set('badge', vis(t, 2.3, 2.7, 13.4, 13.8), 0, lerp(40, 0, eo(P(t, 2.3, 2.7))));
 
   // ---- S3 ----
   const s3o = 1 - eio(P(t, 13.4, 13.85));

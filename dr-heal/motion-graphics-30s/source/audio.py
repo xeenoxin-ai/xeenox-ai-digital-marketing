@@ -51,23 +51,37 @@ def chime(m,gain=.12):
     n=int(1.8*SR); t=np.arange(n)/SR; f=hz(m)
     return gain*(np.sin(2*np.pi*f*t)+.5*np.sin(2*np.pi*f*2.01*t)+.25*np.sin(2*np.pi*f*3.02*t))*np.exp(-t*2.5)
 
-# --- Part A 0-9.3: dark pad + heartbeat (synced to visual pulse period 1.1s)
-add(pad([45,52,57,60],5.0,.10,.5),0.0)
-add(pad([41,48,53,57],5.0,.10,.5),4.5)
-k=0
-while True:
-    tp=1.1*(0.25+k)
-    if tp>9.3: break
-    add(heart(),tp-0.03); add(heart(.35),tp+0.17); k+=1
-# low drone
-n=at(9.4); t=np.arange(n)/SR; add(.05*np.sin(2*np.pi*55*t)*env(n,1,.4),0)
+# --- Part A 0-9.2: logo sting -> kinetic panels -> "surgery isn't the only answer"
+# logo sting
+add(whoosh(.35,.18,True),0.0)
+add(impact(.35),0.22)
+for m,dt in ((72,0),(76,.08),(79,.16),(84,.26)): add(chime(m,.09),0.22+dt)
+add(pad([48,55,60,64],2.3,.08,.8),0.0)
+# panels 2.1-6.1: driving pulse, hit on each panel cut (every 0.8s)
+for i in range(5):
+    tp=2.1+i*.8
+    add(whoosh(.3,.16,True),tp-.28); add(impact(.32),tp)
+    add(pluck([69,72,76,74,79][i],.5,.10),tp+.02)
+k=2.1
+while k<6.05:
+    add(kick(.42),k); add(hat(.045),k+.2)
+    nb=int(.2*SR); tb=np.arange(nb)/SR
+    add(.12*np.sin(2*np.pi*hz(33)*tb)*np.exp(-tb*14),k); add(.10*np.sin(2*np.pi*hz(45)*tb)*np.exp(-tb*14),k+.2)
+    k+=.4
+add(pad([45,52,57,60],4.2,.09,.9),2.0)
+# scene C 6.1-9.2
+add(whoosh(.45,.2,False),6.05)
+add(pad([41,48,53,57],3.4,.10,.7),6.1)
+add(impact(.55),6.88)
+add(whoosh(.35,.22,False),7.42)
+add(pluck(76,.5,.09),7.9); add(pluck(79,.5,.09),8.35)
+n=at(3.1); t=np.arange(n)/SR; add(.05*np.sin(2*np.pi*55*t)*env(n,.5,.4),6.1)
 # whooshes / transitions
-add(whoosh(.6,.18,True),4.0)
+add(whoosh(.9,.22,True),8.3)
 add(whoosh(1.0,.30,True),9.2)
 add(impact(.75),10.18); add(impact(.45),10.78)
 add(whoosh(.7,.22,True),13.3); add(whoosh(.7,.22,True),19.3); add(whoosh(.8,.25,True),23.6)
 # pops for labels & cards
-for tt in (4.9,5.4,5.9,6.4,6.9,7.4): add(pluck(84,.25,.06),tt,pan=.4 if int(tt*10)%2 else -.4)
 for i in range(4): add(pluck(79+[0,2,4,7][i],.4,.09),15.0+i*.75)
 for tt in (20.6,21.4): add(chime(84,.08),tt)
 
