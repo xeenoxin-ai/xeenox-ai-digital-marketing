@@ -51,26 +51,36 @@ def chime(m,gain=.12):
     n=int(1.8*SR); t=np.arange(n)/SR; f=hz(m)
     return gain*(np.sin(2*np.pi*f*t)+.5*np.sin(2*np.pi*f*2.01*t)+.25*np.sin(2*np.pi*f*3.02*t))*np.exp(-t*2.5)
 
-# --- Part A 0-9.2: logo sting -> kinetic panels -> "surgery isn't the only answer"
-# logo sting
-add(whoosh(.35,.18,True),0.0)
-add(impact(.35),0.22)
-for m,dt in ((72,0),(76,.08),(79,.16),(84,.26)): add(chime(m,.09),0.22+dt)
-add(pad([48,55,60,64],2.3,.08,.8),0.0)
-# panels 2.1-6.1: driving pulse, hit on each panel cut (every 0.8s)
+# --- Part A 0-9.2: pain-scale hook -> kinetic panels -> "surgery isn't the only answer"
+# HOOK 0-3s: rising alarm as the needle climbs, crack + impact at 10/10, heartbeat after
+add(impact(.35),0.0); add(heart(.5),0.0)
+n=at(1.0); t=np.arange(n)/SR
+f0=180*np.power(1100/180,(t/1.0)**2.2)               # follows the needle's ease-in
+alarm=np.sin(2*np.pi*np.cumsum(f0)/SR)*(.25+.75*(t/1.0)**2)*(1+.3*np.sin(2*np.pi*14*t))
+add(.10*alarm,0.0)
+add(heart(.45),0.42); add(heart(.5),0.72)
+add(impact(.9),1.0)
+n=at(.5); t=np.arange(n)/SR; nz=rng.standard_normal(n); crack=(nz-lp(nz,2500))*np.exp(-t*12)
+add(.45*crack,1.0)
+n=at(1.6); t=np.arange(n)/SR; add(.035*np.sin(2*np.pi*3100*t)*np.exp(-t*1.8),1.05)   # ringing ears
+n=at(2.0); t=np.arange(n)/SR; add(.07*np.sin(2*np.pi*41*t)*env(n,.05,.6),1.0)       # sub drone
+for tb in (1.75,2.5): add(heart(.5),tb); add(heart(.32),tb+.18)
+add(impact(.4),1.6)
+add(whoosh(.35,.22,True),2.7)
+# panels 3.0-6.2: hit on each panel cut (every 0.64s)
 for i in range(5):
-    tp=2.1+i*.8
-    add(whoosh(.3,.16,True),tp-.28); add(impact(.32),tp)
-    add(pluck([69,72,76,74,79][i],.5,.10),tp+.02)
-k=2.1
-while k<6.05:
-    add(kick(.42),k); add(hat(.045),k+.2)
-    nb=int(.2*SR); tb=np.arange(nb)/SR
-    add(.12*np.sin(2*np.pi*hz(33)*tb)*np.exp(-tb*14),k); add(.10*np.sin(2*np.pi*hz(45)*tb)*np.exp(-tb*14),k+.2)
-    k+=.4
-add(pad([45,52,57,60],4.2,.09,.9),2.0)
+    tp=3.0+i*.64
+    add(whoosh(.25,.15,True),tp-.22); add(impact(.32),tp)
+    add(pluck([69,72,76,74,79][i],.45,.10),tp+.02)
+k=3.0
+while k<6.15:
+    add(kick(.42),k); add(hat(.045),k+.16)
+    nb=int(.16*SR); tb=np.arange(nb)/SR
+    add(.12*np.sin(2*np.pi*hz(33)*tb)*np.exp(-tb*14),k); add(.10*np.sin(2*np.pi*hz(45)*tb)*np.exp(-tb*14),k+.16)
+    k+=.32
+add(pad([45,52,57,60],3.4,.09,.9),2.95)
 # scene C 6.1-9.2
-add(whoosh(.45,.2,False),6.05)
+add(whoosh(.45,.2,False),6.12)
 add(pad([41,48,53,57],3.4,.10,.7),6.1)
 add(impact(.55),6.88)
 add(whoosh(.35,.22,False),7.42)

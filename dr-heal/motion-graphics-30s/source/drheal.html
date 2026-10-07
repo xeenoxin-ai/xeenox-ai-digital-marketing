@@ -31,8 +31,29 @@ html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sa
       <path id="w5" fill="#1f86a5" opacity=".16"/><path id="w6" fill="#f08a24" opacity=".14"/>
     </svg>
   </div>
-  <div class="full" id="ringT" style="border-radius:50%;border:26px solid #1f86a5;width:200px;height:200px"></div>
-  <div class="full" id="ringO" style="border-radius:50%;border:18px solid #f08a24;width:200px;height:200px"></div>
+  <div class="full" id="hook" style="background:radial-gradient(ellipse at 50% 45%,#6b0f16 0%,#320609 55%,#120204 100%)">
+    <div class="full" id="hookVig" style="background:radial-gradient(circle at 50% 45%,rgba(255,40,40,0) 35%,rgba(255,30,30,.5) 100%)"></div>
+    <div id="hookIn" style="position:absolute;left:0;width:1080px;height:1350px">
+      <div class="a c" id="hkLabel" style="top:70px;font-size:44px;font-weight:800;color:#ffd6d6;letter-spacing:14px">PAIN LEVEL</div>
+      <svg id="gauge" viewBox="0 0 1080 640" style="position:absolute;left:0;top:60px;width:1080px;height:640px;overflow:visible">
+        <defs>
+          <linearGradient id="gg" x1="180" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#2ecc71"/><stop offset=".45" stop-color="#f1c40f"/><stop offset=".72" stop-color="#ff8a1e"/><stop offset="1" stop-color="#ff2d2d"/>
+          </linearGradient>
+          <filter id="hg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <path d="M 180 560 A 360 360 0 0 1 900 560" stroke="#fff" stroke-opacity=".12" stroke-width="54" fill="none" stroke-linecap="round"/>
+        <path id="gArc" d="M 180 560 A 360 360 0 0 1 900 560" stroke="url(#gg)" stroke-width="54" fill="none" stroke-linecap="round" stroke-dasharray="1131" stroke-dashoffset="1131" filter="url(#hg)"/>
+        <g id="gTicks"></g>
+        <g id="needle" filter="url(#hg)"><path d="M 532 560 L 540 236 L 548 560 Z" fill="#fff"/><circle cx="540" cy="560" r="36" fill="#fff"/><circle id="hub" cx="540" cy="560" r="15" fill="#ff2d2d"/></g>
+      </svg>
+      <svg id="cracks" viewBox="0 0 1080 1350" style="position:absolute;left:0;top:0;width:1080px;height:1350px;overflow:visible" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" filter="url(#hg)"></svg>
+      <div class="a c" id="hkNum" style="top:650px;font-size:200px;font-weight:900;line-height:1;color:#fff">1<span style="font-size:90px;opacity:.75">/10</span></div>
+      <div class="a c" id="hkT1" style="top:885px;font-size:74px;font-weight:900;color:#fff;line-height:1.05">When pain hits 10/10,</div>
+      <div class="a c" id="hkT2" style="top:975px;font-size:74px;font-weight:900;color:#ff4b47;line-height:1.05;text-shadow:0 0 30px rgba(255,60,60,.6)">everyday life stops.</div>
+    </div>
+    <div class="full" id="hookFlash" style="background:#ff3030"></div>
+  </div>
   <div id="panels"></div>
   <div class="full" id="bgTeal" style="background:radial-gradient(ellipse at 50% 40%,#2aa3c6 0%,#1a7f9f 45%,#0d4f68 100%)"></div>
   <div class="full" id="bgLight" style="background:linear-gradient(180deg,#f6fbfd 0%,#e4f2f8 100%)">
@@ -48,11 +69,6 @@ html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sa
   </div>
 
   <div id="safe">
-    <!-- ===== Intro A : logo sting ===== -->
-    <img class="a" id="introLogo" src="logo.png" style="left:150px;top:400px;width:780px">
-    <div class="a c" id="introTag" style="top:740px;font-size:46px;font-weight:700;color:#1f86a5">Advanced Non-Surgical Pain Care</div>
-    <div class="a c" id="introLoc" style="top:810px;font-size:36px;font-weight:600;color:#6b7c88;letter-spacing:6px">HSR LAYOUT · BENGALURU</div>
-
     <!-- ===== Intro C : surgery isn't the only answer ===== -->
     <div class="a c" id="cA" style="top:330px;font-size:76px;font-weight:800;color:#0b2e44">Pain is common.</div>
     <div class="a c" id="cB" style="top:460px;font-size:172px;font-weight:900;color:#0b2e44;line-height:1;letter-spacing:4px">SURGERY</div>
@@ -171,7 +187,7 @@ const PANELS = [
   { w1: 'SCIATICA', w2: 'NERVE PAIN', fs: 150, bg: 'linear-gradient(160deg,#123f5c,#08263a)', ic: 'sciatica', px: 104, py: 40 },
   { w1: 'ARTHRITIS', w2: 'JOINT PAIN', fs: 140, bg: 'linear-gradient(160deg,#1f8fb2,#0f5a75)', ic: 'joint', px: 116, py: 76 },
 ];
-const PDUR = 0.8, PSTART = 2.1;
+const PDUR = 0.64, PSTART = 3.0;
 const DIRS = ['b', 'r', 't', 'l', 'b'];
 PANELS.forEach((q, i) => {
   const d = document.createElement('div'); d.className = 'full'; d.style.height = H + 'px'; d.style.background = q.bg;
@@ -191,6 +207,30 @@ PANELS.forEach((q, i) => {
 function clipFor(dir, x) { // x: 0 hidden -> 1 shown
   const h = (1 - x) * 100;
   return dir === 'b' ? `inset(${h}% 0 0 0)` : dir === 'r' ? `inset(0 0 0 ${h}%)` : dir === 't' ? `inset(0 0 ${h}% 0)` : `inset(0 ${h}% 0 0)`;
+}
+// ---------- hook: pain scale ----------
+const NS = 'http://www.w3.org/2000/svg';
+const GC = { x: 540, y: 560 }, GY = 60; // gauge centre in svg coords, svg top in safe
+for (let i = 0; i <= 10; i++) {
+  const th = Math.PI - i / 10 * Math.PI, r = 430;
+  const tx = document.createElementNS(NS, 'text');
+  tx.setAttribute('x', GC.x + r * Math.cos(th)); tx.setAttribute('y', GC.y - r * Math.sin(th) + 14);
+  tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('font-family', 'M'); tx.setAttribute('font-weight', '800');
+  tx.setAttribute('font-size', i === 10 ? 54 : 36); tx.setAttribute('fill', i === 10 ? '#ff4b47' : 'rgba(255,255,255,.7)');
+  tx.textContent = i; $('gTicks').appendChild(tx);
+}
+const CRACKS = []; // jagged branches from the needle tip at 10/10
+{
+  let cs = 11; const r2 = () => (cs = (cs * 16807) % 2147483647) / 2147483647;
+  const ox = 900, oy = GY + 560;
+  for (let b = 0; b < 9; b++) {
+    let a = -1.65 + (b / 8) * 2.5 + (r2() - .5) * .2, x = ox, y = oy, d = `M${x} ${y}`, len = 0;
+    const segs = 5 + Math.floor(r2() * 4);
+    for (let k = 0; k < segs; k++) { a += (r2() - .5) * .7; const l = 40 + r2() * 70; x += Math.cos(a) * l; y += Math.sin(a) * l; d += ` L${x.toFixed(1)} ${y.toFixed(1)}`; len += l; }
+    const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('stroke-width', 3 + r2() * 4);
+    p.setAttribute('stroke-dasharray', len); p.setAttribute('stroke-dashoffset', len); $('cracks').appendChild(p);
+    CRACKS.push({ p, len, delay: r2() * .12 });
+  }
 }
 function layoutPills() {}
 
@@ -212,16 +252,39 @@ window.render = function (t) {
   // backgrounds
   $('bgIntro').style.visibility = t < 10.3 ? 'visible' : 'hidden';
   wave($('w5'), t, 22, 250, 1.5, 1.6, 0); wave($('w6'), t, 18, 300, 2, -1.2, 1);
-  [['ringT', 0.0, 0.9, 1500], ['ringO', 0.12, 1.05, 1250]].forEach(([id, a, b, R]) => {
-    const x = P(t, a, b), r = 40 + R * eo(x), e = $(id);
-    e.style.width = e.style.height = 2 * r + 'px';
-    e.style.left = 540 - r + 'px'; e.style.top = TOP + 560 - r + 'px';
-    e.style.opacity = x > 0 && x < 1 ? 1 - eio(x) : 0;
+  // ---- HOOK 0-3s: pain scale slams to 10/10 ----
+  const hookOut = eio(P(t, 2.82, 3.05));
+  $('hook').style.display = t < 3.1 ? 'block' : 'none';
+  $('hookIn').style.top = TOP + 'px';
+  const rise = Math.pow(P(t, 0, .95), 2.2);
+  const jit = t > .95 ? Math.sin(t * 60) * .18 * Math.exp(-(t - .95) * 4) : 0;
+  const pv = clamp(1 + 9 * rise + jit, 0, 10.15);
+  $('needle').setAttribute('transform', `rotate(${pv / 10 * 180 - 90} ${GC.x} ${GC.y})`);
+  $('gArc').setAttribute('stroke-dashoffset', 1131 * (1 - Math.min(pv, 10) / 10));
+  const shown = Math.max(1, Math.min(10, Math.round(pv)));
+  $('hkNum').firstChild.nodeValue = shown;
+  $('hkNum').style.color = mixColor('7dffb0', 'ff3b30', clamp((pv - 1) / 9));
+  const throb = t > 1 ? Math.pow(Math.max(0, Math.sin((t - 1) * Math.PI * 2 / .75)), 8) : 0;
+  const hit = Math.exp(-Math.max(0, t - 1.0) * 7) * (t >= 1.0 ? 1 : 0);
+  set('hkNum', 1, 0, 0, (1 + .22 * hit + .05 * throb) * (1 + .15 * hookOut));
+  const sh = t >= 1.0 && t < 1.7 ? 22 * Math.exp(-(t - 1.0) * 6) : 0;
+  $('hookIn').style.transform = `translate(${Math.sin(t * 97) * sh}px,${Math.cos(t * 83) * sh}px) scale(${1 + .12 * hookOut})`;
+  $('hookIn').style.opacity = 1 - hookOut;
+  set('hkLabel', 1, 0, 0);
+  $('hookFlash').style.opacity = Math.max(.35 * (1 - P(t, 0, .12)), .6 * hit);
+  $('hookVig').style.opacity = .35 + .45 * clamp(pv / 10) + .2 * throb;
+  CRACKS.forEach(c => {
+    c.p.setAttribute('stroke-dashoffset', c.len * (1 - eo(P(t, 1.0 + c.delay, 1.22 + c.delay))));
+    c.p.style.opacity = 1 - P(t, 2.4, 2.85);
   });
+  const h1 = P(t, 1.05, 1.25), h2 = P(t, 1.6, 1.82);
+  set('hkT1', clamp(h1 * 3), 0, 0, lerp(1.7, 1, eo(h1)));
+  set('hkT2', clamp(h2 * 3), t > 1.82 && t < 2.1 ? Math.sin(t * 90) * 6 : 0, 0, lerp(1.7, 1, eo(h2)));
+
   // kinetic pain panels
   PANELS.forEach((q, i) => {
     const inX = eio(P(t, q.s, q.s + .28));
-    const last = i === PANELS.length - 1, outX = last ? eio(P(t, 6.1, 6.42)) : 0;
+    const last = i === PANELS.length - 1, outX = last ? eio(P(t, 6.15, 6.45)) : 0;
     const gone = (!last && t > q.s + PDUR + .3) || t < q.s || outX >= 1;
     q.el.style.display = gone ? 'none' : 'block';
     q.el.style.clipPath = last && outX > 0 ? `inset(0 0 ${outX * 100}% 0)` : clipFor(DIRS[i], inX);
@@ -248,12 +311,6 @@ window.render = function (t) {
   wave($('w1'), t, 22, 250, 1.5, 1.6, 0); wave($('w2'), t, 18, 300, 2, -1.2, 1);
   wave($('w3'), t, 22, 250, 1.5, 1.6, 0); wave($('w4'), t, 18, 300, 2, -1.2, 1);
 
-  // ---- Intro A: logo sting ----
-  const lA = P(t, .2, .85), lOut = eio(P(t, 1.85, 2.15));
-  set('introLogo', eo(lA) * (1 - lOut), 0, 0, lerp(.55, 1, bk(lA)) * (1 + .35 * lOut));
-  set('introTag', eo(P(t, .7, 1.05)) * (1 - lOut), 0, lerp(30, 0, eo(P(t, .7, 1.05))));
-  set('introLoc', eo(P(t, .9, 1.25)) * (1 - lOut), 0, lerp(30, 0, eo(P(t, .9, 1.25))));
-
   // ---- Intro C: surgery isn't the only answer ----
   const cOut = 1 - eio(P(t, 9.05, 9.4));
   set('cA', eo(P(t, 6.35, 6.7)) * cOut, 0, lerp(40, 0, eo(P(t, 6.35, 6.7))));
@@ -266,7 +323,7 @@ window.render = function (t) {
   set('cD', eo(P(t, 8.35, 8.65)) * cOut, lerp(-60, 0, eo(P(t, 8.35, 8.65))) + (t > 8.65 ? Math.sin((t - 8.65) * 9) * 8 : 0), 0);
 
   // badge
-  set('badge', vis(t, 2.3, 2.7, 13.4, 13.8), 0, lerp(40, 0, eo(P(t, 2.3, 2.7))));
+  set('badge', vis(t, .9, 1.3, 13.4, 13.8), 0, lerp(40, 0, eo(P(t, .9, 1.3))));
 
   // ---- S3 ----
   const s3o = 1 - eio(P(t, 13.4, 13.85));
