@@ -2,8 +2,9 @@
 <html><head><meta charset="utf-8"><title>Dr Heal 30s</title>
 <style>
 @font-face{font-family:M;src:url(montserrat.woff2) format('woff2');font-weight:100 900}
+@font-face{font-family:NK;src:url(notosanskannada.woff2) format('woff2');font-weight:400 900}
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,Arial,sans-serif}
+html,body{width:1080px;overflow:hidden;background:#061a28;font-family:M,NK,Arial,sans-serif}
 #stage{position:relative;width:1080px;overflow:hidden}
 .full{position:absolute;left:0;top:0;width:1080px}
 #safe{position:absolute;left:0;width:1080px;height:1350px}
@@ -144,6 +145,41 @@ document.querySelectorAll('.full').forEach(e => { if (!e.id.startsWith('waves'))
 const safe = document.getElementById('safe'); safe.style.top = TOP + 'px';
 const $ = id => document.getElementById(id);
 
+// ---------- language (?lang=kn for Kannada) ----------
+const LANG = new URLSearchParams(location.search).get('lang') || 'en';
+const KN = [
+  ['#hkLabel', 'ನೋವಿನ ಮಟ್ಟ', { fontSize: '52px', letterSpacing: '3px', top: '60px' }],
+  ['#hkT1', 'ನೋವು 10/10 ತಲುಪಿದಾಗ,', { fontSize: '68px', top: '880px' }],
+  ['#hkT2', 'ಬದುಕೇ ನಿಂತುಹೋಗುತ್ತದೆ.', { fontSize: '68px', top: '980px' }],
+  ['#cA', 'ನೋವು ಸಾಮಾನ್ಯ.', { fontSize: '72px', top: '320px' }],
+  ['#cB', 'ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ', { fontSize: '130px', letterSpacing: '0px', top: '450px' }],
+  ['#cStrike', '', { top: '548px' }],
+  ['#cC', 'ಒಂದೇ ಪರಿಹಾರವಲ್ಲ.', { fontSize: '70px', top: '690px' }],
+  ['#cD', 'ಇದಕ್ಕಿಂತ ಉತ್ತಮ ದಾರಿ ಇದೆ &rarr;', { fontSize: '48px', top: '840px' }],
+  ['#s3a', 'ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ ಇಲ್ಲ.', { fontSize: '104px', top: '530px' }],
+  ['#s3b', 'ಅಪಾಯಕಾರಿ<br>ಪ್ರಕ್ರಿಯೆಗಳಿಲ್ಲ.', { fontSize: '70px', lineHeight: '1.3', top: '690px' }],
+  ['#s3c', 'ಸುಧಾರಿತ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆರಹಿತ<br>ನೋವು ಚಿಕಿತ್ಸೆ', { fontSize: '44px', lineHeight: '1.4', top: '900px' }],
+  ['#s3d', 'ಆಪರೇಷನ್ ಇಲ್ಲದೆ ಗುಣಮುಖರಾಗಲು ನೆರವಾಗುವ<br>ಸುರಕ್ಷಿತ, ಸಾಬೀತಾದ ಚಿಕಿತ್ಸೆಗಳು', { fontSize: '35px', lineHeight: '1.45', top: '1100px' }],
+  ['#s4h', '<span style="color:#1f86a5">ಡಾ. ಹೀಲ್</span> ಏಕೆ?', { fontSize: '80px', top: '205px' }],
+  ['#cd0 .ct', 'ಆಪರೇಷನ್ ಇಲ್ಲದ ಚಿಕಿತ್ಸೆ'], ['#cd0 .cs', 'ಸುಧಾರಿತ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆರಹಿತ ವಿಧಾನಗಳು'],
+  ['#cd1 .ct', 'ಮೂಲ ಕಾರಣಕ್ಕೆ ಚಿಕಿತ್ಸೆ'], ['#cd1 .cs', 'ವೈಯಕ್ತಿಕ ನೋವು ಚಿಕಿತ್ಸಾ ಯೋಜನೆಗಳು'],
+  ['#cd2 .ct', 'ವೇಗದ ಚೇತರಿಕೆ'], ['#cd2 .cs', 'ಬೇಗನೆ ದಿನಚರಿಗೆ ಮರಳಿ'],
+  ['#cd3 .ct', 'ಕೈಗೆಟುಕುವ ಚಿಕಿತ್ಸೆ'], ['#cd3 .cs', 'ಎಲ್ಲರಿಗೂ ಗುಣಮಟ್ಟದ ಆರೈಕೆ'],
+  ['#s5h', 'ಬೆಂಗಳೂರಿನ ವಿಶ್ವಾಸಾರ್ಹ<br><span style="color:#5cc8e8">ನೋವು ಚಿಕಿತ್ಸಾ ಕೇಂದ್ರ</span>', { fontSize: '56px', lineHeight: '1.35', top: '30px' }],
+  ['#st1 > div:nth-child(2)', 'ವರ್ಷಗಳ ಅನುಭವ', { fontSize: '46px' }],
+  ['#st2 > div:nth-child(2)', 'ತೃಪ್ತ ರೋಗಿಗಳು', { fontSize: '46px' }],
+  ['#s5d', 'ನೇತೃತ್ವ: <b style="color:#fff">ಡಾ. ರಾಕೇಶ್ ಎಚ್. ಜಯಪ್ರಕಾಶ್</b>', { fontSize: '38px' }],
+  ['#s6a', 'ಇಂದೇ ನಿಮ್ಮ<br><span style="color:#1f86a5">ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಿ</span>', { fontSize: '58px', lineHeight: '1.35', top: '405px' }],
+  ['#btn > div > div:first-child', 'ಈಗಲೇ ಕರೆ ಮಾಡಿ', { letterSpacing: '1px', fontSize: '36px' }],
+  ['#s6c', 'ಸುಧಾರಿತ ಶಸ್ತ್ರಚಿಕಿತ್ಸೆರಹಿತ ನೋವು ಚಿಕಿತ್ಸೆ<br>ಎಚ್‌ಎಸ್‌ಆರ್ ಲೇಔಟ್, ಬೆಂಗಳೂರು', { fontSize: '34px', lineHeight: '1.5' }],
+];
+if (LANG === 'kn') {
+  KN.forEach(([sel, html, css]) => { const e = document.querySelector(sel); e.innerHTML = html; if (css) Object.assign(e.style, css); });
+  $('s5e').lastChild.nodeValue = 'ಎಚ್‌ಎಸ್‌ಆರ್ ಲೇಔಟ್, ಬೆಂಗಳೂರು';
+  document.querySelectorAll('.ct').forEach(e => e.style.fontSize = '42px');
+  document.querySelectorAll('.cs').forEach(e => e.style.fontSize = '29px');
+}
+
 // ---------- easing ----------
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const P = (t, a, b) => clamp((t - a) / (b - a));
@@ -181,15 +217,16 @@ const ICON = {
   joint: '<rect x="56" y="112" width="96" height="70" rx="22"/><path d="M68 112 V40 M92 112 V24 M116 112 V28 M140 112 V48" stroke="#fff" stroke-width="18" stroke-linecap="round"/><path d="M58 148 L34 112" stroke="#fff" stroke-width="18" stroke-linecap="round"/>',
 };
 const PANELS = [
-  { w1: 'BACK', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#0f3c58,#0b2e44)', ic: 'back', px: 100, py: 136 },
-  { w1: 'KNEE', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#2496b8,#16708e)', ic: 'knee', px: 100, py: 102 },
-  { w1: 'NECK', w2: 'PAIN', fs: 210, bg: 'linear-gradient(160deg,#f39a3f,#e2701a)', ic: 'neck', px: 100, py: 116 },
-  { w1: 'SCIATICA', w2: 'NERVE PAIN', fs: 150, bg: 'linear-gradient(160deg,#123f5c,#08263a)', ic: 'sciatica', px: 104, py: 40 },
-  { w1: 'ARTHRITIS', w2: 'JOINT PAIN', fs: 140, bg: 'linear-gradient(160deg,#1f8fb2,#0f5a75)', ic: 'joint', px: 116, py: 76 },
+  { w1: 'BACK', w2: 'PAIN', k1: 'ಬೆನ್ನು', k2: 'ನೋವು', kfs: 190, fs: 210, bg: 'linear-gradient(160deg,#0f3c58,#0b2e44)', ic: 'back', px: 100, py: 136 },
+  { w1: 'KNEE', w2: 'PAIN', k1: 'ಮಂಡಿ', k2: 'ನೋವು', kfs: 190, fs: 210, bg: 'linear-gradient(160deg,#2496b8,#16708e)', ic: 'knee', px: 100, py: 102 },
+  { w1: 'NECK', w2: 'PAIN', k1: 'ಕುತ್ತಿಗೆ', k2: 'ನೋವು', kfs: 160, fs: 210, bg: 'linear-gradient(160deg,#f39a3f,#e2701a)', ic: 'neck', px: 100, py: 116 },
+  { w1: 'SCIATICA', w2: 'NERVE PAIN', k1: 'ಸಯಾಟಿಕಾ', k2: 'ನರ ನೋವು', kfs: 150, fs: 150, bg: 'linear-gradient(160deg,#123f5c,#08263a)', ic: 'sciatica', px: 104, py: 40 },
+  { w1: 'ARTHRITIS', w2: 'JOINT PAIN', k1: 'ಸಂಧಿವಾತ', k2: 'ಕೀಲು ನೋವು', kfs: 150, fs: 140, bg: 'linear-gradient(160deg,#1f8fb2,#0f5a75)', ic: 'joint', px: 116, py: 76 },
 ];
 const PDUR = 0.64, PSTART = 3.0;
 const DIRS = ['b', 'r', 't', 'l', 'b'];
 PANELS.forEach((q, i) => {
+  if (LANG === 'kn') { q.w1 = q.k1; q.w2 = q.k2; q.fs = q.kfs; }
   const d = document.createElement('div'); d.className = 'full'; d.style.height = H + 'px'; d.style.background = q.bg;
   d.innerHTML = `<div class="pin" style="top:${TOP}px">
      <div class="pico"><svg viewBox="0 0 200 200" width="200" height="200" style="position:absolute;left:44px;top:44px;overflow:visible" fill="#fff">${ICON[q.ic]}
@@ -356,7 +393,7 @@ window.render = function (t) {
   set('st2', eo(c2) * s5o, 0, 0, lerp(.6, 1, bk(c2)));
   $('n1').textContent = Math.round(15 * eo(P(t, 20.6, 21.8))) + '+';
   const v2 = Math.round(15000 * eo(P(t, 21.4, 22.7)));
-  $('n2').textContent = v2 >= 15000 ? '15K+' : v2.toLocaleString('en-IN') + '+';
+  $('n2').textContent = v2 >= 15000 ? (LANG === 'kn' ? '15,000+' : '15K+') : v2.toLocaleString('en-IN') + '+';
   $('sdiv').style.opacity = eo(P(t, 21.1, 21.5)) * s5o; $('sdiv').style.transform = `scaleX(${eo(P(t, 21.1, 21.5))})`;
   set('s5d', eo(P(t, 22.4, 22.8)) * s5o, 0, lerp(30, 0, eo(P(t, 22.4, 22.8))));
   set('s5e', eo(P(t, 22.8, 23.2)) * s5o, 0, lerp(30, 0, eo(P(t, 22.8, 23.2))));

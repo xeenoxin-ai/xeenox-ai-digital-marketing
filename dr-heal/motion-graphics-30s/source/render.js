@@ -1,4 +1,5 @@
 // usage: node render.js <h> <outPrefix> [times...]  (no times => full 30fps frames piped to stdout as png)
+// set DRHEAL_LANG=kn for the Kannada version
 const { chromium } = require('playwright');
 const path = require('path');
 (async () => {
@@ -6,7 +7,7 @@ const path = require('path');
   const H = +h;
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1080, height: H } });
-  await p.goto('file://' + path.resolve('drheal.html') + '?h=' + H);
+  await p.goto('file://' + path.resolve('drheal.html') + '?h=' + H + (process.env.DRHEAL_LANG ? '&lang=' + process.env.DRHEAL_LANG : ''));
   await p.evaluate(() => window.ready);
   if (times.length) {
     for (const t of times) { await p.evaluate(t => render(t), +t); await p.screenshot({ path: `${out}_${t}.png` }); }

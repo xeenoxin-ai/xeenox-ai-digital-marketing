@@ -8,9 +8,26 @@ Booking: **079 6928 8000** (07969288000) · **www.drheal.in** · HSR Layout, Ben
 |---|---|---|
 | `DrHeal_30s_9x16.mp4` | 1080×1920, 30s, H.264 + AAC | Instagram/Facebook Reels & Stories, YouTube Shorts, WhatsApp Status |
 | `DrHeal_30s_4x5.mp4` | 1080×1350, 30s, H.264 + AAC | Facebook/Instagram Feed |
+| `DrHeal_30s_9x16_Kannada.mp4` | 1080×1920, 30s | Kannada version of the 9:16 ad |
+| `DrHeal_30s_4x5_Kannada.mp4` | 1080×1350, 30s | Kannada version of the 4:5 ad |
 
 In the 9:16 version, all text and the CTA stay inside the central 1080×1350 area. The Reels/Stories buttons at the top and bottom of the screen will not cover them.
 The audio is an original synthesised music bed with SFX, normalised to −14 LUFS, so there are no licensing issues.
+
+## Kannada version
+All on-screen copy is translated into Kannada (Noto Sans Kannada font). The logo, phone number, website and 10/10 digits stay as they are, and the music is the same. Key lines:
+
+| English | Kannada |
+|---|---|
+| PAIN LEVEL | ನೋವಿನ ಮಟ್ಟ |
+| When pain hits 10/10, everyday life stops. | ನೋವು 10/10 ತಲುಪಿದಾಗ, ಬದುಕೇ ನಿಂತುಹೋಗುತ್ತದೆ. |
+| Back / Knee / Neck pain, Sciatica, Arthritis | ಬೆನ್ನು / ಮಂಡಿ / ಕುತ್ತಿಗೆ ನೋವು, ಸಯಾಟಿಕಾ (ನರ ನೋವು), ಸಂಧಿವಾತ (ಕೀಲು ನೋವು) |
+| Pain is common. SURGERY isn't the only answer. | ನೋವು ಸಾಮಾನ್ಯ. ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ ಒಂದೇ ಪರಿಹಾರವಲ್ಲ. |
+| NO SURGERY. NO RISKY PROCEDURES. | ಶಸ್ತ್ರಚಿಕಿತ್ಸೆ ಇಲ್ಲ. ಅಪಾಯಕಾರಿ ಪ್ರಕ್ರಿಯೆಗಳಿಲ್ಲ. |
+| Why Dr Heal? | ಡಾ. ಹೀಲ್ ಏಕೆ? |
+| Book Your Consultation Today · CALL NOW | ಇಂದೇ ನಿಮ್ಮ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಬುಕ್ ಮಾಡಿ · ಈಗಲೇ ಕರೆ ಮಾಡಿ |
+
+The full string table is `KN` in `source/drheal.html`. Have a native Kannada speaker proofread it before the ads go live.
 
 ## Brand analysis (from drheal.in)
 - Colours: teal `#1F86A5` (logo), orange `#F08A24` (caduceus/CTA), navy `#0B2E44`
@@ -43,4 +60,4 @@ python3 audio.py                                  # -> music.wav
 node render.js 1920 x | ffmpeg -f image2pipe -framerate 30 -i - -c:v libx264 -crf 17 -pix_fmt yuv420p v.mp4
 ffmpeg -i v.mp4 -i music.wav -c:v copy -af loudnorm=I=-14:TP=-1.5 -c:a aac -b:a 192k -shortest DrHeal_30s_9x16.mp4
 ```
-Use `1350` instead of `1920` for the 4:5 version. `node render.js 1920 still 12.5` saves a still frame from that point in the video.
+Use `1350` instead of `1920` for the 4:5 version, and prefix the render command with `DRHEAL_LANG=kn` for Kannada. `node render.js 1920 still 12.5` saves a still frame from that point in the video.
