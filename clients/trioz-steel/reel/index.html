@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trioz Steel Reel</title>
+<!--
+  Trioz Steel — 30s 9:16 motion graphics reel.
+  Every frame is a pure function of time: window.seek(t) draws the frame at t seconds.
+  Open in a browser (via `node render.mjs --serve`) to preview in real time;
+  `node render.mjs` captures 900 frames at 30 fps and encodes the MP4.
+  Brief and source analysis: ../trioz-steel-reel-brief.md
+-->
+<style>
+  @font-face { font-family: Sora; src: url(assets/fonts/Sora-latin.woff2) format("woff2"); font-weight: 100 800; }
+  @font-face { font-family: Inter; src: url(assets/fonts/Inter-latin.woff2) format("woff2"); font-weight: 100 900; }
+
+  :root {
+    /* Palette lifted from triozsteel.com */
+    --navy: #1B2A3A;
+    --navy-deep: #12202E;
+    --brass: #C9922E;
+    --brass-dark: #B5811F;
+    --cream: #F3EFE8;
+    --paper: #FBFAF7;
+    --sand: #E2DCD1;
+    --slate: #6B7785;
+    --steel: #C9CFD6;
+    --logo-red: #E52A2A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #000; overflow: hidden; }
+  body { font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  #stage {
+    position: absolute; left: 0; top: 0;
+    width: 1080px; height: 1920px; overflow: hidden;
+    background: var(--navy-deep); transform-origin: 0 0;
+  }
+  .scene { position: absolute; inset: 0; overflow: hidden; visibility: hidden; }
+  .abs { position: absolute; }
+  .sora { font-family: Sora, Inter, sans-serif; }
+  .kicker {
+    font-family: Inter; font-weight: 600; font-size: 30px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--brass);
+  }
+  .mask { overflow: hidden; display: block; }
+  .mask > span { display: block; will-change: transform; }
+  .h1 { font-family: Sora; font-weight: 800; letter-spacing: -.02em; line-height: .98; }
+  .h2 { font-family: Sora; font-weight: 700; letter-spacing: -.015em; line-height: 1.05; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 18px 30px; border-radius: 999px; font-weight: 600; font-size: 34px;
+    white-space: nowrap;
+  }
+  .chip i { width: 14px; height: 14px; border-radius: 50%; background: var(--brass); display: block; }
+  .card {
+    position: absolute; border-radius: 22px; overflow: hidden; background: var(--paper);
+    box-shadow: 0 24px 50px rgba(18, 32, 46, .22);
+  }
+  .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .tag {
+    position: absolute; left: 14px; bottom: 14px; padding: 8px 14px; border-radius: 10px;
+    background: rgba(18, 32, 46, .86); color: #fff; font: 600 22px/1 Inter; letter-spacing: .06em;
+  }
+  .cover { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.5) 0 1px, transparent 1px 3px);
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · HOOK (0–3s) -->
+  <section class="scene" id="s1" style="background: radial-gradient(120% 80% at 50% 45%, #22364A 0%, var(--navy-deep) 70%);">
+    <div class="grain"></div>
+    <div class="abs kicker" id="s1-kicker" style="left:0; right:0; top:262px; text-align:center;">Made here, not imported</div>
+    <div class="abs h1" id="s1-count" style="left:0; right:0; top:318px; text-align:center; font-size:300px; color:#fff;">90</div>
+    <div class="abs sora" id="s1-sub" style="left:0; right:0; top:640px; text-align:center; font-size:46px; font-weight:600; color:var(--steel); letter-spacing:.02em;">door, window &amp; frame models</div>
+    <div class="abs" id="s1-door" style="left:290px; top:740px; width:500px; height:680px; overflow:hidden; background:#0c1620;">
+      <img class="cover" id="s1-img" src="assets/TRD-R015.jpg" alt="">
+    </div>
+    <svg class="abs" id="s1-frame" width="1080" height="1920" viewBox="0 0 1080 1920" style="left:0; top:0;">
+      <rect id="s1-rect" x="272" y="722" width="536" height="716" fill="none" stroke="#C9922E" stroke-width="18"/>
+    </svg>
+    <div class="abs h2" id="s1-tag" style="left:0; right:0; top:1470px; text-align:center; font-size:62px; color:#fff;">
+      <span class="mask"><span>One Palakkad workshop.</span></span>
+    </div>
+  </section>
+
+  <!-- S2 · MADE HERE (3–5.5s) -->
+  <section class="scene" id="s2">
+    <img class="abs cover" id="s2-img" src="assets/workshop.jpg" alt="" style="left:-420px; top:0; width:1920px; height:1920px;">
+    <div class="abs" style="inset:0; background: linear-gradient(180deg, rgba(18,32,46,.82) 0%, rgba(18,32,46,.35) 38%, rgba(18,32,46,.55) 62%, rgba(18,32,46,.95) 100%);"></div>
+    <div class="abs kicker" id="s2-kicker" style="left:80px; top:290px;">Kadampazhipuram · Palakkad</div>
+    <div class="abs h1" style="left:80px; top:350px; font-size:116px; line-height:1.1; color:#fff;">
+      <span class="mask"><span id="s2-l1">Made here.</span></span>
+      <span class="mask"><span id="s2-l2" style="color:var(--brass);">Not imported.</span></span>
+    </div>
+    <div class="abs" id="s2-weld" style="left:80px; top:1160px; height:6px; width:0; background:linear-gradient(90deg, var(--brass), #FFE2A6); box-shadow:0 0 24px 6px rgba(255,190,90,.65);"></div>
+    <div class="abs" id="s2-steps" style="left:80px; top:1200px; width:920px;"></div>
+  </section>
+
+  <!-- S3 · TRIOZ SINGLE DOORS (5.5–10s) -->
+  <section class="scene" id="s3" style="background:var(--cream);">
+    <div class="abs kicker" id="s3-kicker" style="left:80px; top:262px;">01 · Trioz Single Doors</div>
+    <div class="abs h1" style="left:80px; top:318px; font-size:120px; color:var(--navy);">
+      <span class="mask"><span id="s3-h">18 designs</span></span>
+    </div>
+    <div class="abs" id="s3-sub" style="left:80px; top:452px; font-size:38px; font-weight:500; color:var(--slate);">90 × 210 cm · powder-coated steel</div>
+    <div class="abs" id="s3-cols" style="left:0; top:540px; width:1080px; height:860px; overflow:hidden;
+         -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 70px, #000 790px, transparent 860px);"></div>
+    <div class="abs" id="s3-chips" style="left:60px; right:60px; top:1410px; display:flex; flex-wrap:wrap; gap:16px; justify-content:center;"></div>
+  </section>
+
+  <!-- S4 · TRIOZ MAIN DOORS (10–14.5s) -->
+  <section class="scene" id="s4" style="background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);">
+    <div class="grain"></div>
+    <div class="abs kicker" id="s4-kicker" style="left:80px; top:262px;">02 · Trioz Main Doors</div>
+    <div class="abs h1" style="left:80px; top:318px; font-size:112px; color:#fff;">
+      <span class="mask"><span id="s4-h">29 double doors</span></span>
+    </div>
+    <div class="abs" id="s4-sub" style="left:80px; top:446px; font-size:38px; font-weight:500; color:var(--steel);">Double door · double panel · 120 × 210 cm</div>
+    <div class="abs" id="s4-door" style="left:80px; top:540px; width:560px; height:700px;">
+      <div class="abs" id="s4-under" style="inset:0; background:#fff; border-radius:18px; overflow:hidden;"><img class="cover" id="s4-under-img" src="" alt="" style="object-fit:contain; background:#fff;"></div>
+      <div class="abs" id="s4-left" style="left:0; top:0; width:50%; height:100%; overflow:hidden; border-radius:18px 0 0 18px;"><img id="s4-left-img" src="" alt="" style="position:absolute; left:0; top:0; width:560px; height:700px; object-fit:contain; background:#fff;"></div>
+      <div class="abs" id="s4-right" style="left:50%; top:0; width:50%; height:100%; overflow:hidden; border-radius:0 18px 18px 0;"><img id="s4-right-img" src="" alt="" style="position:absolute; left:-280px; top:0; width:560px; height:700px; object-fit:contain; background:#fff;"></div>
+      <div class="tag" id="s4-code" style="font-size:24px;">TRD-M111</div>
+    </div>
+    <div class="abs" id="s4-specs" style="left:680px; top:560px; width:340px;"></div>
+    <div class="abs" id="s4-mat" style="left:80px; right:80px; top:1290px; padding:30px 34px; border:2px solid rgba(201,146,46,.55); border-radius:20px; color:#fff;">
+      <div class="kicker" style="font-size:24px; margin-bottom:14px;">Material specification</div>
+      <div style="font-size:34px; font-weight:500; line-height:1.4;">TATA Galvano 1.5 mm frame<br>0.9 mm double-sheet panels</div>
+    </div>
+  </section>
+
+  <!-- S5 · TRIOZ WINDOWS (14.5–19s) -->
+  <section class="scene" id="s5" style="background:var(--cream);">
+    <div class="abs kicker" id="s5-kicker" style="left:80px; top:262px;">03 · Trioz Windows</div>
+    <div class="abs h1" style="left:80px; top:318px; font-size:120px; color:var(--navy);">
+      <span class="mask"><span id="s5-h">37 designs</span></span>
+    </div>
+    <div class="abs" id="s5-sub" style="left:80px; top:452px; font-size:38px; font-weight:500; color:var(--slate);">Made to order · site-measured</div>
+    <div class="abs" id="s5-grid" style="left:60px; top:540px; width:960px; height:780px;"></div>
+    <div class="abs" id="s5-styles" style="left:60px; right:60px; top:1350px; display:flex; flex-wrap:wrap; gap:14px; justify-content:center;"></div>
+  </section>
+
+  <!-- S6 · TRIOZ DOOR FRAMES (19–21.5s) -->
+  <section class="scene" id="s6" style="background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);">
+    <div class="grain"></div>
+    <div class="abs kicker" id="s6-kicker" style="left:80px; top:262px;">04 · Trioz Door Frames</div>
+    <div class="abs h1" style="left:80px; top:318px; font-size:112px; color:#fff;">
+      <span class="mask"><span id="s6-h">6 finishes</span></span>
+    </div>
+    <div class="abs" id="s6-sub" style="left:80px; top:446px; font-size:38px; font-weight:500; color:var(--steel);">Heavy-duty · rust-proof · precise fit</div>
+    <div class="abs" id="s6-stage" style="left:140px; top:560px; width:800px; height:620px; border-radius:26px; overflow:hidden; background:#F4EEE2;"></div>
+    <div class="abs" id="s6-swatches" style="left:80px; right:80px; top:1230px; display:grid; grid-template-columns:repeat(3, 1fr); gap:18px;"></div>
+  </section>
+
+  <!-- S7 · PETRA STEEL (21.5–24.5s) -->
+  <section class="scene" id="s7" style="background: radial-gradient(110% 70% at 50% 60%, #2A2A2C 0%, #111113 75%);">
+    <div class="abs kicker" id="s7-kicker" style="left:0; right:0; top:262px; text-align:center; color:#B9B9BE;">Brand 02 · Architectural steel</div>
+    <div class="abs h1" style="left:0; right:0; top:318px; text-align:center; font-size:140px; color:#fff; letter-spacing:.04em;">
+      <span class="mask"><span id="s7-h">PETRA</span></span>
+    </div>
+    <div class="abs sora" id="s7-sub" style="left:0; right:0; top:470px; text-align:center; font-size:44px; font-weight:600; color:var(--brass); letter-spacing:.06em;">STEEL</div>
+    <div class="abs" id="s7-fan" style="left:0; top:560px; width:1080px; height:820px;"></div>
+    <div class="abs" id="s7-chips" style="left:60px; right:60px; top:1400px; display:flex; flex-wrap:wrap; gap:16px; justify-content:center;"></div>
+  </section>
+
+  <!-- S8 · PROOF (24.5–26.8s) -->
+  <section class="scene" id="s8" style="background:var(--cream);">
+    <div class="abs kicker" id="s8-kicker" style="left:80px; top:262px;">Rust-proof &amp; weatherproof</div>
+    <div class="abs h2" style="left:80px; top:318px; font-size:88px; color:var(--navy);">
+      <span class="mask"><span id="s8-h">Built for the</span></span>
+      <span class="mask"><span id="s8-h2">Kerala monsoon.</span></span>
+    </div>
+    <div class="abs" id="s8-grid" style="left:80px; right:80px; top:600px; display:grid; grid-template-columns:1fr 1fr; gap:24px;"></div>
+  </section>
+
+  <!-- S9 · BRAND CLOSE (26.8–30s) -->
+  <section class="scene" id="s9" style="background: radial-gradient(120% 75% at 50% 42%, #24384D 0%, var(--navy-deep) 72%);">
+    <div class="grain"></div>
+    <svg class="abs" width="1080" height="1920" viewBox="0 0 1080 1920" style="left:0; top:0;">
+      <rect id="s9-rect" x="110" y="560" width="860" height="440" rx="6" fill="none" stroke="#C9922E" stroke-width="6"/>
+    </svg>
+    <img class="abs" id="s9-logo" src="assets/logo.png" alt="Trioz Steel Windows & Doors" style="left:180px; top:650px; width:720px;">
+    <div class="abs sora" id="s9-line" style="left:0; right:0; top:1060px; text-align:center; font-size:44px; font-weight:600; color:#fff;">Made here in Palakkad.<br><span style="color:var(--steel); font-weight:400;">Never imported.</span></div>
+    <div class="abs" id="s9-url" style="left:0; right:0; top:1250px; text-align:center;">
+      <span class="sora" style="display:inline-block; padding:26px 46px; border-radius:999px; background:var(--brass); color:var(--navy-deep); font-size:56px; font-weight:700; letter-spacing:.01em;">www.triozsteel.com</span>
+    </div>
+    <div class="abs" id="s9-foot" style="left:0; right:0; top:1410px; text-align:center; font-size:32px; font-weight:500; color:var(--steel); letter-spacing:.04em;">Free site measurement · Kadampazhipuram</div>
+  </section>
+
+  <!-- transition overlay: brushed-steel wipe -->
+  <div class="abs" id="wipe" style="top:-200px; left:0; width:1500px; height:2400px; visibility:hidden;
+       background: linear-gradient(100deg, #8E99A4 0%, #D9DEE3 22%, #9AA4AE 40%, #E6EAEE 58%, #A3ACB5 78%, #7D8893 100%);
+       box-shadow: 0 0 0 8px var(--brass);"></div>
+</div>
+
+<script>
+(() => {
+  // ---------- helpers ----------
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const p = (t, a, b) => clamp((t - a) / (b - a));
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const outQuint = x => 1 - Math.pow(1 - x, 5);
+  const inOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const outBack = x => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const lerp = (a, b, x) => a + (b - a) * x;
+  const set = (el, css) => Object.assign(el.style, css);
+  const show = (id, on) => { $(id).style.visibility = on ? 'visible' : 'hidden'; };
+  // slide-up reveal for masked text; returns nothing, mutates el
+  const rise = (el, t, a, d = .5) => { const x = outQuint(p(t, a, a + d)); set(el, { transform: `translateY(${(1 - x) * 110}%)` }); };
+  const fadeUp = (el, t, a, d = .45, dist = 40) => { const x = outCubic(p(t, a, a + d)); set(el, { opacity: x, transform: `translateY(${(1 - x) * dist}px)` }); };
+  const el = (tag, css = {}, html = '') => { const e = document.createElement(tag); Object.assign(e.style, css); e.innerHTML = html; return e; };
+
+  // ---------- timeline (seconds) ----------
+  const DURATION = 30;
+  const SC = {
+    s1: [0, 3.15], s2: [2.85, 5.75], s3: [5.5, 10.25], s4: [10.0, 14.75], s5: [14.5, 19.25],
+    s6: [19.0, 21.75], s7: [21.5, 24.75], s8: [24.5, 27.05], s9: [26.8, 30.01],
+  };
+  // brushed-steel wipes centred on these cut points
+  const WIPES = [5.5, 10.0, 14.5, 19.0, 21.5, 24.5, 26.8];
+
+  // ---------- S1 hook ----------
+  const hookImgs = ['TRD-R015','TRD-M111','TRW-09','TRD-R025','TRD-M137','TRW-30','TRD-R020','TRD-M119','TRW-37','TRD-R026','TRD-M131','TRW-12','TRD-R024','TRD-M116'];
+  const rectLen = 2 * (536 + 716);
+  set($('s1-rect'), { strokeDasharray: rectLen, strokeDashoffset: rectLen });
+
+  // ---------- S2 build ----------
+  const steps = ['Cut', 'Welded', 'Primed', 'Powder-coated'];
+  const stepEls = steps.map((s, i) => {
+    const row = el('div', { display: 'flex', alignItems: 'center', gap: '26px', padding: '20px 0', borderBottom: '2px solid rgba(255,255,255,.14)' },
+      `<span style="font:700 30px/1 Inter; color:var(--brass); width:64px;">0${i + 1}</span><span class="sora" style="font-size:64px; font-weight:700; color:#fff;">${s}</span>`);
+    $('s2-steps').appendChild(row); return row;
+  });
+
+  // ---------- S3 build: three parallax columns of single doors ----------
+  const singles = [
+    ['TRD-R011','TRD-R015','TRD-R020','TRD-R024'],
+    ['TRD-R025','TRD-R014','TRD-R022','TRD-R027'],
+    ['TRD-R026','TRD-R016','TRD-R028','TRD-R019'],
+  ];
+  const CW = 300, CH = 560, GAP = 26;
+  const colEls = singles.map((list, c) => {
+    const col = el('div', { position: 'absolute', left: `${45 + c * (CW + 30)}px`, top: '0', width: `${CW}px` });
+    [...list, ...list].forEach((id, i) => {
+      const card = el('div', { position: 'absolute', left: 0, top: `${i * (CH + GAP)}px`, width: `${CW}px`, height: `${CH}px` });
+      card.className = 'card';
+      card.innerHTML = `<img src="assets/${id}.jpg" alt=""><div class="tag">${id}</div>`;
+      col.appendChild(card);
+    });
+    $('s3-cols').appendChild(col); return col;
+  });
+  const s3Chips = ['Panelled', 'Fluted', 'Louvred', 'Glass insets', 'Gold accents'].map(s => {
+    const c = el('div', { background: '#fff', color: 'var(--navy)', boxShadow: '0 8px 20px rgba(18,32,46,.10)' }, `<i></i>${s}`);
+    c.className = 'chip'; $('s3-chips').appendChild(c); return c;
+  });
+
+  // ---------- S4 build ----------
+  const mains = ['TRD-M111','TRD-M113','TRD-M119','TRD-M131','TRD-M137','TRD-M116','TRD-M130'];
+  const specs = ['Bullet-type lock', '4 tower bolts', 'Eye lens viewer', 'SS accessories'];
+  const specEls = specs.map((s, i) => {
+    const r = el('div', { display: 'flex', alignItems: 'flex-start', gap: '18px', marginBottom: '38px', color: '#fff' },
+      `<span style="flex:none; width:58px; height:58px; border-radius:16px; border:3px solid var(--brass); display:flex; align-items:center; justify-content:center; font:800 28px/1 Sora; color:var(--brass);">${i + 1}</span>
+       <span class="sora" style="font-size:40px; font-weight:600; line-height:1.15; padding-top:4px;">${s}</span>`);
+    $('s4-specs').appendChild(r); return r;
+  });
+
+  // ---------- S5 build: window mosaic ----------
+  const wins = ['TRW-09','TRW-12','TRW-37','TRW-30','TRW-21','TRW-17','TRW-29','TRW-15','TRW-34'];
+  const TW = 304, TH = 248, TG = 24;
+  const winEls = wins.map((id, i) => {
+    const r = Math.floor(i / 3), c = i % 3;
+    const card = el('div', { left: `${c * (TW + TG)}px`, top: `${r * (TH + TG)}px`, width: `${TW}px`, height: `${TH}px` });
+    card.className = 'card'; card.innerHTML = `<img src="assets/${id}.jpg" alt=""><div class="tag">${id}</div>`;
+    $('s5-grid').appendChild(card); return card;
+  });
+  const winStyles = ['Ventilator', 'Louvred', 'Sliding', 'Casement', 'Arched', 'Designer'];
+  const styleEls = winStyles.map(s => {
+    const c = el('div', { background: 'var(--navy)', color: '#fff' }, `<i></i>${s}`);
+    c.className = 'chip'; $('s5-styles').appendChild(c); return c;
+  });
+
+  // ---------- S6 build ----------
+  const frames = [
+    ['TRDF-01', 'Charcoal grey', '#3F4247'], ['TRDF-02', 'Copper brown', '#9A5A35'], ['TRDF-03', 'Navy blue', '#1D2B4F'],
+    ['TRDF-04', 'Teak wood-grain', '#8A5530'], ['TRDF-05', 'Matte black', '#141414'], ['TRDF-06', 'Grey', '#7A8189'],
+  ];
+  const frameImgs = frames.map(([id]) => {
+    const im = el('img', { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' });
+    im.src = `assets/${id}.jpg`; $('s6-stage').appendChild(im); return im;
+  });
+  const swEls = frames.map(([id, name, hex]) => {
+    const s = el('div', { display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', borderRadius: '16px', border: '2px solid rgba(255,255,255,.12)', color: '#fff' },
+      `<span style="flex:none; width:44px; height:44px; border-radius:10px; background:${hex}; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);"></span>
+       <span style="font:600 27px/1.1 Inter;">${name}</span>`);
+    $('s6-swatches').appendChild(s); return s;
+  });
+
+  // ---------- S7 build ----------
+  const petra = ['petra-p4', 'petra-p34', 'petra-p2'];
+  const petraEls = petra.map(id => {
+    const c = el('div', { position: 'absolute', width: '400px', height: '600px', left: '340px', top: '120px', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,.55)', background: '#ddd' });
+    // crop to the door itself (drop brochure header/footer)
+    c.innerHTML = `<img src="assets/${id}.jpg" alt="" style="position:absolute; width:560px; left:-80px; top:-205px;">`;
+    $('s7-fan').appendChild(c); return c;
+  });
+  const s7Chips = ['Hand-finished textures', 'Full catalogue online'].map(s => {
+    const c = el('div', { border: '2px solid rgba(255,255,255,.28)', color: '#fff' }, `<i></i>${s}`);
+    c.className = 'chip'; $('s7-chips').appendChild(c); return c;
+  });
+
+  // ---------- S8 build ----------
+  const stats = [
+    { v: 60, fmt: v => `${v}`, unit: 'micron', label: 'Powder-coat thickness' },
+    { v: 10, fmt: v => `${v}`, unit: 'yr', label: 'Structural assurance' },
+    { v: 4.8, fmt: v => v.toFixed(1), unit: '★', label: 'From 23 Google reviews' },
+    { v: 500, fmt: v => `${v}`, unit: '+', label: 'Installations in Palakkad' },
+  ];
+  const statEls = stats.map(s => {
+    const tile = el('div', { background: '#fff', borderRadius: '26px', padding: '40px 36px', boxShadow: '0 16px 36px rgba(18,32,46,.10)', height: '330px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' });
+    tile.innerHTML = `<div class="sora" style="color:var(--navy); font-weight:800; font-size:118px; line-height:1; letter-spacing:-.03em;"><span class="n">0</span><span style="font-size:52px; color:var(--brass); margin-left:8px; letter-spacing:0;">${s.unit}</span></div>
+                      <div style="font:600 32px/1.2 Inter; color:var(--slate);">${s.label}</div>`;
+    $('s8-grid').appendChild(tile); return tile;
+  });
+
+  const s9Len = 2 * (860 + 440);
+  set($('s9-rect'), { strokeDasharray: s9Len });
+
+  // ---------- frame renderer ----------
+  function seek(t) {
+    for (const [id, [a, b]] of Object.entries(SC)) show(id, t >= a && t < b);
+
+    // S1 — frame draws, models flicker inside, counter climbs
+    if (t < SC.s1[1]) {
+      fadeUp($('s1-kicker'), t, 0.05, .4, 20);
+      const n = Math.round(90 * outCubic(p(t, 0.15, 1.5)));
+      $('s1-count').textContent = n;
+      set($('s1-count'), { opacity: p(t, 0.05, .3) });
+      fadeUp($('s1-sub'), t, 0.35, .4, 24);
+      set($('s1-rect'), { strokeDashoffset: rectLen * (1 - inOut(p(t, 0, .7))) });
+      const idx = Math.min(hookImgs.length - 1, Math.floor(p(t, 0.3, 2.4) * hookImgs.length));
+      const src = `assets/${hookImgs[idx]}.jpg`;
+      if (!$('s1-img').src.endsWith(src)) $('s1-img').src = src;
+      set($('s1-door'), { opacity: p(t, .25, .4) });
+      rise($('s1-tag').firstElementChild.firstElementChild, t, 1.65, .45);
+      // push through the doorway into S2
+      const z = inOut(p(t, 2.55, 3.15));
+      const s = 1 + z * 3.2;
+      const ty = z * -120;
+      for (const id of ['s1-door', 's1-frame']) set($(id), { transform: `translateY(${ty}px) scale(${s})`, transformOrigin: '540px 1080px' });
+      $('s1-door').style.transformOrigin = '250px 340px';
+      for (const id of ['s1-kicker', 's1-count', 's1-sub', 's1-tag']) $(id).style.opacity = Math.min(parseFloat($(id).style.opacity || 1), 1 - p(t, 2.5, 2.8));
+      $('s1').style.opacity = 1 - p(t, 2.95, 3.15);
+    }
+
+    // S2 — workshop, process steps tick in with a weld line
+    if (t >= SC.s2[0] && t < SC.s2[1]) {
+      const k = p(t, 2.85, 5.75);
+      set($('s2-img'), { transform: `scale(${1.12 - .08 * k}) translateX(${-30 * k}px)` });
+      fadeUp($('s2-kicker'), t, 3.05, .4, 20);
+      rise($('s2-l1'), t, 3.1, .5); rise($('s2-l2'), t, 3.3, .5);
+      $('s2-weld').style.width = `${920 * inOut(p(t, 3.55, 4.95))}px`;
+      $('s2-weld').style.opacity = 1 - p(t, 5.0, 5.3) * .6;
+      stepEls.forEach((r, i) => fadeUp(r, t, 3.65 + i * .32, .4, 30));
+    }
+
+    // S3 — single doors: parallax columns
+    if (t >= SC.s3[0] && t < SC.s3[1]) {
+      fadeUp($('s3-kicker'), t, 5.65, .4, 20);
+      rise($('s3-h'), t, 5.7, .5);
+      fadeUp($('s3-sub'), t, 5.9, .4, 20);
+      const k = t - 5.5, loop = 4 * (CH + GAP);
+      colEls.forEach((col, c) => {
+        const speed = [70, 110, 85][c], dir = c === 1 ? 1 : -1;
+        const enter = (1 - outQuint(p(t, 5.55 + c * .08, 6.25 + c * .08))) * 900;
+        // content is the card list twice over, so wrapping at one list-length is seamless
+        const y = -((((dir * k * speed) % loop) + loop) % loop) - 260;
+        col.style.transform = `translateY(${y + enter}px)`;
+      });
+      s3Chips.forEach((ch, i) => { const x = outBack(p(t, 7.0 + i * .22, 7.45 + i * .22)); set(ch, { opacity: clamp(x), transform: `scale(${.6 + .4 * x})` }); });
+    }
+
+    // S4 — main doors: split-open reveals cycle through the range
+    if (t >= SC.s4[0] && t < SC.s4[1]) {
+      fadeUp($('s4-kicker'), t, 10.15, .4, 20);
+      rise($('s4-h'), t, 10.2, .5);
+      fadeUp($('s4-sub'), t, 10.4, .4, 20);
+      fadeUp($('s4-door'), t, 10.25, .5, 60);
+      const SW = .62, t0 = 10.6;
+      const i = clamp(Math.floor((t - t0) / SW), -1, mains.length - 2);
+      const cur = mains[Math.max(0, i)], nxt = mains[Math.max(0, i) + 1];
+      const local = i < 0 ? 0 : p(t - t0 - i * SW, SW - .34, SW);
+      const open = inOut(local);
+      const setSrc = (im, id) => { const s = `assets/${id}.jpg`; if (!im.src.endsWith(s)) im.src = s; };
+      setSrc($('s4-left-img'), i < 0 ? mains[0] : cur); setSrc($('s4-right-img'), i < 0 ? mains[0] : cur);
+      setSrc($('s4-under-img'), i < 0 ? mains[0] : nxt);
+      const done = t >= t0 + (mains.length - 1) * SW;
+      if (done) { setSrc($('s4-left-img'), mains.at(-1)); setSrc($('s4-right-img'), mains.at(-1)); }
+      const o = done ? 0 : open;
+      set($('s4-left'), { transform: `perspective(1400px) rotateY(${o * 70}deg)`, transformOrigin: '0 50%', opacity: 1 - o * .6 });
+      set($('s4-right'), { transform: `perspective(1400px) rotateY(${-o * 70}deg)`, transformOrigin: '100% 50%', opacity: 1 - o * .6 });
+      $('s4-code').textContent = done ? mains.at(-1) : (o > .5 ? nxt : cur);
+      specEls.forEach((r, j) => fadeUp(r, t, 10.7 + j * .3, .4, 30));
+      fadeUp($('s4-mat'), t, 12.0, .5, 40);
+    }
+
+    // S5 — window mosaic + style chips light up in sequence
+    if (t >= SC.s5[0] && t < SC.s5[1]) {
+      fadeUp($('s5-kicker'), t, 14.65, .4, 20);
+      rise($('s5-h'), t, 14.7, .5);
+      fadeUp($('s5-sub'), t, 14.9, .4, 20);
+      const order = [4, 0, 2, 6, 8, 1, 3, 5, 7];
+      winEls.forEach((w, i) => {
+        const x = outBack(p(t, 14.85 + order[i] * .1, 15.35 + order[i] * .1));
+        const drift = Math.sin((t - 14.5) * 1.2 + i) * 6;
+        set(w, { opacity: clamp(x * 1.4), transform: `translateY(${drift}px) scale(${.7 + .3 * x})` });
+      });
+      styleEls.forEach((s, i) => {
+        const a = 15.9 + i * .38;
+        const x = outBack(p(t, a, a + .4));
+        const lit = t >= a && t < a + .38 || (t > 18.3);
+        set(s, { opacity: clamp(x), transform: `scale(${.6 + .4 * x})`, background: lit ? 'var(--brass)' : 'var(--navy)', color: lit ? 'var(--navy-deep)' : '#fff' });
+      });
+    }
+
+    // S6 — frames cycle through six finishes, swatch follows
+    if (t >= SC.s6[0] && t < SC.s6[1]) {
+      fadeUp($('s6-kicker'), t, 19.15, .4, 20);
+      rise($('s6-h'), t, 19.2, .5);
+      fadeUp($('s6-sub'), t, 19.4, .4, 20);
+      fadeUp($('s6-stage'), t, 19.2, .45, 50);
+      const k = clamp((t - 19.45) / .33, 0, 5.999);
+      const cur = Math.floor(k), f = k - cur;
+      frameImgs.forEach((im, i) => {
+        const vis = i === cur ? 1 : (i === cur + 1 ? 0 : 0);
+        const x = i === cur ? 1 : 0;
+        set(im, { opacity: vis, transform: `scale(${1.04 - .04 * outCubic(Math.min(1, f * 2.5)) * x})` });
+      });
+      swEls.forEach((s, i) => {
+        fadeUp(s, t, 19.35 + i * .08, .35, 24);
+        const on = i === cur;
+        set(s, { borderColor: on ? 'var(--brass)' : 'rgba(255,255,255,.12)', background: on ? 'rgba(201,146,46,.18)' : 'transparent' });
+      });
+    }
+
+    // S7 — Petra Steel: brochure doors fan out
+    if (t >= SC.s7[0] && t < SC.s7[1]) {
+      fadeUp($('s7-kicker'), t, 21.65, .4, 20);
+      rise($('s7-h'), t, 21.7, .5);
+      fadeUp($('s7-sub'), t, 21.95, .4, 16);
+      $('s7-sub').style.letterSpacing = `${lerp(.6, .5, outCubic(p(t, 21.95, 22.6)))}em`;
+      const x = outQuint(p(t, 21.9, 22.75));
+      const pose = [[-300, -9], [0, 0], [300, 9]];
+      petraEls.forEach((c, i) => {
+        const [dx, r] = pose[i];
+        const float = Math.sin((t - 21.5) * 1.4 + i * 1.3) * 8;
+        set(c, { transform: `translateX(${dx * x}px) translateY(${(1 - x) * 220 + float + (i === 1 ? -30 : 20)}px) rotate(${r * x}deg) scale(${i === 1 ? 1.06 : .9})`, opacity: p(t, 21.85, 22.15), zIndex: i === 1 ? 3 : 1 });
+      });
+      s7Chips.forEach((ch, i) => fadeUp(ch, t, 22.7 + i * .25, .4, 24));
+    }
+
+    // S8 — proof stats count up
+    if (t >= SC.s8[0] && t < SC.s8[1]) {
+      fadeUp($('s8-kicker'), t, 24.65, .4, 20);
+      rise($('s8-h'), t, 24.7, .5); rise($('s8-h2'), t, 24.85, .5);
+      statEls.forEach((tile, i) => {
+        const a = 24.85 + i * .12;
+        fadeUp(tile, t, a, .45, 60);
+        const v = stats[i].v * outCubic(p(t, a + .1, a + .75));
+        tile.querySelector('.n').textContent = stats[i].fmt(stats[i].v % 1 ? Math.round(v * 10) / 10 : Math.round(v));
+      });
+    }
+
+    // S9 — brand lock-up: frame draws around logo, URL lands, holds
+    if (t >= SC.s9[0]) {
+      set($('s9-rect'), { strokeDashoffset: s9Len * (1 - inOut(p(t, 26.95, 27.8))) });
+      const lx = outCubic(p(t, 27.25, 27.85));
+      set($('s9-logo'), { opacity: lx, transform: `scale(${.92 + .08 * lx})`, filter: `blur(${(1 - lx) * 10}px)` });
+      fadeUp($('s9-line'), t, 27.75, .45, 30);
+      const u = outBack(p(t, 28.1, 28.6));
+      set($('s9-url'), { opacity: clamp(u), transform: `scale(${.7 + .3 * u})` });
+      fadeUp($('s9-foot'), t, 28.45, .4, 20);
+    }
+
+    // brushed-steel wipes between scenes
+    const w = WIPES.find(c => t >= c - .3 && t < c + .3);
+    if (w !== undefined) {
+      const x = inOut(p(t, w - .3, w + .3));
+      set($('wipe'), { visibility: 'visible', transform: `translateX(${lerp(1150, -1600, x)}px) skewX(-12deg)` });
+    } else $('wipe').style.visibility = 'hidden';
+  }
+
+  window.seek = seek;
+  window.DURATION = DURATION;
+  window.ready = Promise.all([
+    document.fonts.ready,
+    ...[...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })),
+    // preload every image used by swapped <img> sources
+    ...[...hookImgs, ...mains].map(id => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = `assets/${id}.jpg`; })),
+  ]);
+
+  // live preview unless ?render
+  const fit = () => { const s = Math.min(innerWidth / 1080, innerHeight / 1920); set($('stage'), { transform: `scale(${s})`, left: `${(innerWidth - 1080 * s) / 2}px` }); };
+  if (!location.search.includes('render')) {
+    addEventListener('resize', fit); fit();
+    window.ready.then(() => {
+      const start = performance.now();
+      const tick = now => { seek(((now - start) / 1000) % DURATION); requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    });
+  } else seek(0);
+})();
+</script>
+</body>
+</html>
