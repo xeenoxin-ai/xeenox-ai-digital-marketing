@@ -247,11 +247,28 @@ Every text block is short enough to read in its time on screen: about 3 words pe
 ### 2.6 Copy for the post (no prices)
 
 **Caption**
-> 90 steel door, window & frame designs. One workshop in Kadampazhipuram. 🔩
-> Single doors, double main doors, made-to-order windows, door frames, and the Petra Steel architectural range. Cut, welded, primed and powder-coated right here in Palakkad. Made here, not imported.
-> Free site measurement → www.triozsteel.com · WhatsApp 075107 27419
+> **90 steel designs. One workshop. Made here, not imported.** 🔩
+>
+> From fluted single doors to double main doors with bullet locks, from arched windows to teak-finish frames, every Trioz piece is cut, welded, primed and powder-coated in our own unit in Kadampazhipuram, Palakkad.
+>
+> 🚪 18 single door designs
+> 🚪 29 double main doors
+> 🪟 37 made-to-order window designs
+> 🔲 6 door frame finishes
+> ✨ Plus the Petra Steel architectural range
+>
+> Rust-proof steel built for Kerala monsoons, backed by a 10-year structural assurance. ⭐ 4.8 on Google (23 reviews)
+>
+> 📍 Kolliyani Road, Kadampazhipuram, Palakkad
+> 📞 Call / WhatsApp: 075107 27419
+> 🌐 www.triozsteel.com
 
-**Hashtags:** #TriozSteel #SteelDoors #SteelWindows #Palakkad #Kerala #KeralaHomes #MainDoor #HomeDesignKerala #MadeInKerala #PetraSteel
+**Hashtags:** #TriozSteel #SteelDoors #SteelWindows #MainDoor #SteelMainDoor #DoorDesign #WindowDesign #KeralaHomes #KeralaHomeDesign #HomeDesignKerala #Palakkad #PalakkadHomes #Kerala #MadeInKerala #NewHomeKerala #HomeConstruction #InteriorDesignKerala #PetraSteel
+
+**Short version**
+> 90 steel door, window & frame designs, all made in one workshop in Palakkad. Rust-proof, made to measure, never imported. 🔩
+> 📞 075107 27419 · 🌐 www.triozsteel.com
+> #TriozSteel #SteelDoors #SteelWindows #KeralaHomes #Palakkad
 
 **Cover frame:** 1.9 s (the "90 / One Palakkad workshop" frame) or 29.5 s (the logo and URL lock-up).
 
