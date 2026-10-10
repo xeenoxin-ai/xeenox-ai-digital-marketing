@@ -1,0 +1,60 @@
+// Renders reel.html frame-by-frame with headless Chromium and encodes a 1080x1920 H.264 MP4.
+// Usage:
+//   node render.mjs                      -> skypool-hebbal-reel-30s.mp4
+//   node render.mjs --stills 1,6,12 out  -> PNG stills at the given seconds (for review)
+import { chromium } from "playwright";
+import { spawn } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import path from "node:path";
+import fs from "node:fs";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const FPS = 30;
+const args = process.argv.slice(2);
+
+const browser = await chromium.launch({
+  args: ["--font-render-hinting=none", "--disable-lcd-text"],
+});
+const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
+await page.goto(pathToFileURL(path.join(here, "reel.html")).href);
+await page.evaluate(() => document.fonts.ready);
+await page.waitForFunction(() => [...document.images].every((i) => i.complete));
+
+if (args[0] === "--stills") {
+  const times = args[1].split(",").map(Number);
+  const out = args[2] || path.join(here, "stills");
+  fs.mkdirSync(out, { recursive: true });
+  for (const t of times) {
+    await page.evaluate((t) => window.renderAt(t), t);
+    await page.screenshot({ path: path.join(out, `t${String(t).replace(".", "_")}.png`) });
+  }
+  await browser.close();
+  process.exit(0);
+}
+
+const outFile = path.join(here, args[0] || "skypool-hebbal-reel-30s.mp4");
+const dur = await page.evaluate(() => window.DUR);
+const total = Math.round(dur * FPS);
+
+const ff = spawn("ffmpeg", [
+  "-y", "-loglevel", "error",
+  "-f", "image2pipe", "-framerate", String(FPS), "-c:v", "mjpeg", "-i", "-",
+  "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+  "-map", "0:v", "-map", "1:a", "-shortest",
+  "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-pix_fmt", "yuv420p",
+  "-profile:v", "high", "-level", "4.1", "-r", String(FPS),
+  "-c:a", "aac", "-b:a", "128k",
+  "-movflags", "+faststart",
+  outFile,
+], { stdio: ["pipe", "inherit", "inherit"] });
+
+for (let f = 0; f < total; f++) {
+  await page.evaluate((t) => window.renderAt(t), f / FPS);
+  const buf = await page.screenshot({ type: "jpeg", quality: 95 });
+  if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once("drain", r));
+  if (f % 90 === 0) process.stdout.write(`frame ${f}/${total}\n`);
+}
+ff.stdin.end();
+await new Promise((r) => ff.on("close", r));
+await browser.close();
+console.log("wrote", outFile);
