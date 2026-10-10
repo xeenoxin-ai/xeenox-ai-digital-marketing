@@ -1,6 +1,7 @@
 // Renders index.html to a 30 s, 1080x1920, 30 fps H.264 MP4.
 //
 //   node render.mjs                 -> trioz-steel-reel-30s-9x16.mp4 + storyboard.jpg
+//                                      (soundtrack: run `python3 music.py` first to build assets/music.m4a)
 //   node render.mjs --serve         -> live preview at http://localhost:8642
 //   node render.mjs --stills 1.5,8  -> PNG stills at the given seconds (for review)
 //
@@ -57,11 +58,15 @@ if (args.includes('--serve')) {
       await page.screenshot({ path: path.join(dir, `${String(f).padStart(4, '0')}.jpg`), type: 'jpeg', quality: 95 });
       if (f % 90 === 0) console.log(`frame ${f}/${total}`);
     }
+    // soundtrack from music.py; falls back to a silent track if it hasn't been generated
+    const music = path.join(ROOT, 'assets', 'music.m4a');
+    const audioIn = fs.existsSync(music) ? ['-i', music] : ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'];
+    const audioCodec = fs.existsSync(music) ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '128k'];
     execFileSync('ffmpeg', [
-      '-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, '%04d.jpg'),
-      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
-      '-shortest', '-c:v', 'libx264', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'slow',
-      '-r', String(FPS), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', OUT,
+      '-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, '%04d.jpg'), ...audioIn,
+      '-map', '0:v', '-map', '1:a', '-t', String(duration),
+      '-c:v', 'libx264', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-crf', '18', '-preset', 'slow',
+      '-r', String(FPS), ...audioCodec, '-movflags', '+faststart', OUT,
     ]);
     // storyboard: one frame from the middle of each scene beat
     const beats = [1.2, 2.4, 4.8, 8.0, 13.0, 18.0, 20.5, 23.6, 26.3, 29.5];

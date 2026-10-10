@@ -3,7 +3,7 @@
 **Client:** Trioz Steel Windows & Doors (Trioz Engineering), Kadampazhipuram, Palakkad, Kerala
 **Source:** [www.triozsteel.com](https://www.triozsteel.com), every page, analysed 10 October 2026
 **Deliverable:** 30 s, 9:16 motion graphics reel for Instagram Reels, TikTok and Stories
-**Rendered cut:** [`reel/trioz-steel-reel-30s-9x16.mp4`](reel/trioz-steel-reel-30s-9x16.mp4) (1080 × 1920, 30 fps, H.264). Storyboard: [`reel/storyboard.jpg`](reel/storyboard.jpg)
+**Rendered cut:** [`reel/trioz-steel-reel-30s-9x16.mp4`](reel/trioz-steel-reel-30s-9x16.mp4) (1080 × 1920, 30 fps, H.264, with an original soundtrack). Storyboard: [`reel/storyboard.jpg`](reel/storyboard.jpg)
 
 > No prices appear anywhere in this package: not in the analysis, the script, the on-screen text or the rendered video.
 
@@ -159,9 +159,9 @@ Sliding systems, casement and fixed windows, grille safety doors and railings, "
 | Duration | 30.0 s |
 | Aspect / resolution | 9:16, 1080 × 1920 |
 | Frame rate | 30 fps (900 frames) |
-| Codec | H.264 High, yuv420p, `+faststart`; silent AAC stereo track (see 2.7) |
+| Codec | H.264 High, yuv420p, `+faststart`; AAC 192 kbps stereo soundtrack at −14 LUFS (see 2.7) |
 | Platforms | Instagram Reels and Stories, TikTok, YouTube Shorts, Facebook Reels |
-| Sound-off design | All meaning is carried by on-screen text; no voiceover needed |
+| Sound-off design | All meaning is carried by on-screen text; no voiceover needed. The music adds energy but nothing depends on it |
 | Safe zones | Critical text kept between **y = 260 and y = 1540**. The top 250 px (handle and progress bar) and bottom 380 px (caption and CTA overlay) stay clear, with ≥ 60 px side margins. |
 
 ### 2.3 Visual direction
@@ -203,15 +203,15 @@ Every text block is short enough to read in its time on screen: about 3 words pe
 
 | # | Time | Beat | Visual and motion | On-screen text | Sound cue |
 |---|---|---|---|---|---|
-| 1 | 0.0–3.0 | **HOOK** | Brass frame draws in 0.7 s; 14 product photos flicker-cut inside it (single, main, window). The counter climbs 0 → 90. At 2.55 s the camera pushes through the doorway. | MADE HERE, NOT IMPORTED · **90** · door, window & frame models · **One Palakkad workshop.** | Metallic riser; hard hit on "90" landing |
-| 2 | 3.0–5.5 | **Made here** | Workshop welding shot with slow Ken Burns; brass weld line sweeps with glow; four process steps tick in. | KADAMPAZHIPURAM · PALAKKAD · **Made here. Not imported.** · 01 Cut · 02 Welded · 03 Primed · 04 Powder-coated | Weld crackle; tick per step |
-| 3 | 5.5–10.0 | **Single Doors** | Steel wipe in. Three parallax columns of single doors with model tags; five feature chips pop in. | 01 · TRIOZ SINGLE DOORS · **18 designs** · 90 × 210 cm · powder-coated steel · Panelled · Fluted · Louvred · Glass insets · Gold accents | Steel shutter whoosh; light pulse |
-| 4 | 10.0–14.5 | **Main Doors** | Steel wipe in. A large main-door card swings open on its hinges six times (M111 → M130), and the model tag updates. A spec list counts in, then the material panel. | 02 · TRIOZ MAIN DOORS · **29 double doors** · Double door · double panel · 120 × 210 cm · 1 Bullet-type lock · 2 4 tower bolts · 3 Eye lens viewer · 4 SS accessories · MATERIAL SPECIFICATION: TATA Galvano 1.5 mm frame, 0.9 mm double-sheet panels | Door-latch clunk on each swing |
-| 5 | 14.5–19.0 | **Windows** | Steel wipe in. A 3 × 3 mosaic of window models springs in from the centre and floats gently. Six style chips appear and light brass in sequence. | 03 · TRIOZ WINDOWS · **37 designs** · Made to order · site-measured · Ventilator · Louvred · Sliding · Casement · Arched · Designer | Soft tick per chip |
-| 6 | 19.0–21.5 | **Door Frames** | Steel wipe in. Frame photos cycle through six finishes; the matching swatch lights up. | 04 · TRIOZ DOOR FRAMES · **6 finishes** · Heavy-duty · rust-proof · precise fit · Charcoal grey · Copper brown · Navy blue · Teak wood-grain · Matte black · Grey | Quick metallic taps in sync |
-| 7 | 21.5–24.5 | **Petra Steel** | Mood shifts to near-black. The PETRA wordmark rises and the STEEL tracking tightens; three catalogue doors (PTR 700, PTR 88, PTR 800) fan out and float. | BRAND 02 · ARCHITECTURAL STEEL · **PETRA** · STEEL · Hand-finished textures · Full catalogue online | Music drops to bass, then a deep boom |
-| 8 | 24.5–26.8 | **Proof** | Cream. Four stat tiles rise and count up. | RUST-PROOF & WEATHERPROOF · **Built for the Kerala monsoon.** · 60 micron Powder-coat thickness · 10 yr Structural assurance · 4.8★ From 23 Google reviews · 500+ Installations in Palakkad | Rising ticks into the final hit |
-| 9 | 26.8–30.0 | **Brand close** | A brass frame draws around the logo; the logo un-blurs in; the line fades up; the URL pill pops; holds for 1.4 s for loop and readability. | TRIOZ · STEEL WINDOWS & DOORS (logo) · **Made here in Palakkad. Never imported.** · **www.triozsteel.com** · Free site measurement · Kadampazhipuram | Final hit on the logo, ring-out under the URL |
+| 1 | 0.0–3.0 | **HOOK** | Brass frame draws in 0.7 s; 14 product photos flicker-cut inside it (single, main, window). The counter climbs 0 → 90. At 2.55 s the camera pushes through the doorway. | MADE HERE, NOT IMPORTED · **90** · door, window & frame models · **One Palakkad workshop.** | A-minor drone and riser; impact as "90" lands (1.5 s); 16th-note ticks and a second riser into the 3.0 s hit |
+| 2 | 3.0–5.5 | **Made here** | Workshop welding shot with slow Ken Burns; brass weld line sweeps with glow; four process steps tick in. | KADAMPAZHIPURAM · PALAKKAD · **Made here. Not imported.** · 01 Cut · 02 Welded · 03 Primed · 04 Powder-coated | Groove starts on the 3.0 s downbeat (kick, bass, pad); weld crackle under the spark line; tick per step |
+| 3 | 5.5–10.0 | **Single Doors** | Steel wipe in. Three parallax columns of single doors with model tags; five feature chips pop in. | 01 · TRIOZ SINGLE DOORS · **18 designs** · 90 × 210 cm · powder-coated steel · Panelled · Fluted · Louvred · Glass insets · Gold accents | Steel-shutter whoosh into an impact on the 5.5 s cut; claps enter; soft tick per chip |
+| 4 | 10.0–14.5 | **Main Doors** | Steel wipe in. A large main-door card swings open on its hinges six times (M111 → M130), and the model tag updates. A spec list counts in, then the material panel. | 02 · TRIOZ MAIN DOORS · **29 double doors** · Double door · double panel · 120 × 210 cm · 1 Bullet-type lock · 2 4 tower bolts · 3 Eye lens viewer · 4 SS accessories · MATERIAL SPECIFICATION: TATA Galvano 1.5 mm frame, 0.9 mm double-sheet panels | Whoosh and impact on 10.0 s; 16th hats and a ping-pong arpeggio enter; door-latch clunk as each door closes |
+| 5 | 14.5–19.0 | **Windows** | Steel wipe in. A 3 × 3 mosaic of window models springs in from the centre and floats gently. Six style chips appear and light brass in sequence. | 03 · TRIOZ WINDOWS · **37 designs** · Made to order · site-measured · Ventilator · Louvred · Sliding · Casement · Arched · Designer | Whoosh and impact on 14.5 s; full groove; tick as each style chip lights |
+| 6 | 19.0–21.5 | **Door Frames** | Steel wipe in. Frame photos cycle through six finishes; the matching swatch lights up. | 04 · TRIOZ DOOR FRAMES · **6 finishes** · Heavy-duty · rust-proof · precise fit · Charcoal grey · Copper brown · Navy blue · Teak wood-grain · Matte black · Grey | Whoosh and impact on 19.0 s; tick on each finish change |
+| 7 | 21.5–24.5 | **Petra Steel** | Mood shifts to near-black. The PETRA wordmark rises and the STEEL tracking tightens; three catalogue doors (PTR 700, PTR 88, PTR 800) fan out and float. | BRAND 02 · ARCHITECTURAL STEEL · **PETRA** · STEEL · Hand-finished textures · Full catalogue online | Drop on 21.5 s: drums out, deep boom, dark Dm → E pad, heartbeat kicks, reverse swell into 24.5 s |
+| 8 | 24.5–26.8 | **Proof** | Cream. Four stat tiles rise and count up. | RUST-PROOF & WEATHERPROOF · **Built for the Kerala monsoon.** · 60 micron Powder-coat thickness · 10 yr Structural assurance · 4.8★ From 23 Google reviews · 500+ Installations in Palakkad | Build on 24.5 s: kick returns, accelerating clap roll, rising bass line and riser, a short gap before the hit |
+| 9 | 26.8–30.0 | **Brand close** | A brass frame draws around the logo; the logo un-blurs in; the line fades up; the URL pill pops; holds for 1.4 s for loop and readability. | TRIOZ · STEEL WINDOWS & DOORS (logo) · **Made here in Palakkad. Never imported.** · **www.triozsteel.com** | Final impact on 27.0 s as the frame draws; A-minor add9 chord rings out; chime as the URL lands (28.1 s); fade to silence at 30 s |
 
 **Pacing check**
 - **Hook (0–3 s):** a moving number, a moving door and the brand truth, all before the first cut.
@@ -242,7 +242,6 @@ Every text block is short enough to read in its time on screen: about 3 words pe
 | 10 yr structural assurance | Home and About stats |
 | 4.8★ from 23 Google reviews | Home, About, Contact |
 | 500+ installations in Palakkad | Home: "500+ Installations across Palakkad" |
-| Free site measurement | Home CTA kicker |
 | www.triozsteel.com | Site URL |
 
 ### 2.6 Copy for the post (no prices)
@@ -258,10 +257,27 @@ Every text block is short enough to read in its time on screen: about 3 words pe
 
 ### 2.7 Audio direction
 
-The rendered file has a **silent stereo track**, so platforms accept it and trending or library audio can be added in the app. For a produced mix:
+The rendered video includes an **original soundtrack composed for this edit** (`reel/music.py` → `reel/assets/music.m4a`). It is synthesised from scratch in code: no samples and no stock library, so it is royalty-free to post and boost.
 
-- **Music:** industrial-minimal percussion, 100–110 BPM, with hits on the cuts at **3.0 / 5.5 / 10.0 / 14.5 / 19.0 / 21.5 / 24.5 / 26.8 s**.
-- **Sound effects:** metal riser and impact (hook), weld crackle (S2), steel-shutter whoosh (each wipe), door-latch clunk (each main-door swing), soft UI ticks (chips and counters), low boom (Petra), final impact and ring-out (logo).
+- **Style:** industrial-minimal electronic in A minor at **120 BPM**. At that tempo the scene cuts at **3.0 / 5.5 / 10.0 / 14.5 / 19.0 / 21.5 / 24.5 s** fall exactly on the beat, so every cut lands on a downbeat.
+- **Shape:**
+
+  | Time | Section | What happens |
+  |---|---|---|
+  | 0–3 s | Intro | Drone and riser |
+  | 3–21.5 s | Groove | Am–F–C–G progression; layers build from 10 s with 16th hats and an arpeggio |
+  | 21.5–24.5 s | Petra drop | Drums out, deep boom, dark pad |
+  | 24.5–27 s | Build | Clap roll and rising bass |
+  | 27–30 s | Close | Logo impact, ring-out and chime, ending in silence |
+- **Sound design locked to picture:**
+  - Impact on the "90" landing and on each cut
+  - Steel-shutter whoosh on every wipe
+  - Weld crackle under the spark line
+  - Door-latch clunk as each main door closes
+  - Soft ticks on chips and finish changes
+  - Chime as the URL lands
+- **Mastering:** −14 LUFS integrated with a −2.3 dB true peak, which matches Instagram and TikTok normalisation, so the platforms won't turn it down or squash it.
+- **Swapping audio:** to use trending in-app audio instead, mute the original sound when posting or replace the track in the editor. The picture is cut to 120 BPM, so most 120/60 BPM tracks will sit on the cuts.
 - **Voiceover:** none required. If a Malayalam or English VO is wanted later, keep it to the on-screen lines and do not add claims beyond section 2.5.
 
 ### 2.8 Compliance checklist
@@ -285,13 +301,14 @@ clients/trioz-steel/
     ├── trioz-steel-reel-30s-9x16.mp4  ← final render (30 s, 1080×1920, 30 fps)
     ├── storyboard.jpg                 ← 10 key frames
     ├── index.html                     ← animation source (time-driven HTML/CSS)
-    ├── render.mjs                     ← frame capture + ffmpeg encode
-    └── assets/                        ← product photos, logo, Petra pages, Sora/Inter fonts
+    ├── render.mjs                     ← frame capture + ffmpeg encode (muxes the soundtrack)
+    ├── music.py                       ← soundtrack composer and mastering (numpy + ffmpeg)
+    └── assets/                        ← product photos, logo, Petra pages, Sora/Inter fonts, music.m4a
 ```
 
 **Preview live:** `node reel/render.mjs --serve`, then open http://localhost:8642/index.html (loops in real time).
 
-**Re-render:** `node reel/render.mjs` (needs Playwright with Chromium, and ffmpeg). Every frame is a pure function of time (`window.seek(t)`), so renders are frame-exact and repeatable.
+**Re-render:** `python3 reel/music.py` (only if the music changes), then `node reel/render.mjs` (needs Playwright with Chromium, and ffmpeg). Every frame is a pure function of time (`window.seek(t)`), so renders are frame-exact and repeatable.
 
 **Edit copy or timing:** scene windows are in `SC` and cut points in `WIPES` in `index.html`. Each scene's text is plain HTML at the top of the file.
 
