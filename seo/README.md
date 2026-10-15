@@ -15,6 +15,7 @@ Goal: get the **Xeenox Technologies** Google Business Profile (GBP) into the Goo
 | [`pages/areas/`](pages/areas/) | HSR Layout and Koramangala area pages, plus rules and angles for the next 6 areas |
 | [`blog/`](blog/) | 24‑post content calendar and 3 publish‑ready posts |
 | [`gbp-audit-2026-10-15.md`](gbp-audit-2026-10-15.md) | Live audit of the Google Business Profile: phone/hours/name mismatches, 3 reviews, conflicting LinkedIn/Justdial listings |
+| [`gbp-chrome-prompt.md`](gbp-chrome-prompt.md) | Ready-to-run Claude in Chrome instructions to fix the GBP (name, phone, hours, categories, services, links) |
 | [`hostinger-horizons-prompts.md`](hostinger-horizons-prompts.md) | Paste-in prompts to apply every website fix in Hostinger Horizons, in priority order, with a check for each |
 
 **Before publishing anything:** search the files for `[CONFIRM`, `[verify`, `[add`, `₹X`, `REPLACE_` and `<!-- verify claim -->` and fill in or delete each one. Only publish numbers and client results you can prove.
