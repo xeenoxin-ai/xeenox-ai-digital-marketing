@@ -15,6 +15,23 @@ Checked on 15 Oct 2026 using the raw HTML the server sends (this is what Google 
 | 7 | A `meta keywords` tag stuffed with "… Bangalore" phrases | Google ignores it, and it looks spammy to anyone reviewing the site | Remove it |
 | 8 | Several portfolio items are Palakkad clients | That's fine, since they are real work. Keep them, but **add Bangalore case studies** so the Bangalore relevance comes from real proof | Publish 2–3 Bangalore case studies |
 
+## Technical audit (15 Oct 2026, second pass)
+
+| # | Severity | Finding | Evidence | Fix |
+|---|---|---|---|---|
+| T1 | 🔴 Critical | **Every page's HTML has `canonical` set to the homepage.** React Helmet adds the correct canonical after JavaScript runs, so the rendered page ends up with two conflicting canonicals | `curl https://xeenox.in/services` returns `<link rel="canonical" href="https://xeenox.in/">` | Remove the hard‑coded canonical from `index.html` and let each route set its own. Then check with Search Console → URL Inspection that `/services` shows "User‑declared canonical: /services" |
+| T2 | 🔴 Critical | **Social share images are broken.** `og-home.jpg` and `og-services.jpg` return HTTP 422 | `curl -I https://xeenox.in/og-home.jpg` → 422 | Upload 1200×630 JPGs at those paths, then refresh the previews in the Facebook Sharing Debugger and LinkedIn Post Inspector |
+| T3 | 🔴 High | **Unknown URLs return 200 instead of 404** (soft 404s), including `/login` and `/admin` | `curl -o /dev/null -w %{http_code} https://xeenox.in/nonexistent` → 200 | Set up a real 404 route, or at least a `noindex` on the not‑found component. Block `/login` and `/admin` with `noindex` |
+| T4 | 🟠 High | **No server‑rendered content.** The HTML has 10 KB of shell and a 930 KB JavaScript bundle, so all text, H1s and links only appear after JavaScript runs | `curl` of any page | Turn on pre‑rendering if Hostinger Horizons supports it. Otherwise keep pages lean and rely on Google's rendering, and check every page in URL Inspection → "View crawled page" |
+| T5 | 🟠 Medium | **Bot challenge page.** A headless browser gets "Checking your browser before accessing" | Playwright render of `/` | Make sure Googlebot and Bingbot are let through: run URL Inspection → Test live URL. If Google also sees the challenge page, disable bot protection for verified search bots in Hostinger |
+| T6 | 🟡 Medium | `www.xeenox.in` returns 200 instead of redirecting with a 301 to `xeenox.in` | `curl -I https://www.xeenox.in/` | Set up a 301 from www to the apex domain in Hostinger |
+| T7 | 🟡 Medium | The favicon is the default `vite.svg`, and `/favicon.ico` returns HTML | `<link rel="icon" href="/vite.svg">` | Upload your own favicon (ICO plus a 512×512 PNG) so the logo shows in Google mobile results |
+| T8 | 🟡 Low | `/logo.png` doesn't exist (422), so the schema has no logo to reference | `curl -I https://xeenox.in/logo.png` | Upload a square logo PNG at that path. The schema file already points there |
+| T9 | 🟡 Low | Only 2 image alt texts in the bundle ("Xeenox", "Generated") | grep of the JS bundle | Add descriptive alt text to every portfolio and team image, e.g. "Meta Ads lead campaign for Skypool Fitness Studio, Bangalore" |
+| T10 | 🟢 OK | HTTPS, the HTTP→HTTPS 301, robots.txt, sitemap and GA4 are all in place | — | — |
+
+Verify a fix the same way the evidence was gathered: run the same curl command or URL Inspection again.
+
 ## Page titles and H1s
 
 | URL | Title (≤60 chars) | H1 |
