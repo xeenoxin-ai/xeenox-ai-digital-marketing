@@ -1,30 +1,36 @@
 # GBP fix — paste into Claude on your own computer (Claude in Chrome)
 
-Run this from the Claude Desktop app, or from claude.ai with the Claude in Chrome extension, in the Chrome where you're signed into the Google account that owns the profile.
+> ⚠️ **Read first (from your Gmail, 15 Oct 2026).** The profile is under restriction:
+> - **6 & 10 Oct:** posts removed for violating policy, and **Google turned off posting** for the profile.
+> - **15 Oct 06:54:** the rename to "Xeenox Technologies" was **rejected** ("Business identity changed").
+> - **15 Oct 12:01:** a 5★ review was posted by co‑founder **Neethu Ramakrishnan**. Reviews from owners or staff break Google's policy.
+>
+> So: **don't retry the name change**. Make edits **one at a time, a day apart**. Remove staff reviews. Don't bulk‑edit.
 
+## Step 0 — do this yourself, today
+1. **Neethu deletes her review**: Google Maps → profile → Your reviews → Delete. Ask any other staff, family or co‑owner reviewers to do the same.
+2. **Name**: if you have a **GST certificate, Udyam/MSME certificate or company registration showing "Xeenox Technologies"**, open the "A recent information edit was rejected" email → **Appeal** → upload the document plus a photo of the signage that reads "Xeenox Technologies" at 9th Main, HSR. If you don't have that proof, **keep the name "Xeenox"** and use "Xeenox" everywhere instead.
+3. **Posting**: read the policy‑violation email from 10 Oct. Wait until posting is turned back on. Future posts must have no phone numbers in the text, no "best/No.1" claims, no before‑after promises and no links other than your own site.
+
+## Step 1 — paste this into Claude in Chrome (one edit per day)
 ```
-Open https://business.google.com (I'm signed in) and select the profile "Xeenox" in HSR Layout, Bengaluru.
-Make these edits. Show me each screen before you press Save, and stop and ask me if Google asks for re-verification, a video, or anything you're unsure about.
+Open https://business.google.com (I'm signed in) → profile "Xeenox", HSR Layout, Bengaluru.
+This profile has had a rejected edit and posting turned off, so make ONLY the edit I name below, show me the screen before Save, and stop if Google asks for verification or shows any warning.
 
-1. Business name → "Xeenox Technologies" (exactly this, no keywords).
-2. Phone → Primary: 090745 80473 (+91 90745 80473). If 090744 97082 is still a line we answer, move it to "Additional phone"; otherwise remove it.
-3. Hours → Monday–Saturday 09:30–19:00, Sunday Closed.
-4. Address → keep "9th Main Rd, 7th Sector, HSR Layout, Bengaluru, Karnataka 560102" as is.
-5. Categories → keep primary "Marketing agency". Add as secondary (only the ones the dropdown offers): Internet marketing service, Advertising agency, Social media agency, Website designer, Marketing consultant, Software company.
-6. Service area → HSR Layout, Koramangala, Bellandur, BTM Layout, Sarjapur Road, Electronic City, Whitefield, Indiranagar, Marathahalli, Bengaluru.
-7. Website → https://xeenox.in/?utm_source=google&utm_medium=organic&utm_campaign=gbp
-   Appointment link → https://xeenox.in/contact?utm_source=google&utm_medium=organic&utm_campaign=gbp_booking
-8. Services → add these custom services with descriptions (text is in seo/gbp-optimization.md section 4, which I'll paste if you need it): Digital Marketing Services, SEO Services, Local SEO & Google Business Profile Optimisation, Google Ads Management (PPC), Facebook & Instagram Ads (Meta Ads), Social Media Marketing, AI Marketing Automation, AI Chatbot Development, Website Design & Development, Landing Page Design, Content Marketing, Email & WhatsApp Marketing, LinkedIn Marketing for B2B, Lead Generation Services, Online Reputation Management, Branding & Creative Design, Healthcare & Clinic Marketing, Real Estate Marketing.
-9. Attributes → Online appointments: yes. Onsite services: yes. Languages: only the ones I confirm.
-10. Social profiles → Instagram https://www.instagram.com/thexeenox/ and Facebook https://www.facebook.com/profile.php?id=61585031618963 (plus LinkedIn once I've picked the one company page to keep).
-11. Messaging/chat → turn it on.
-12. "Ask for reviews" → copy the short review link and give it to me.
-13. Settings → People and access → tell me whether I am "Primary owner"/"Owner" and whether the profile shows as Verified.
+Day 1 — Hours: Monday–Saturday 09:30–19:00, Sunday Closed.
+Day 2 — Phone: Primary 090745 80473. Keep 090744 97082 as "Additional phone" only if we still answer it.
+Day 3 — Secondary categories (only those offered in the dropdown): Internet marketing service, Advertising agency, Social media agency, Website designer, Marketing consultant.
+Day 4 — Website: https://xeenox.in/?utm_source=google&utm_medium=organic&utm_campaign=gbp ; Appointment link: https://xeenox.in/contact
+Day 5 — Services: add the custom services from seo/gbp-optimization.md section 4 (I'll paste the text).
+Day 6 — Service area: HSR Layout, Koramangala, Bellandur, BTM Layout, Sarjapur Road, Electronic City, Whitefield, Bengaluru.
+Day 7 — Social profiles: https://www.instagram.com/thexeenox/ and https://www.facebook.com/profile.php?id=61585031618963
 
-Don't change anything that isn't on this list. Don't delete posts, photos or reviews.
+Any day — "Ask for reviews": copy the short review link and give it to me (this isn't an edit).
+Any day — Settings → People and access: tell me whether I'm Primary owner and whether the profile shows "Verified" (read only).
+
+Do NOT change the name, address or anything else. Do NOT create posts while posting is turned off.
 ```
 
-## After the GBP is updated
-- Change the phone and name to match on Instagram, Facebook, LinkedIn, Justdial, Sulekha and every other directory (copy in `platform-profiles.md`).
-- Website: once Hostinger credits are available, Claude applies the fixes in `hostinger-horizons-prompts.md`. The site already uses +91 90745 80473; the name and schema switch to "Xeenox Technologies".
-- Send the review link to every past client the same day.
+## After that
+- Make the phone (+91 90745 80473) match on Instagram, Facebook, LinkedIn, Justdial and every directory. Use the name Google accepts ("Xeenox", or "Xeenox Technologies" if the appeal succeeds).
+- Get reviews **only from real clients** (§6 of `gbp-optimization.md`), at a steady 2–4 per week. A sudden burst after a flag looks manipulated.
