@@ -26,9 +26,9 @@ Before writing a page, check the volumes in Google Keyword Planner (free in the 
 | /services/local-seo | local seo services bangalore | google business profile optimisation bangalore, google my business services bangalore, google maps ranking bangalore |
 | /services/google-ads | google ads agency bangalore | ppc company bangalore, google ads management bangalore, sem agency bangalore, ppc services bangalore |
 | /services/meta-ads | facebook ads agency bangalore | instagram ads agency bangalore, meta ads agency bangalore, facebook marketing company bangalore |
-| /services/social-media | social media marketing agency bangalore | smm company bangalore, instagram marketing agency bangalore, social media management bangalore |
+| /services/social-media-marketing | social media marketing agency bangalore | smm company bangalore, instagram marketing agency bangalore, social media management bangalore |
 | /services/website-design | website design company bangalore | web development company bangalore, website designers in bangalore, landing page design bangalore |
-| /services/ai-automation | marketing automation agency bangalore | ai automation company bangalore, crm automation bangalore |
+| /services/ai-marketing-automation | marketing automation agency bangalore | ai automation company bangalore, crm automation bangalore |
 | /services/ai-chatbot | whatsapp chatbot development bangalore | ai chatbot company bangalore, chatbot development bangalore |
 | /services/lead-generation | lead generation company bangalore | b2b lead generation bangalore, lead generation agency bangalore |
 | /services/content | content marketing agency bangalore | content writing services bangalore |

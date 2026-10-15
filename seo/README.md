@@ -9,6 +9,13 @@ Goal: get the **Xeenox Technologies** Google Business Profile (GBP) into the Goo
 | [`off-page-backlinks.md`](off-page-backlinks.md) | NAP master block, 60+ citations in priority order, backlink and PR plan, what to avoid |
 | [`website-fixes.md`](website-fixes.md) | Problems found on xeenox.in and what to change |
 | [`schema-localbusiness.json`](schema-localbusiness.json) | Replacement JSON‑LD for the site `<head>` |
+| [`platform-profiles.md`](platform-profiles.md) | Paste‑ready profile copy for every platform: Instagram, Facebook, LinkedIn, YouTube, X/Pinterest/Threads, WhatsApp Business, Bing, Apple, Justdial/Sulekha/IndiaMART, Clutch/GoodFirms/DesignRush, Crunchbase, plus UTM and cross‑link tables |
+| [`pages/home.md`](pages/home.md), [`pages/about.md`](pages/about.md) | Rewritten homepage and About page (with founder Person schema) |
+| [`pages/services/`](pages/services/) | 8 service pages (SEO, local SEO, Google Ads, Meta Ads, social media, website design, AI chatbot, AI automation), each with title/meta/H1, copy, FAQs and Service + FAQPage JSON‑LD |
+| [`pages/areas/`](pages/areas/) | HSR Layout and Koramangala area pages, plus rules and angles for the next 6 areas |
+| [`blog/`](blog/) | 24‑post content calendar and 3 publish‑ready posts |
+
+**Before publishing anything:** search the files for `[CONFIRM`, `[verify`, `[add`, `₹X`, `REPLACE_` and `<!-- verify claim -->` and fill in or delete each one. Only publish numbers and client results you can prove.
 
 ## Read this first: what can and can't be done
 

@@ -42,7 +42,7 @@ Verify a fix the same way the evidence was gathered: run the same curl command o
 | /services/local-seo | Local SEO & Google Business Profile Bangalore \| Xeenox | Rank in the Google Maps Top 3 in Bangalore |
 | /services/google-ads | Google Ads Agency in Bangalore \| Xeenox | Google Ads Management in Bangalore |
 | /services/meta-ads | Facebook & Instagram Ads Agency Bangalore \| Xeenox | Meta Ads That Generate Leads in Bangalore |
-| /services/social-media | Social Media Marketing Agency Bangalore \| Xeenox | Social Media Marketing in Bangalore |
+| /services/social-media-marketing | Social Media Marketing Agency Bangalore \| Xeenox | Social Media Marketing in Bangalore |
 | /services/website-design | Website Design Company in Bangalore \| Xeenox | Website Design & Development in Bangalore |
 | /services/ai-chatbot | WhatsApp & AI Chatbot Development Bangalore \| Xeenox | AI Chatbots for Bangalore Businesses |
 | /digital-marketing-agency-hsr-layout | Digital Marketing Agency in HSR Layout \| Xeenox | Your Digital Marketing Team in HSR Layout |
