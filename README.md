@@ -34,6 +34,13 @@ hosting costs money.
 We use open data instead of reverse-engineering Google Maps: Google's private APIs
 are against their Terms of Service and break without notice.
 
+### Install on your phone (free)
+
+1. Open the app link in Chrome (Android) or Safari (iPhone).
+2. Android: tap **Install app** at the top (or menu ⋮ → *Install app*).
+   iPhone: tap Share → *Add to Home Screen*.
+3. Open **Xeenox Route** from the home screen like any other app.
+
 ### Run it
 
 ```bash

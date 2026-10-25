@@ -527,6 +527,28 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+// ---------- Install as an app ----------
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// Chrome/Android offer an install prompt; surface it as a button.
+let installPrompt = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $('installBtn').hidden = false;
+});
+$('installBtn').addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $('installBtn').hidden = true;
+});
+addEventListener('appinstalled', () => toast('Xeenox Route installed. Open it from your home screen.'));
+
 updateAiMode();
 locate();
 refreshHotspots();
