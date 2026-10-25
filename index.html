@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon-192.png" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <title>Xeenox Route</title>
+    <script type="module" crossorigin src="./assets/index-BLRdls9E.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CGx7ii4-.css">
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Search / route planner -->
+    <section class="panel top-panel" id="planner">
+      <div class="brand">
+        <span class="logo">X</span>
+        <strong>Xeenox Route</strong>
+        <button class="btn small primary" id="installBtn" hidden>Install app</button>
+        <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+      <div class="field">
+        <span class="dot dot-from"></span>
+        <input id="fromInput" placeholder="From: my location" autocomplete="off" />
+        <button class="icon-btn" id="locateBtn" title="Use my location" aria-label="Use my location">◎</button>
+      </div>
+      <div class="field">
+        <span class="dot dot-to"></span>
+        <input id="toInput" placeholder="Where to?" autocomplete="off" />
+        <button class="icon-btn" id="swapBtn" title="Swap" aria-label="Swap">⇅</button>
+      </div>
+      <ul class="suggestions" id="suggestions" hidden></ul>
+      <div class="toggles">
+        <label class="chip"><input type="checkbox" id="avoidTolls" /> Avoid tolls</label>
+        <label class="chip"><input type="checkbox" id="showHotspots" checked /> Traffic hotspots</label>
+        <button class="btn primary" id="goBtn">Find routes</button>
+      </div>
+      <p class="hint">Tip: tap the map to set a destination.</p>
+    </section>
+
+    <!-- Route results -->
+    <section class="panel bottom-sheet" id="routesSheet" hidden>
+      <div class="sheet-head">
+        <strong>Routes</strong>
+        <button class="icon-btn" data-close="routesSheet" aria-label="Close">✕</button>
+      </div>
+      <div id="aiTip" class="ai-tip" hidden></div>
+      <div id="routesList"></div>
+    </section>
+
+    <!-- Breakdown / workshop finder -->
+    <section class="panel bottom-sheet" id="sosSheet" hidden>
+      <div class="sheet-head">
+        <strong>Vehicle breakdown? What do you need?</strong>
+        <button class="icon-btn" data-close="sosSheet" aria-label="Close">✕</button>
+      </div>
+      <div class="vehicle-row">
+        <label class="chip"><input type="radio" name="vehicle" value="car" checked /> Car</label>
+        <label class="chip"><input type="radio" name="vehicle" value="bike" /> Bike / Scooter</label>
+        <label class="chip"><input type="radio" name="vehicle" value="truck" /> Truck / Bus</label>
+      </div>
+      <div class="need-grid" id="needGrid"></div>
+      <div class="emergency">
+        <a class="btn danger" href="tel:112">Call 112 (Emergency)</a>
+        <a class="btn" href="tel:1033">Call 1033 (Highway help)</a>
+      </div>
+      <div id="workshopStatus" class="status"></div>
+      <div id="workshopList"></div>
+    </section>
+
+    <!-- AI assistant -->
+    <section class="panel bottom-sheet" id="aiSheet" hidden>
+      <div class="sheet-head">
+        <strong>AI Assistant <small id="aiMode"></small></strong>
+        <button class="icon-btn" data-close="aiSheet" aria-label="Close">✕</button>
+      </div>
+      <div class="chat" id="chatLog"></div>
+      <form class="chat-form" id="chatForm">
+        <input id="chatInput" placeholder="e.g. my tyre is punctured / route to Coimbatore avoiding tolls" autocomplete="off" />
+        <button class="btn primary" type="submit">Send</button>
+      </form>
+    </section>
+
+    <!-- Settings -->
+    <section class="panel bottom-sheet" id="settingsSheet" hidden>
+      <div class="sheet-head">
+        <strong>Settings</strong>
+        <button class="icon-btn" data-close="settingsSheet" aria-label="Close">✕</button>
+      </div>
+      <form id="settingsForm" class="settings">
+        <label class="row"><input type="checkbox" name="useOllama" /> Use local LLM (Ollama) for the assistant</label>
+        <label>Ollama URL <input name="ollamaUrl" placeholder="http://localhost:11434" /></label>
+        <label>Ollama model <input name="ollamaModel" placeholder="llama3.2" /></label>
+        <p class="hint">Without Ollama, the assistant runs a built-in on-device rule engine. Your reports and settings stay in this browser.</p>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </section>
+
+    <!-- Floating actions -->
+    <div class="fab-stack">
+      <button class="fab" id="reportBtn" title="Report a traffic jam at the map centre">🚧<span>Report jam</span></button>
+      <button class="fab" id="aiBtn" title="AI assistant">🤖<span>Assistant</span></button>
+      <button class="fab sos" id="sosBtn" title="Breakdown help">🛠<span>Breakdown</span></button>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+  </body>
+</html>
