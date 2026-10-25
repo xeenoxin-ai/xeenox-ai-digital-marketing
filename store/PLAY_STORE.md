@@ -35,7 +35,7 @@ No ads. No sign-up. No subscriptions. Built on OpenStreetMap open data.
 **Category:** Maps & Navigation
 **Tags:** navigation, traffic, toll free, mechanic, breakdown
 **Contact email:** your support email
-**Privacy policy URL:** https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/privacy.html
+**Privacy policy URL:** https://easyway-maps.vercel.app/privacy.html
 
 ## Graphics (in this folder)
 
