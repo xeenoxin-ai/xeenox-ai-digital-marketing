@@ -5,6 +5,8 @@ import {
   ArrowUp, ArrowUpRight, ArrowUpLeft, CornerUpRight, CornerUpLeft, Undo2, RotateCw, Merge, Flag,
   Navigation, Wrench, Disc, BatteryCharging, Fuel, Zap, Truck, Sparkles, TrafficCone, LocateFixed,
   ArrowUpDown, Settings, X, Volume2, VolumeX, Crosshair, Phone, Clock, Siren, Coins, Route,
+  Hospital, Pill, Utensils, Banknote, BedDouble, Shield, ShoppingCart, Toilet, SquareParking, Bus,
+  TrainFront, Landmark, Search,
 } from 'lucide';
 
 const ICONS = {
@@ -15,6 +17,9 @@ const ICONS = {
   assistant: Sparkles, jam: TrafficCone, locate: LocateFixed, swap: ArrowUpDown, settings: Settings,
   close: X, sound: Volume2, mute: VolumeX, recenter: Crosshair, phone: Phone, clock: Clock,
   sos: Siren, toll: Coins, route: Route,
+  hospital: Hospital, pharmacy: Pill, food: Utensils, atm: Banknote, stay: BedDouble, police: Shield,
+  grocery: ShoppingCart, toilet: Toilet, parking: SquareParking, bus: Bus, train: TrainFront,
+  worship: Landmark, search: Search,
 };
 
 const esc = (v) => String(v).replace(/"/g, '&quot;');
