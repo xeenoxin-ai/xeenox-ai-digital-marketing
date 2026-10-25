@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# The deploy step pushes the built site to the gh-pages branch.
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,9 +18,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - run: npm install
+      - run: npm ci
+
+      - run: npm test
 
       - run: npm run build
 
