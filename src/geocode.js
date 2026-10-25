@@ -1,9 +1,11 @@
-// Place search via OpenStreetMap Nominatim, biased towards the user's area.
+// Place search on free OpenStreetMap geocoders, biased towards the user's area:
+// Nominatim first, Photon (komoot) as the backup when Nominatim is busy.
 // Nominatim's policy allows ~1 request/second, so callers debounce.
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org';
+const PHOTON = 'https://photon.komoot.io';
 
-export async function searchPlaces(q, near) {
+async function nominatimSearch(q, near) {
   const params = new URLSearchParams({ q, format: 'jsonv2', limit: '6', countrycodes: 'in' });
   if (near) {
     const [lat, lon] = near;
@@ -19,6 +21,39 @@ export async function searchPlaces(q, near) {
     lat: Number(r.lat),
     lon: Number(r.lon),
   }));
+}
+
+async function photonSearch(q, near) {
+  const params = new URLSearchParams({ q, limit: '6', lang: 'en' });
+  if (near) {
+    params.set('lat', near[0]);
+    params.set('lon', near[1]);
+  }
+  const res = await fetch(`${PHOTON}/api/?${params}`);
+  if (!res.ok) throw new Error(`Search failed (${res.status})`);
+  const json = await res.json();
+  return json.features
+    .filter((f) => !f.properties.countrycode || f.properties.countrycode === 'IN')
+    .map((f) => {
+      const p = f.properties;
+      const parts = [p.name, p.street, p.city || p.county, p.state].filter(Boolean);
+      return {
+        name: parts.slice(0, 3).join(', '),
+        full: parts.join(', '),
+        lat: f.geometry.coordinates[1],
+        lon: f.geometry.coordinates[0],
+      };
+    });
+}
+
+export async function searchPlaces(q, near) {
+  try {
+    const rows = await nominatimSearch(q, near);
+    if (rows.length) return rows;
+  } catch {
+    /* fall through to the backup */
+  }
+  return photonSearch(q, near);
 }
 
 export async function reverse([lat, lon]) {
