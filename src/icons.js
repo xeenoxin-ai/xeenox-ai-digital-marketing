@@ -6,7 +6,7 @@ import {
   Navigation, Wrench, Disc, BatteryCharging, Fuel, Zap, Truck, Sparkles, TrafficCone, LocateFixed,
   ArrowUpDown, Settings, X, Volume2, VolumeX, Crosshair, Phone, Clock, Siren, Coins, Route,
   Hospital, Pill, Utensils, Banknote, BedDouble, Shield, ShoppingCart, Toilet, SquareParking, Bus,
-  TrainFront, Landmark, Search,
+  TrainFront, Landmark, Search, Globe, Share2, MapPinPlus, MapPin, Store,
 } from 'lucide';
 
 const ICONS = {
@@ -19,7 +19,7 @@ const ICONS = {
   sos: Siren, toll: Coins, route: Route,
   hospital: Hospital, pharmacy: Pill, food: Utensils, atm: Banknote, stay: BedDouble, police: Shield,
   grocery: ShoppingCart, toilet: Toilet, parking: SquareParking, bus: Bus, train: TrainFront,
-  worship: Landmark, search: Search,
+  worship: Landmark, search: Search, web: Globe, share: Share2, add: MapPinPlus, pin: MapPin, store: Store,
 };
 
 const esc = (v) => String(v).replace(/"/g, '&quot;');
