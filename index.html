@@ -8,8 +8,8 @@
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <title>EasyWay</title>
-    <script type="module" crossorigin src="./assets/index-CCgyFepI.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BdWaojoP.css">
+    <script type="module" crossorigin src="./assets/index-Bz8pJNo_.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BJHJTQCl.css">
   </head>
   <body>
     <div id="map"></div>
@@ -35,6 +35,7 @@
         </div>
       </div>
       <ul class="suggestions" id="suggestions" hidden></ul>
+      <div class="chips" id="chips" role="toolbar" aria-label="Find nearby"></div>
       <div class="toggles">
         <label class="switch"><input type="checkbox" id="avoidTolls" /><span class="track"></span><i data-icon="toll" data-size="16"></i> Avoid tolls</label>
         <label class="switch"><input type="checkbox" id="showHotspots" checked /><span class="track"></span><i data-icon="jam" data-size="16"></i> Traffic</label>
@@ -51,6 +52,17 @@
       </div>
       <div id="aiTip" class="ai-tip" hidden></div>
       <div id="routesList"></div>
+    </section>
+
+    <!-- Nearby places -->
+    <section class="panel bottom-sheet" id="placesSheet" hidden>
+      <div class="handle"></div>
+      <div class="sheet-head">
+        <strong id="placesTitle">Nearby</strong>
+        <button class="icon-btn" data-close="placesSheet" aria-label="Close"><i data-icon="close"></i></button>
+      </div>
+      <div id="placesStatus" class="status"></div>
+      <div id="placesList"></div>
     </section>
 
     <!-- Breakdown / workshop finder -->
