@@ -137,6 +137,31 @@ async function routeHotspots(routes) {
   return parts.flat();
 }
 
+// Rank routes by drive time plus predicted traffic delay, then draw them.
+// spots = null means traffic is not known (yet), so no route is called clear.
+function showRanked(routes, spots) {
+  state.trafficKnown = spots !== null;
+  const fastest = routes.reduce((a, b) => (b.duration < a.duration ? b : a));
+  state.routes = routes
+    .map((r) => {
+      const s = scoreRoute(r.line, spots || []);
+      return {
+        ...r,
+        delay: s.delay,
+        hotspots: s.hotspots,
+        total: r.duration + s.delay,
+        label: r.local ? 'Local road' : r === fastest ? 'Main road' : 'Alternative',
+      };
+    })
+    .sort((a, b) => a.total - b.total);
+  state.selected = 0;
+  drawRoutes();
+  renderRoutes();
+}
+
+// Bumped on every request so a slow, older answer never overwrites a newer one.
+planRoute.latest = 0;
+
 async function planRoute() {
   if (!state.to) {
     toast('Choose a destination first.');
@@ -149,31 +174,28 @@ async function planRoute() {
   $('routesList').innerHTML = '<p class="status">Finding the easiest way…</p>';
   $('aiTip').hidden = true;
 
+  const request = ++planRoute.latest;
   try {
     const { routes, tollFallback } = await findRoutes(from, state.to.latlng, { avoidTolls });
-    let spots = [];
+    if (request !== planRoute.latest) return;
+    if (tollFallback) toast('No toll-free road found for this trip; showing normal routes.', 5000);
+
+    // Show routes straight away, then re-rank once traffic data arrives:
+    // the traffic servers can take several seconds when busy.
+    showRanked(routes, null);
+    $('aiTip').textContent = '🤖 Checking traffic on these routes…';
+    $('aiTip').hidden = false;
+
+    let spots;
     try {
       spots = await routeHotspots(routes);
     } catch {
-      toast('Traffic data unavailable right now; ranking by drive time only.');
+      if (request !== planRoute.latest) return;
+      $('aiTip').textContent = '🤖 Traffic data is busy right now, so routes are ranked by drive time only.';
+      return;
     }
-    const fastest = routes.reduce((a, b) => (b.duration < a.duration ? b : a));
-    state.routes = routes
-      .map((r) => {
-        const s = scoreRoute(r.line, spots);
-        return {
-          ...r,
-          delay: s.delay,
-          hotspots: s.hotspots,
-          total: r.duration + s.delay,
-          label: r.local ? 'Local road' : r === fastest ? 'Main road' : 'Alternative',
-        };
-      })
-      .sort((a, b) => a.total - b.total);
-    state.selected = 0;
-    if (tollFallback) toast('No toll-free road found for this trip; showing normal routes.', 5000);
-    drawRoutes();
-    renderRoutes();
+    if (request !== planRoute.latest) return;
+    showRanked(routes, spots);
     const tip = routeTip(state.routes);
     $('aiTip').textContent = `🤖 ${tip}`;
     $('aiTip').hidden = !tip;
@@ -230,7 +252,8 @@ function renderRoutes() {
     const badges = [
       i === 0 ? '<span class="badge good">Recommended</span>' : '',
       r.hasToll ? '<span class="badge warn">Toll</span>' : r.hasToll === false ? '<span class="badge">No toll</span>' : '',
-      r.hotspots.length ? `<span class="badge bad">${r.hotspots.length} traffic spot${r.hotspots.length > 1 ? 's' : ''}</span>` : '<span class="badge good">Clear</span>',
+      r.hotspots.length ? `<span class="badge bad">${r.hotspots.length} traffic spot${r.hotspots.length > 1 ? 's' : ''}</span>`
+        : state.trafficKnown ? '<span class="badge good">Clear</span>' : '',
     ].join('');
     card.innerHTML = `
       <div class="route-main">
