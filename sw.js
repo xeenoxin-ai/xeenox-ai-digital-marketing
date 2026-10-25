@@ -2,7 +2,7 @@
 // Only the app's own files are cached; map, routing and search data always
 // come live from the network.
 
-const CACHE = 'xeenox-route-v1';
+const CACHE = 'tmap-v1';
 
 self.addEventListener('install', () => self.skipWaiting());
 
