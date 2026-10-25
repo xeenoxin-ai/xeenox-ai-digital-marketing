@@ -1,0 +1,7 @@
+# Only the website is deployed to Vercel.
+android
+store
+scripts
+tests
+dist
+node_modules
