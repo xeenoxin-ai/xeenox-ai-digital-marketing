@@ -10,6 +10,7 @@
 // streets to compare.
 
 import { perpendicularOffset, haversine } from './geo.js';
+import { valhallaKind, osrmInstruction } from './navigation.js';
 
 const OSRM = 'https://router.project-osrm.org/route/v1/driving';
 const VALHALLA = 'https://valhalla1.openstreetmap.de/route';
@@ -38,6 +39,11 @@ function fromOsrm(r) {
     duration: r.duration,
     hasToll: steps.some((s) => s.intersections?.some((i) => i.classes?.includes('toll'))) || null,
     via: mainRoads(steps.map((s) => ({ name: s.name || s.ref, metres: s.distance }))),
+    // Turn-by-turn: OSRM gives each turn's location; navigation.js places it on the line.
+    maneuvers: steps.map((s) => ({
+      location: [s.maneuver.location[1], s.maneuver.location[0]],
+      ...osrmInstruction(s),
+    })),
   };
 }
 
@@ -54,7 +60,7 @@ async function valhalla(points, { avoidTolls, alternatives }) {
     costing: 'auto',
     // exclude_tolls is a hard ban; use_tolls alone is only a preference.
     costing_options: { auto: avoidTolls ? { exclude_tolls: true, use_tolls: 0 } : {} },
-    directions_type: 'maneuvers',
+    directions_type: 'instructions',
     units: 'kilometers',
   };
   if (alternatives) body.alternates = 2;
@@ -70,8 +76,24 @@ async function valhalla(points, { avoidTolls, alternatives }) {
 
 function fromValhalla(trip) {
   const maneuvers = trip.legs.flatMap((l) => l.maneuvers || []);
+  // Shape indices restart in every leg; offset them onto the joined line.
+  const line = [];
+  const turns = [];
+  for (const leg of trip.legs) {
+    const offset = line.length;
+    line.push(...decodePolyline(leg.shape, 6));
+    for (const m of leg.maneuvers || []) {
+      turns.push({
+        index: offset + m.begin_shape_index,
+        kind: valhallaKind(m.type),
+        text: m.instruction,
+        verbal: m.verbal_pre_transition_instruction || m.instruction,
+      });
+    }
+  }
   return {
-    line: trip.legs.flatMap((l) => decodePolyline(l.shape, 6)),
+    line,
+    maneuvers: turns,
     distance: trip.summary.length * 1000,
     duration: trip.summary.time,
     hasToll: Boolean(trip.summary.has_toll),
