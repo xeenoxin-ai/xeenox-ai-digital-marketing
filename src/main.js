@@ -9,6 +9,10 @@ import { interpret, routeTip } from './ai.js';
 import { searchPlaces, reverse } from './geocode.js';
 import { getSettings, saveSettings } from './storage.js';
 import { bboxOf, formatDistance, formatDuration } from './geo.js';
+import { createDrive } from './drive.js';
+import { icon, hydrateIcons } from './icons.js';
+
+hydrateIcons();
 
 const PALAKKAD = [10.7867, 76.6548];
 const $ = (id) => document.getElementById(id);
@@ -34,7 +38,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const hotspotLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const workshopLayer = L.layerGroup().addTo(map);
-const pinIcon = (cls, text = '') => L.divIcon({ className: `pin ${cls}`, html: text, iconSize: [22, 22] });
+const pinIcon = (cls, html = '', size = 22) => L.divIcon({ className: `pin ${cls}`, html, iconSize: [size, size] });
 let hereMarker = null;
 let toMarker = null;
 
@@ -118,10 +122,12 @@ map.on('moveend', refreshHotspots);
 $('showHotspots').addEventListener('change', refreshHotspots);
 
 $('reportBtn').addEventListener('click', () => {
-  const c = map.getCenter();
-  addReport(c.lat, c.lng);
-  toast('Jam reported at the map centre. Routes will avoid it for 1 hour.');
+  // While driving the jam is where the car is; otherwise at the map centre.
+  const c = drive.active && drive.position ? drive.position : [map.getCenter().lat, map.getCenter().lng];
+  addReport(c[0], c[1]);
+  toast(drive.active ? 'Jam reported. Looking for a way around it…' : 'Jam reported at the map centre. Routes will avoid it for 1 hour.');
   refreshHotspots();
+  if (drive.active) drive.recheckNow();
 });
 
 // ---------- Routing ----------
@@ -137,12 +143,10 @@ async function routeHotspots(routes) {
   return parts.flat();
 }
 
-// Rank routes by drive time plus predicted traffic delay, then draw them.
-// spots = null means traffic is not known (yet), so no route is called clear.
-function showRanked(routes, spots) {
-  state.trafficKnown = spots !== null;
+// Rank routes by drive time plus predicted traffic delay, easiest first.
+function rankRoutes(routes, spots) {
   const fastest = routes.reduce((a, b) => (b.duration < a.duration ? b : a));
-  state.routes = routes
+  return routes
     .map((r) => {
       const s = scoreRoute(r.line, spots || []);
       return {
@@ -154,9 +158,42 @@ function showRanked(routes, spots) {
       };
     })
     .sort((a, b) => a.total - b.total);
+}
+
+// spots = null means traffic is not known (yet), so no route is called clear.
+function showRanked(routes, spots) {
+  state.trafficKnown = spots !== null;
+  state.routes = rankRoutes(routes, spots);
   state.selected = 0;
   drawRoutes();
   renderRoutes();
+}
+
+// Used by live navigation to find the easiest way from wherever the car is.
+async function bestRoutes(from, to, { avoidTolls }) {
+  const { routes } = await findRoutes(from, to, { avoidTolls });
+  const spots = await routeHotspots(routes).catch(() => []);
+  return rankRoutes(routes, spots);
+}
+
+const drive = createDrive(map, {
+  bestRoutes,
+  toast,
+  onExit: () => {
+    routeLayer.clearLayers();
+    if (state.routes.length) {
+      drawRoutes();
+      openSheet('routesSheet');
+    }
+  },
+});
+
+function startNavigation(i) {
+  const route = state.routes[i];
+  if (!navigator.geolocation) return toast('This device has no GPS, so navigation cannot start.');
+  closeSheet('routesSheet');
+  routeLayer.clearLayers();
+  drive.start(route, state.to, { avoidTolls: $('avoidTolls').checked, here: state.here });
 }
 
 // Bumped on every request so a slow, older answer never overwrites a newer one.
@@ -183,25 +220,27 @@ async function planRoute() {
     // Show routes straight away, then re-rank once traffic data arrives:
     // the traffic servers can take several seconds when busy.
     showRanked(routes, null);
-    $('aiTip').textContent = '🤖 Checking traffic on these routes…';
-    $('aiTip').hidden = false;
+    setTip('Checking traffic on these routes…');
 
     let spots;
     try {
       spots = await routeHotspots(routes);
     } catch {
       if (request !== planRoute.latest) return;
-      $('aiTip').textContent = '🤖 Traffic data is busy right now, so routes are ranked by drive time only.';
+      setTip('Traffic data is busy right now, so routes are ranked by drive time only.');
       return;
     }
     if (request !== planRoute.latest) return;
     showRanked(routes, spots);
-    const tip = routeTip(state.routes);
-    $('aiTip').textContent = `🤖 ${tip}`;
-    $('aiTip').hidden = !tip;
+    setTip(routeTip(state.routes));
   } catch (err) {
     $('routesList').innerHTML = `<p class="status error">Could not find a route: ${escapeHtml(err.message)}</p>`;
   }
+}
+
+function setTip(text) {
+  $('aiTip').innerHTML = `${icon('assistant', 18)}<span>${escapeHtml(text || '')}</span>`;
+  $('aiTip').hidden = !text;
 }
 
 function drawRoutes() {
@@ -229,26 +268,11 @@ function selectRoute(i) {
   renderRoutes();
 }
 
-function googleMapsLink(r) {
-  // Hand the chosen line to Google Maps for voice turn-by-turn, pinned with
-  // two waypoints so it follows our route instead of its own.
-  const p = (x) => `${x[0].toFixed(5)},${x[1].toFixed(5)}`;
-  const n = r.line.length;
-  const params = new URLSearchParams({
-    api: '1',
-    origin: p(r.line[0]),
-    destination: p(r.line[n - 1]),
-    waypoints: [r.line[Math.floor(n / 3)], r.line[Math.floor((2 * n) / 3)]].map(p).join('|'),
-    travelmode: 'driving',
-  });
-  return `https://www.google.com/maps/dir/?${params}`;
-}
-
 function renderRoutes() {
   $('routesList').innerHTML = '';
   state.routes.forEach((r, i) => {
     const card = document.createElement('div');
-    card.className = `route-card${i === state.selected ? ' selected' : ''}`;
+    card.className = `route-card${i === state.selected ? ' selected' : ''}${i === 0 ? ' best' : ''}`;
     const badges = [
       i === 0 ? '<span class="badge good">Recommended</span>' : '',
       r.hasToll ? '<span class="badge warn">Toll</span>' : r.hasToll === false ? '<span class="badge">No toll</span>' : '',
@@ -262,11 +286,12 @@ function renderRoutes() {
           <div class="route-sub">${r.label} · ${formatDistance(r.distance)}${r.delay > 60 ? ` · +${formatDuration(r.delay)} traffic` : ''}</div>
           ${r.via.length ? `<div class="route-sub">via ${escapeHtml(r.via.join(', '))}</div>` : ''}
         </div>
-        <a class="btn small" target="_blank" rel="noopener" href="${googleMapsLink(r)}">Start ↗</a>
+        <button class="btn primary start">${icon('depart', 18)} Start</button>
       </div>
       <div class="badges">${badges}</div>`;
     card.addEventListener('click', (e) => {
-      if (!e.target.closest('a')) selectRoute(i);
+      if (e.target.closest('.start')) startNavigation(i);
+      else selectRoute(i);
     });
     $('routesList').appendChild(card);
   });
@@ -373,7 +398,7 @@ for (const [key, n] of Object.entries(NEEDS)) {
   const b = document.createElement('button');
   b.className = 'need';
   b.dataset.need = key;
-  b.innerHTML = `<span>${n.icon}</span>${n.label}`;
+  b.innerHTML = `<span class="need-icon">${icon(n.icon, 22)}</span>${n.label}`;
   b.addEventListener('click', () => showWorkshops(key));
   needGrid.appendChild(b);
 }
@@ -398,7 +423,7 @@ async function showWorkshops(need, vehicle) {
     }
     $('workshopStatus').textContent = `${places.length} found within ${radius / 1000} km, nearest first.`;
     for (const p of places) {
-      L.marker([p.lat, p.lon], { icon: pinIcon('pin-shop', NEEDS[need].icon) })
+      L.marker([p.lat, p.lon], { icon: pinIcon('pin-shop', icon(NEEDS[need].icon, 14), 28) })
         .bindPopup(`<strong>${escapeHtml(p.name)}</strong><br>${formatDistance(p.distance)}`)
         .addTo(workshopLayer);
       const row = document.createElement('div');
@@ -407,7 +432,7 @@ async function showWorkshops(need, vehicle) {
         <div class="shop-info">
           <strong>${escapeHtml(p.name)}</strong>
           <div class="route-sub">${formatDistance(p.distance)}${p.address ? ` · ${escapeHtml(p.address)}` : ''}</div>
-          ${p.hours ? `<div class="route-sub">🕒 ${escapeHtml(p.hours)}</div>` : ''}
+          ${p.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(p.hours)}</div>` : ''}
         </div>
         <div class="shop-actions">
           ${p.phone ? `<a class="btn small" href="tel:${escapeHtml(p.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">Call</a>` : ''}
@@ -533,6 +558,7 @@ function closeSheet(id) {
 // buttons above whichever sheet is open so Breakdown is always reachable.
 function placeFabs() {
   const open = SHEETS.map($).find((s) => !s.hidden);
+  document.body.classList.toggle('sheet-open', Boolean(open));
   const narrow = !matchMedia('(min-width: 900px)').matches;
   const fabs = document.querySelector('.fab-stack');
   fabs.style.bottom = open && narrow ? `${open.getBoundingClientRect().height + 20}px` : '';

@@ -5,12 +5,12 @@ import { haversine } from './geo.js';
 
 // Each need maps to OSM tag filters. `vehicle` narrows mechanic searches.
 export const NEEDS = {
-  mechanic: { label: 'Mechanic', icon: '🔧' },
-  puncture: { label: 'Puncture / Tyre', icon: '🛞' },
-  battery: { label: 'Battery / Parts', icon: '🔋' },
-  fuel: { label: 'Fuel', icon: '⛽' },
-  ev: { label: 'EV charging', icon: '⚡' },
-  towing: { label: 'Towing', icon: '🚛' },
+  mechanic: { label: 'Mechanic', icon: 'wrench' },
+  puncture: { label: 'Puncture / Tyre', icon: 'tyre' },
+  battery: { label: 'Battery / Parts', icon: 'battery' },
+  fuel: { label: 'Fuel', icon: 'fuel' },
+  ev: { label: 'EV charging', icon: 'ev' },
+  towing: { label: 'Towing', icon: 'tow' },
 };
 
 function filtersFor(need, vehicle) {
