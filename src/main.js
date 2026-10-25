@@ -31,19 +31,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
 }).addTo(map);
 
-let liveTraffic = null;
-function applyLiveTraffic() {
-  if (liveTraffic) map.removeLayer(liveTraffic);
-  liveTraffic = null;
-  const key = state.settings.tomtomKey.trim();
-  if (!key) return;
-  liveTraffic = L.tileLayer(
-    `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`,
-    { maxZoom: 22, opacity: 0.75, attribution: 'Traffic &copy; TomTom' },
-  ).addTo(map);
-}
-applyLiveTraffic();
-
 const hotspotLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const workshopLayer = L.layerGroup().addTo(map);
@@ -499,13 +486,11 @@ $('settingsBtn').addEventListener('click', () => {
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   state.settings = {
-    tomtomKey: form.elements.tomtomKey.value.trim(),
     useOllama: form.elements.useOllama.checked,
     ollamaUrl: form.elements.ollamaUrl.value.trim() || 'http://localhost:11434',
     ollamaModel: form.elements.ollamaModel.value.trim() || 'llama3.2',
   };
   saveSettings(state.settings);
-  applyLiveTraffic();
   updateAiMode();
   closeSheet('settingsSheet');
   toast('Settings saved.');

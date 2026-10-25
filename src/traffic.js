@@ -1,10 +1,10 @@
 // Traffic hotspot engine.
 //
-// There is no free, keyless source of live traffic, so by default congestion is
-// *predicted* on-device from OpenStreetMap features that reliably cause queues
-// (signals, railway level crossings, bus stands, markets, schools, malls),
-// weighted by time of day, plus jam reports the user makes. With a TomTom key
-// the live flow overlay is shown on top (see map setup in main.js).
+// The app uses only free, open data, and there is no free live-traffic feed,
+// so congestion is *predicted* on-device from OpenStreetMap features that
+// reliably cause queues (signals, railway level crossings, bus stands,
+// markets, schools, malls), weighted by time of day, plus jam reports the
+// user makes.
 
 import { overpass, elementLatLon } from './overpass.js';
 import { distanceToPolyline } from './geo.js';

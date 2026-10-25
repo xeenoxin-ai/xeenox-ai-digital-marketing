@@ -31,7 +31,6 @@ export function save(name, value) {
 }
 
 export const DEFAULT_SETTINGS = {
-  tomtomKey: '',
   useOllama: false,
   ollamaUrl: 'http://localhost:11434',
   ollamaModel: 'llama3.2',
