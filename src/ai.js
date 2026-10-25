@@ -7,7 +7,7 @@
 //     falls back to the rule engine.
 //
 // Action shape: { intent, params, reply }
-//   intent: 'breakdown' | 'route' | 'avoid_tolls' | 'hotspots' | 'report_jam' | 'help'
+//   intent: 'nearby' | 'search' | 'breakdown' | 'route' | 'avoid_tolls' | 'hotspots' | 'report_jam' | 'help'
 
 const NEED_WORDS = [
   ['puncture', /punct|flat|tyre|tire|tube|air\b/],
@@ -17,6 +17,34 @@ const NEED_WORDS = [
   ['towing', /tow|crane|accident|crash|stuck/],
   ['mechanic', /mechanic|workshop|garage|repair|breakdown|broke|engine|overheat|clutch|brake|noise|smoke/],
 ];
+
+// Nearby place categories (keys match places.js CATEGORIES). Order matters:
+// "police station" is police, "medical shop" is a pharmacy, "bathroom" is a toilet.
+const PLACE_WORDS = [
+  ['police', /police|thief|stolen|robbery|theft/],
+  ['pharmacy', /pharmac|medical (shop|store)|chemist|medicine|tablets?\b|drug ?store/],
+  ['hospital', /hospital|clinic|doctor|ambulance|emergency room|casualty|medical college|health cent|injur|bleed|chest pain|heart attack|fever/],
+  ['bus', /bus (stand|station|stop)|ksrtc/],
+  ['train', /railway|train\b/],
+  ['toilet', /toilet|washroom|restroom|bathroom|urinal/],
+  ['parking', /parking|park (my|the) (car|bike|vehicle)/],
+  ['atm', /\batm\b|\bcash\b|\bbank\b/],
+  ['stay', /lodge|\bstay\b|hotel room|room for|resort|guest ?house|hostel|place to sleep/],
+  ['food', /\bfood\b|restaurant|\beat\b|hungry|biryani|meals|\btea\b|coffee|\bcafe|snacks?|\bhotel\b|bakery/],
+  ['grocery', /supermarket|grocer|provision|convenience store/],
+  ['worship', /temple|church|mosque|masjid|\bpray/],
+];
+
+export function detectPlace(text) {
+  const t = text.toLowerCase();
+  for (const [category, re] of PLACE_WORDS) if (re.test(t)) return category;
+  return null;
+}
+
+const PLACE_REPLY = {
+  hospital: 'Scanning for hospitals and clinics near you. For an emergency, call 108 (ambulance) or 112.',
+  police: 'Scanning for police stations near you. In an emergency, call 112.',
+};
 
 export function detectNeed(text) {
   const t = text.toLowerCase();
@@ -47,9 +75,28 @@ export function ruleEngine(text) {
     };
   };
 
+  // "hospital near me", "nearest ATM", "take me to a hospital": scan nearby.
+  // A named place ("route to KIMS hospital") is a route instead.
+  const place = detectPlace(t);
+  const strong = routeTo('route|navigate|directions?|take me|drive');
+  const named = strong && strong[1].replace(/\b(the|a|an|nearest|nearby|closest|near|me|any|some|good|to)\b/g, '').trim().split(/\s+/).length > 1;
+  if (place && !named) {
+    const label = place === 'atm' ? 'ATMs and banks' : place;
+    return {
+      intent: 'nearby',
+      params: { category: place },
+      reply: PLACE_REPLY[place] || `Scanning for ${label} near you…`,
+    };
+  }
+
+  // "find Lulu mall near me": search that name around you.
+  const near = t.match(/^(?:find|search|show|where is|where's|any|is there an?)?\s*(?:me\s+)?(?:the\s+|a\s+|an\s+)?(.+?)\s+(?:near me|nearby|near here|around me|around here|close by)\??$/);
+  if (near && !detectNeed(t)) {
+    return { intent: 'search', params: { query: near[1] }, reply: `Looking for "${near[1]}" near you…` };
+  }
+
   // Explicit navigation wins; a loose "go to ..." loses to a breakdown need,
   // so "go to a petrol pump" searches for fuel instead of geocoding it.
-  const strong = routeTo('route|navigate|directions?|take me|drive');
   if (strong) return routeAction(strong);
 
   const need = detectNeed(t);
@@ -85,13 +132,15 @@ export function ruleEngine(text) {
     intent: 'help',
     params: {},
     reply:
-      'I can help with: "route to Coimbatore avoiding tolls", "my bike tyre is punctured", "need petrol", "show traffic", "report a jam here".',
+      'I can help with: "hospital near me", "nearest ATM", "route to Coimbatore avoiding tolls", "my bike tyre is punctured", "need petrol", "report a jam here".',
   };
 }
 
 const SYSTEM_PROMPT = `You are the in-car assistant of a navigation app in India.
 Reply ONLY with JSON: {"intent": string, "params": object, "reply": string}.
 intents:
+- "nearby": params {"category": one of hospital|pharmacy|police|atm|food|stay|grocery|toilet|parking|bus|train|worship|fuel|ev} (user wants the nearest places of a kind)
+- "search": params {"query": place name} (a named place near the user)
 - "route": params {"destination": place name, "avoidTolls": boolean}
 - "breakdown": params {"need": one of mechanic|puncture|battery|fuel|ev|towing, "vehicle": car|bike|truck|null}
 - "avoid_tolls": params {"on": boolean}
@@ -100,7 +149,7 @@ intents:
 - "help": params {}
 "reply" is one or two short, calm sentences for the driver. For breakdowns, include one safety tip.`;
 
-const INTENTS = new Set(['route', 'breakdown', 'avoid_tolls', 'hotspots', 'report_jam', 'help']);
+const INTENTS = new Set(['nearby', 'search', 'route', 'breakdown', 'avoid_tolls', 'hotspots', 'report_jam', 'help']);
 
 export async function askOllama(text, { ollamaUrl, ollamaModel }, context = '') {
   const res = await fetch(`${ollamaUrl.replace(/\/$/, '')}/api/chat`, {
