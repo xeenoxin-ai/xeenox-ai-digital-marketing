@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="0.55" stop-color="#059669"/>
+      <stop offset="1" stop-color="#065f46"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <g id="mark">
+    <!-- winding road from the bottom to the destination -->
+    <path d="M118 452 C118 352 392 392 384 300 C378 236 262 262 256 206" fill="none" stroke="#ffffff" stroke-width="70" stroke-linecap="round"/>
+    <path d="M118 452 C118 352 392 392 384 300 C378 236 262 262 256 206" fill="none" stroke="#047857" stroke-width="9" stroke-linecap="round" stroke-dasharray="26 24"/>
+    <!-- destination pin -->
+    <path d="M256 50 C214 50 182 82 182 122 C182 170 256 226 256 226 C256 226 330 170 330 122 C330 82 298 50 256 50 Z" fill="#f43f5e" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+    <circle cx="256" cy="122" r="25" fill="#ffffff"/>
+  </g>
+</svg>
