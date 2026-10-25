@@ -58,6 +58,22 @@ npm run build && npx cap sync android
 cd android && ./gradlew bundleRelease   # needs Android SDK + android/keystore.properties
 ```
 
+### Shared database (Firebase, free Spark plan)
+
+Shared jam reports, anonymous crowd speeds (live "slow traffic"), ratings & reviews,
+and places added in the app live in **Cloud Firestore**. It's off until
+`src/firebase-config.js` has your web config; without it the app works on-device.
+Security is in [`firestore.rules`](firestore.rules): reads are public, writes need
+an anonymous sign-in, and each write is validated (fields, sizes, server time,
+owner). Indexes are in `firestore.indexes.json`.
+
+```bash
+npm run test:rules   # security-rules tests on the Firebase Emulator
+npm run emulators    # local Firestore + Auth; build with VITE_FIREBASE_EMULATOR=127.0.0.1
+```
+
+Setup steps: [`docs/FIREBASE_SETUP.md`](docs/FIREBASE_SETUP.md).
+
 ### Run it
 
 ```bash
@@ -91,6 +107,7 @@ the assistant falls back to the built-in engine automatically.
 - `src/workshops.js` – breakdown service search
 - `src/ai.js` – on-device assistant + Ollama bridge
 - `android/` – Android app (Capacitor), `store/` – Play Store listing
+- `src/cloud.js` – shared database (jams, speeds, reviews, added places); `firestore.rules`
 - `src/geocode.js` (Nominatim + Photon), `src/overpass.js`, `src/geo.js`, `src/storage.js` – helpers
 
 ### Next steps (ideas)

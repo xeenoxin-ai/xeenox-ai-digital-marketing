@@ -19,6 +19,7 @@ export const FEATURES = {
   school: { weight: 1.5, label: 'School' },
   mall: { weight: 1.5, label: 'Mall' },
   report: { weight: 6, label: 'Reported jam' },
+  slow: { weight: 5, label: 'Slow traffic now (EasyWay drivers)' },
 };
 
 const inRange = (h, from, to) => h >= from && h < to;
@@ -38,6 +39,7 @@ export function timeFactor(type, date = new Date()) {
     case 'marketplace':
       return inRange(h, 7, 12) || inRange(h, 16, 20) ? 1 : 0.4;
     case 'report':
+    case 'slow':
       return 1;
     default:
       if (peak) return 1;
