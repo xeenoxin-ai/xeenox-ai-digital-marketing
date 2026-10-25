@@ -573,7 +573,7 @@ $('installBtn').addEventListener('click', async () => {
   installPrompt = null;
   $('installBtn').hidden = true;
 });
-addEventListener('appinstalled', () => toast('TMap installed. Open it from your home screen.'));
+addEventListener('appinstalled', () => toast('EasyWay installed. Open it from your home screen.'));
 
 updateAiMode();
 locate();

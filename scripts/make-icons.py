@@ -1,4 +1,4 @@
-"""Generate every TMap icon from one design: web/PWA icons, Android launcher
+"""Generate every EasyWay icon from one design: web/PWA icons, Android launcher
 and splash images, and the Play Store icon and feature graphic.
 
 Run from the repo root: python3 scripts/make-icons.py
@@ -15,9 +15,9 @@ RES = 'android/app/src/main/res'
 
 
 def mark(img, cx, cy, size):
-    """Draw the TMap mark (white T with a red location dot) centred at cx, cy."""
+    """Draw the EasyWay mark (white E with a red location dot) centred at cx, cy."""
     d = ImageDraw.Draw(img)
-    d.text((cx, cy), 'T', font=ImageFont.truetype(BOLD, int(size * 0.62)), fill='white', anchor='mm')
+    d.text((cx, cy), 'E', font=ImageFont.truetype(BOLD, int(size * 0.62)), fill='white', anchor='mm')
     r = size * 0.075
     x, y = cx + size * 0.24, cy + size * 0.24
     d.ellipse([x - r, y - r, x + r, y + r], fill=RED)
@@ -73,7 +73,7 @@ square(512).convert('RGB').save('store/play-icon-512.png')
 fg = Image.new('RGB', (1024, 500), BLUE)
 mark(fg, 230, 250, 340)
 d = ImageDraw.Draw(fg)
-d.text((440, 200), 'TMap', font=ImageFont.truetype(BOLD, 110), fill='white', anchor='lm')
+d.text((440, 200), 'EasyWay', font=ImageFont.truetype(BOLD, 110), fill='white', anchor='lm')
 d.text((444, 300), 'Beat traffic. Skip tolls. Get help fast.', font=ImageFont.truetype(BOLD, 28),
        fill='#bfdbfe', anchor='lm')
 fg.save('store/feature-graphic-1024x500.png')
