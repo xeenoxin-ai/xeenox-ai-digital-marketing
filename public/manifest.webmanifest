@@ -1,6 +1,6 @@
 {
-  "name": "Xeenox Route",
-  "short_name": "Xeenox Route",
+  "name": "TMap - Traffic, Toll-free & Breakdown Help",
+  "short_name": "TMap",
   "description": "Free traffic-aware routes, toll avoidance and breakdown help",
   "start_url": "./",
   "scope": "./",
