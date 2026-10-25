@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// EasyWay's shared data. Everyone can read; writes need a (free, anonymous)
+// Firebase sign-in, must have exactly the expected fields, sane sizes and the
+// server's timestamp. Nobody can change or delete what someone else wrote.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isNow(t) { return t == request.time; }
+    function validLatLon(d) {
+      return d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lon is number && d.lon >= -180 && d.lon <= 180;
+    }
+    function shortString(v, max) { return v is string && v.size() <= max; }
+
+    // Traffic jams reported by drivers (shown to everyone for an hour).
+    match /jams/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['lat', 'lon', 'geohash', 'slot', 'createdAt', 'uid'])
+        && validLatLon(request.resource.data)
+        && shortString(request.resource.data.geohash, 12)
+        && request.resource.data.slot is int
+        && isNow(request.resource.data.createdAt)
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Anonymous speed samples from navigating drivers: no user id is stored.
+    match /speeds/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['geohash', 'slot', 'speed', 'createdAt'])
+        && shortString(request.resource.data.geohash, 12)
+        && request.resource.data.slot is int
+        && request.resource.data.speed is number
+        && request.resource.data.speed >= 0 && request.resource.data.speed <= 200
+        && isNow(request.resource.data.createdAt);
+      allow update, delete: if false;
+    }
+
+    // One review per person per place: the document id is "<placeKey>_<uid>".
+    match /reviews/{id} {
+      allow read: if true;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['placeKey', 'placeName', 'rating', 'text', 'createdAt', 'uid'])
+        && id == request.resource.data.placeKey + '_' + request.auth.uid
+        && shortString(request.resource.data.placeKey, 80)
+        && shortString(request.resource.data.placeName, 120)
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+        && shortString(request.resource.data.text, 500)
+        && isNow(request.resource.data.createdAt)
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Places users add in the app (also sent to OpenStreetMap as a note).
+    match /userPlaces/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'category', 'phone', 'details', 'lat', 'lon', 'geohash', 'createdAt', 'uid'])
+        && request.resource.data.keys().hasAll(['name', 'lat', 'lon', 'geohash', 'createdAt', 'uid'])
+        && shortString(request.resource.data.name, 120) && request.resource.data.name.size() > 0
+        && (!request.resource.data.keys().hasAny(['category']) || shortString(request.resource.data.category, 60))
+        && (!request.resource.data.keys().hasAny(['phone']) || shortString(request.resource.data.phone, 30))
+        && (!request.resource.data.keys().hasAny(['details']) || shortString(request.resource.data.details, 300))
+        && validLatLon(request.resource.data)
+        && shortString(request.resource.data.geohash, 12)
+        && isNow(request.resource.data.createdAt)
+        && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
