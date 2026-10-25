@@ -1,7 +1,7 @@
 // Browser-local persistence. Every access is guarded because storage can be
 // unavailable (private mode, blocked site data).
 
-const KEY = 'xeenox-route';
+const KEY = 'tmap';
 
 function readAll() {
   try {
