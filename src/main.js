@@ -529,7 +529,10 @@ function escapeHtml(s) {
 
 // ---------- Install as an app ----------
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Inside the Android app (Capacitor) the files are already on the phone.
+const isNativeApp = Boolean(window.Capacitor?.isNativePlatform?.());
+
+if ('serviceWorker' in navigator && import.meta.env.PROD && !isNativeApp) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
@@ -547,7 +550,7 @@ $('installBtn').addEventListener('click', async () => {
   installPrompt = null;
   $('installBtn').hidden = true;
 });
-addEventListener('appinstalled', () => toast('Xeenox Route installed. Open it from your home screen.'));
+addEventListener('appinstalled', () => toast('TMap installed. Open it from your home screen.'));
 
 updateAiMode();
 locate();
