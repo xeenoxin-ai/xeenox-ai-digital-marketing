@@ -14,8 +14,11 @@ EasyWay finds the easiest way through local roads, so you don't wait in traffic.
 🚦 TRAFFIC HOTSPOTS
 See where queues form: signals, railway gates, bus stands, markets and schools, weighted by time of day. Report a jam with one tap and every route avoids it for the next hour.
 
-🛣️ EASIEST LOCAL ROUTE
-EasyWay compares the main road with local-road shortcuts and picks the one that is fastest once traffic is counted, not just the shortest.
+🧭 TURN-BY-TURN NAVIGATION
+Start your ride right in EasyWay: a big turn arrow, the distance to your next turn, live arrival time and spoken directions. Miss a turn and EasyWay reroutes you straight away.
+
+🛣️ ALWAYS THE EASIEST WAY
+EasyWay compares the main road with local-road shortcuts and picks the one that is fastest once traffic is counted. While you drive it keeps checking, and switches you to an easier way when one saves time.
 
 💸 AVOID TOLLS
 Turn on Avoid tolls to get only toll-free roads. Every route is marked Toll or No toll.
