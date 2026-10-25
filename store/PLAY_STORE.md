@@ -1,21 +1,21 @@
-# TMap: Google Play listing and release steps
+# EasyWay: Google Play listing and release steps
 
 ## Store listing (copy and paste)
 
-**App name:** TMap
+**App name:** EasyWay
 
 **Short description (max 80 characters):**
 Beat traffic, skip tolls and find a mechanic fast. Free, no ads, no sign-up.
 
 **Full description:**
 
-TMap finds the easiest way through local roads, so you don't wait in traffic.
+EasyWay finds the easiest way through local roads, so you don't wait in traffic.
 
 🚦 TRAFFIC HOTSPOTS
 See where queues form: signals, railway gates, bus stands, markets and schools, weighted by time of day. Report a jam with one tap and every route avoids it for the next hour.
 
 🛣️ EASIEST LOCAL ROUTE
-TMap compares the main road with local-road shortcuts and picks the one that is fastest once traffic is counted, not just the shortest.
+EasyWay compares the main road with local-road shortcuts and picks the one that is fastest once traffic is counted, not just the shortest.
 
 💸 AVOID TOLLS
 Turn on Avoid tolls to get only toll-free roads. Every route is marked Toll or No toll.
@@ -55,7 +55,7 @@ No ads. No sign-up. No subscriptions. Built on OpenStreetMap open data.
 ## Release steps
 
 1. Create a Google Play developer account at https://play.google.com/console (Google charges a one-time US$25 fee and verifies your identity).
-2. **Create app** → name **TMap**, default language English (India), App, Free.
+2. **Create app** → name **EasyWay**, default language English (India), App, Free.
 3. Fill in **Store listing**, **Privacy policy**, **App content** and **Data safety** with the answers above.
 4. **Testing → Closed testing**: new personal developer accounts must run a closed test with at least 12 testers for 14 days before production access. Add testers' Gmail addresses.
 5. **Create release** → upload `app-release.aab` → **Use Google-generated app signing key** (Play App Signing).
@@ -63,7 +63,7 @@ No ads. No sign-up. No subscriptions. Built on OpenStreetMap open data.
 
 ## Upload key
 
-The `.aab` is signed with your private upload key (`tmap-upload-key.jks`). Keep that file and its password backed up somewhere safe and never put them in GitHub. Every future update must be signed with the same key. If you ever lose it, Google can reset the upload key through Play Console support.
+The `.aab` is signed with your private upload key (`easyway-upload-key.jks`). Keep that file and its password backed up somewhere safe and never put them in GitHub. Every future update must be signed with the same key. If you ever lose it, Google can reset the upload key through Play Console support.
 
 ## Updating the app later
 

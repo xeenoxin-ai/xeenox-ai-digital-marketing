@@ -1,4 +1,4 @@
-package com.xeenox.tmap;
+package com.xeenox.easyway;
 
 import com.getcapacitor.BridgeActivity;
 
