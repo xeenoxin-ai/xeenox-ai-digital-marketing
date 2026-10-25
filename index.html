@@ -63,6 +63,34 @@
       <div id="placesList"></div>
     </section>
 
+    <!-- Place details -->
+    <section class="panel bottom-sheet" id="detailsSheet" hidden>
+      <div class="handle"></div>
+      <div class="sheet-head">
+        <span></span>
+        <button class="icon-btn" data-close="detailsSheet" aria-label="Close"><i data-icon="close"></i></button>
+      </div>
+      <div id="details"></div>
+    </section>
+
+    <!-- Add a missing place -->
+    <section class="panel bottom-sheet" id="addSheet" hidden>
+      <div class="handle"></div>
+      <div class="sheet-head">
+        <strong>Add a missing place</strong>
+        <button class="icon-btn" data-close="addSheet" aria-label="Close"><i data-icon="close"></i></button>
+      </div>
+      <p class="hint" style="margin-top:0">Move the map so the <strong>centre</strong> is on the shop, then send. It is shared publicly with OpenStreetMap mappers, who add it to the free map EasyWay uses.</p>
+      <form id="addForm" class="settings">
+        <label>Name of the place <input name="name" required maxlength="120" placeholder="e.g. Sree Krishna Ice Creams" /></label>
+        <label>Type <input name="category" maxlength="60" placeholder="e.g. Ice cream shop" /></label>
+        <label>Phone (optional) <input name="phone" maxlength="30" inputmode="tel" /></label>
+        <label>Opening hours or other details (optional) <input name="details" maxlength="300" placeholder="e.g. 10 AM - 10 PM, near bus stand" /></label>
+        <button class="btn primary" type="submit">Send</button>
+        <p class="status" id="addStatus"></p>
+      </form>
+    </section>
+
     <!-- Breakdown / workshop finder -->
     <section class="panel bottom-sheet" id="sosSheet" hidden>
       <div class="handle"></div>
@@ -111,6 +139,7 @@
         <label>Ollama model <input name="ollamaModel" placeholder="llama3.2" /></label>
         <p class="hint">Without Ollama, the assistant runs a built-in on-device engine. Your reports and settings stay on this device.</p>
         <button class="btn primary" type="submit">Save</button>
+        <button class="btn" type="button" id="addPlaceBtn"><i data-icon="add" data-size="16"></i> Add a missing place</button>
         <p class="hint">Free and open data: © OpenStreetMap contributors. <a href="https://easyway-maps.vercel.app/privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>
       </form>
     </section>
