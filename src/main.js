@@ -5,10 +5,11 @@ import './styles.css';
 import { findRoutes } from './routing.js';
 import { fetchFeatures, buildHotspots, scoreRoute, describeHotspot, getReports, addReport } from './traffic.js';
 import { findWorkshops, NEEDS } from './workshops.js';
+import { CATEGORIES, findPlaces, placeAt } from './places.js';
 import { interpret, routeTip } from './ai.js';
 import { searchPlaces, reverse } from './geocode.js';
 import { getSettings, saveSettings } from './storage.js';
-import { bboxOf, formatDistance, formatDuration } from './geo.js';
+import { bboxOf, formatDistance, formatDuration, haversine } from './geo.js';
 import { createDrive } from './drive.js';
 import { icon, hydrateIcons } from './icons.js';
 
@@ -304,15 +305,36 @@ function setDestination(latlng, label) {
   else toMarker = L.marker(latlng, { icon: pinIcon('pin-to') }).addTo(map);
 }
 
+// Tap the map: show the place there (or its address) with a Directions button.
 map.on('click', async (e) => {
+  if (drive.active) return;
   const latlng = [e.latlng.lat, e.latlng.lng];
-  setDestination(latlng, 'Dropped pin');
-  planRoute();
-  const name = await reverse(latlng).catch(() => null);
-  if (name && state.to?.latlng === latlng) {
-    state.to.label = name;
-    $('toInput').value = name;
-  }
+  const box = document.createElement('div');
+  box.className = 'place-pop';
+  box.innerHTML = '<span class="route-sub">Looking up this place…</span>';
+  const popup = L.popup({ minWidth: 200 }).setLatLng(e.latlng).setContent(box).openOn(map);
+
+  const [place, address] = await Promise.all([
+    placeAt(latlng).catch(() => null),
+    reverse(latlng).catch(() => null),
+  ]);
+  if (!map.hasLayer(popup)) return; // closed meanwhile
+  const target = place ? [place.lat, place.lon] : latlng;
+  const title = place?.name || address || 'Dropped pin';
+  box.innerHTML = `
+    <strong>${escapeHtml(title)}</strong>
+    ${place?.kind ? `<div class="route-sub">${escapeHtml(place.kind)}</div>` : ''}
+    ${place && address ? `<div class="route-sub">${escapeHtml(address)}</div>` : ''}
+    ${place?.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(place.hours)}</div>` : ''}
+    <div class="pop-actions">
+      <button class="btn small primary">${icon('route', 14)} Directions</button>
+      ${place?.phone ? `<a class="btn small" href="tel:${escapeHtml(place.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">${icon('phone', 14)} Call</a>` : ''}
+    </div>`;
+  box.querySelector('button').addEventListener('click', () => {
+    map.closePopup(popup);
+    setDestination(target, title);
+    planRoute();
+  });
 });
 
 $('goBtn').addEventListener('click', planRoute);
@@ -422,33 +444,108 @@ async function showWorkshops(need, vehicle) {
       return;
     }
     $('workshopStatus').textContent = `${places.length} found within ${radius / 1000} km, nearest first.`;
-    for (const p of places) {
-      L.marker([p.lat, p.lon], { icon: pinIcon('pin-shop', icon(NEEDS[need].icon, 14), 28) })
-        .bindPopup(`<strong>${escapeHtml(p.name)}</strong><br>${formatDistance(p.distance)}`)
-        .addTo(workshopLayer);
-      const row = document.createElement('div');
-      row.className = 'shop';
-      row.innerHTML = `
-        <div class="shop-info">
-          <strong>${escapeHtml(p.name)}</strong>
-          <div class="route-sub">${formatDistance(p.distance)}${p.address ? ` · ${escapeHtml(p.address)}` : ''}</div>
-          ${p.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(p.hours)}</div>` : ''}
-        </div>
-        <div class="shop-actions">
-          ${p.phone ? `<a class="btn small" href="tel:${escapeHtml(p.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">Call</a>` : ''}
-          <button class="btn small primary">Go</button>
-        </div>`;
-      row.querySelector('button').addEventListener('click', () => {
-        closeSheet('sosSheet');
-        setDestination([p.lat, p.lon], p.name);
-        planRoute();
-      });
-      $('workshopList').appendChild(row);
-    }
+    renderPlaceList($('workshopList'), places, NEEDS[need].icon, 'sosSheet');
     map.fitBounds(L.latLngBounds([here, ...places.slice(0, 5).map((p) => [p.lat, p.lon])]), { padding: [40, 40] });
   } catch {
     $('workshopStatus').textContent = 'Search service is busy. Try again in a moment, or call 112.';
   }
+}
+
+// One list + map markers for any set of places (breakdown help or nearby search).
+function renderPlaceList(listEl, places, iconName, sheetId) {
+  workshopLayer.clearLayers();
+  listEl.innerHTML = '';
+  for (const p of places) {
+    const go = () => {
+      closeSheet(sheetId);
+      setDestination([p.lat, p.lon], p.name);
+      planRoute();
+    };
+    const popup = document.createElement('div');
+    popup.innerHTML = `<strong>${escapeHtml(p.name)}</strong><br>${formatDistance(p.distance)}<br>`;
+    const popupGo = document.createElement('button');
+    popupGo.className = 'btn small primary';
+    popupGo.textContent = 'Go';
+    popupGo.addEventListener('click', go);
+    popup.appendChild(popupGo);
+    L.marker([p.lat, p.lon], { icon: pinIcon('pin-shop', icon(iconName, 14), 28) }).bindPopup(popup).addTo(workshopLayer);
+
+    const row = document.createElement('div');
+    row.className = 'shop';
+    row.innerHTML = `
+      <div class="shop-info">
+        <strong>${escapeHtml(p.name)}</strong>
+        <div class="route-sub"><span class="place-dist">${formatDistance(p.distance)}</span>${p.emergency ? ' · <span class="tag-emergency">24h emergency</span>' : ''}${p.address ? ` · ${escapeHtml(p.address)}` : ''}</div>
+        ${p.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(p.hours)}</div>` : ''}
+      </div>
+      <div class="shop-actions">
+        ${p.phone ? `<a class="btn small" href="tel:${escapeHtml(p.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">${icon('phone', 14)} Call</a>` : ''}
+        <button class="btn small primary">Go</button>
+      </div>`;
+    row.querySelector('button').addEventListener('click', go);
+    listEl.appendChild(row);
+  }
+}
+
+// ---------- Nearby places ----------
+
+const CHIP_ORDER = ['hospital', 'fuel', 'food', 'atm', 'pharmacy', 'stay', 'police', 'grocery', 'ev', 'toilet', 'parking', 'bus', 'train', 'worship'];
+for (const key of CHIP_ORDER) {
+  const c = CATEGORIES[key];
+  const b = document.createElement('button');
+  b.className = `chip-btn ${key}`;
+  b.dataset.category = key;
+  b.innerHTML = `${icon(c.icon, 16)}${c.label}`;
+  b.addEventListener('click', () => showNearby(key));
+  $('chips').appendChild(b);
+}
+
+function nearbyCentre() {
+  // Around the user when we know where they are, else around the map view.
+  if (state.here && map.getBounds().contains(state.here)) return state.here;
+  const c = map.getCenter();
+  return state.here || [c.lat, c.lng];
+}
+
+async function showNearby(category) {
+  const c = CATEGORIES[category];
+  const here = nearbyCentre();
+  document.querySelectorAll('.chip-btn').forEach((b) => b.classList.toggle('active', b.dataset.category === category));
+  openSheet('placesSheet');
+  $('placesTitle').textContent = `${c.label} near you`;
+  $('placesStatus').textContent = `Scanning nearby ${c.label.toLowerCase()}…`;
+  $('placesList').innerHTML = '';
+  try {
+    const { places, radius } = await findPlaces(category, here);
+    if (!places.length) {
+      $('placesStatus').textContent = `No ${c.label.toLowerCase()} mapped within ${radius / 1000} km.`;
+      return [];
+    }
+    $('placesStatus').textContent = `${places.length} found within ${radius / 1000} km, nearest first.`;
+    renderPlaceList($('placesList'), places, c.icon, 'placesSheet');
+    map.fitBounds(L.latLngBounds([here, ...places.slice(0, 6).map((p) => [p.lat, p.lon])]), { padding: [40, 40], maxZoom: 16 });
+    return places;
+  } catch {
+    $('placesStatus').textContent = 'The places service is busy. Try again in a moment.';
+    return [];
+  }
+}
+
+// A named place ("Lulu mall") around the user.
+async function showSearch(query) {
+  const here = nearbyCentre();
+  openSheet('placesSheet');
+  $('placesTitle').textContent = `"${query}" near you`;
+  $('placesStatus').textContent = 'Searching…';
+  $('placesList').innerHTML = '';
+  const results = await searchPlaces(query, here).catch(() => []);
+  const places = results
+    .map((r) => ({ ...r, id: `${r.lat},${r.lon}`, phone: '', hours: '', address: r.full.split(',').slice(1, 3).join(','), distance: haversine(here, [r.lat, r.lon]) }))
+    .sort((a, b) => a.distance - b.distance);
+  $('placesStatus').textContent = places.length ? `${places.length} found, nearest first.` : `Nothing called "${query}" found nearby.`;
+  renderPlaceList($('placesList'), places, 'search', 'placesSheet');
+  if (places.length) map.fitBounds(L.latLngBounds([here, ...places.slice(0, 6).map((p) => [p.lat, p.lon])]), { padding: [40, 40], maxZoom: 16 });
+  return places;
 }
 
 $('sosBtn').addEventListener('click', () => {
@@ -502,6 +599,19 @@ async function runAction({ intent, params }) {
       closeSheet('aiSheet');
       return planRoute();
     }
+    case 'nearby': {
+      const category = CATEGORIES[params.category] ? params.category : 'hospital';
+      closeSheet('aiSheet');
+      const places = await showNearby(category);
+      if (places.length) {
+        const top = places.slice(0, 3).map((p) => `${p.name} (${formatDistance(p.distance)})`).join(', ');
+        say('bot', `Nearest: ${top}. Tap Go on any of them to start.`);
+      }
+      return;
+    }
+    case 'search':
+      closeSheet('aiSheet');
+      return showSearch(params.query || '');
     case 'breakdown':
       return showWorkshops(NEEDS[params.need] ? params.need : 'mechanic', params.vehicle || undefined);
     case 'avoid_tolls':
@@ -544,7 +654,7 @@ form.addEventListener('submit', (e) => {
   toast('Settings saved.');
 });
 
-const SHEETS = ['routesSheet', 'sosSheet', 'aiSheet', 'settingsSheet'];
+const SHEETS = ['routesSheet', 'placesSheet', 'sosSheet', 'aiSheet', 'settingsSheet'];
 function openSheet(id) {
   for (const s of SHEETS) $(s).hidden = s !== id;
   placeFabs();

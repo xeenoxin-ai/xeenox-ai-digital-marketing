@@ -1,7 +1,6 @@
 // Breakdown help: find nearby workshops / services from OpenStreetMap.
 
-import { overpass, elementLatLon } from './overpass.js';
-import { haversine } from './geo.js';
+import { searchNearby } from './places.js';
 
 // Each need maps to OSM tag filters. `vehicle` narrows mechanic searches.
 export const NEEDS = {
@@ -31,41 +30,13 @@ function filtersFor(need, vehicle) {
   }
 }
 
-function query(filters, [lat, lon], radius) {
-  const around = `(around:${radius},${lat.toFixed(5)},${lon.toFixed(5)})`;
-  const parts = [...new Set(filters)].map((f) => {
-    const [k, v] = f.split('=');
-    return `  nw["${k}"="${v}"]${around};`;
+// Searches progressively wider (3 → 8 → 20 km) until something is found.
+export function findWorkshops(need, vehicle, here) {
+  return searchNearby(filtersFor(need, vehicle), here, {
+    unnamed: fallbackName,
+    radii: [3000, 8000, 20000],
+    max: 25,
   });
-  return `[out:json][timeout:25];\n(\n${parts.join('\n')}\n);\nout center 80;`;
-}
-
-// Searches progressively wider until something is found.
-export async function findWorkshops(need, vehicle, here) {
-  const filters = filtersFor(need, vehicle);
-  for (const radius of [3000, 8000, 20000]) {
-    const els = await overpass(query(filters, here, radius));
-    const places = els
-      .map((el) => {
-        const p = elementLatLon(el);
-        if (!p) return null;
-        const t = el.tags || {};
-        return {
-          id: `${el.type}/${el.id}`,
-          lat: p[0],
-          lon: p[1],
-          name: t.name || t.brand || t.operator || fallbackName(t),
-          phone: t.phone || t['contact:phone'] || t['contact:mobile'] || '',
-          hours: t.opening_hours || '',
-          address: [t['addr:street'], t['addr:city']].filter(Boolean).join(', '),
-          distance: haversine(here, p),
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.distance - b.distance);
-    if (places.length) return { places: places.slice(0, 25), radius };
-  }
-  return { places: [], radius: 20000 };
 }
 
 function fallbackName(t) {

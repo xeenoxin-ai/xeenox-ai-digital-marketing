@@ -81,11 +81,33 @@ a { color: var(--brand-strong); }
 }
 .handle { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 4px auto 6px; }
 
+/* Nearby category chips: one scrollable row, like a map app. */
+.chips {
+  display: flex; gap: 8px; overflow-x: auto; margin: 10px -12px 0; padding: 0 12px 2px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip-btn {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  border: 1px solid var(--line); background: var(--bg); color: var(--fg);
+  font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+}
+.chip-btn svg { color: var(--brand); }
+.chip-btn.hospital svg, .chip-btn.police svg { color: var(--danger); }
+.chip-btn.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip-btn.active svg { color: #fff; }
+
+.place-pop { display: grid; gap: 4px; font: 14px/1.35 system-ui, sans-serif; }
+.pop-actions { display: flex; gap: 6px; margin-top: 6px; }
+.place-dist { font-weight: 700; color: var(--fg); }
+.tag-emergency { color: var(--danger); font-weight: 700; }
+
 /* While a sheet is open on a phone, shrink the planner to the destination row. */
 @media (max-width: 899px) {
   body.sheet-open .top-panel .brand,
   body.sheet-open .top-panel .from-field,
   body.sheet-open .top-panel .toggles { display: none; }
+  body.sheet-open .top-panel .chips { margin-top: 8px; }
   body.sheet-open .top-panel { padding: 8px; }
   body.sheet-open .top-panel .field { margin: 0; }
 }
