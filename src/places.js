@@ -46,6 +46,9 @@ export function toPlace(el, here, unnamed) {
     address: [t['addr:housenumber'], t['addr:street'], t['addr:city']].filter(Boolean).join(', '),
     emergency: t.emergency === 'yes',
     distance: haversine(here, p),
+    osmType: el.type,
+    osmId: el.id,
+    tags: t,
   };
 }
 
@@ -91,4 +94,58 @@ export function prettyKind(v) {
   if (!v || v === 'yes') return '';
   const s = v.replace(/_/g, ' ');
   return s[0].toUpperCase() + s.slice(1);
+}
+
+// ---------- Search by shop name or type ----------
+
+// Overpass regex text: escape regex specials and quotes.
+export function regexText(q) {
+  return q.trim().replace(/[\\.*+?^${}()|[\]"]/g, '\\$&');
+}
+
+// Every named place within 25 km whose name matches, or whose type does
+// ("ice cream" also finds amenity=ice_cream, cuisine=ice_cream, shop=bakery…).
+export function nameSearchQuery(q, [lat, lon], radius = 25000) {
+  const name = regexText(q);
+  const type = regexText(q.toLowerCase().replace(/\s+/g, '_'));
+  const around = `(around:${radius},${lat.toFixed(5)},${lon.toFixed(5)})`;
+  return `[out:json][timeout:15];
+(
+  nwr["name"~"${name}",i]${around};
+  nwr["name:en"~"${name}",i]${around};
+  nwr["brand"~"${name}",i]${around};
+  nwr["name"]["shop"~"${type}",i]${around};
+  nwr["name"]["amenity"~"${type}",i]${around};
+  nwr["name"]["cuisine"~"${type}",i]${around};
+  nwr["name"]["tourism"~"${type}",i]${around};
+);
+out center tags 60;`;
+}
+
+export async function searchByName(q, here) {
+  if (q.trim().length < 2) return [];
+  const els = await overpass(nameSearchQuery(q, here), { timeoutMs: 9000 });
+  const seen = new Set();
+  return els
+    .map((el) => {
+      const place = toPlace(el, here, '');
+      if (!place || !place.name || seen.has(place.id)) return null;
+      seen.add(place.id);
+      const key = TAPPABLE.find((k) => el.tags?.[k]);
+      return { ...place, kind: prettyKind(el.tags?.[key]) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, 30);
+}
+
+// Full tags for one OpenStreetMap object (e.g. a place found via Nominatim).
+export async function placeById(osmType, osmId, here) {
+  const type = { N: 'node', W: 'way', R: 'relation', node: 'node', way: 'way', relation: 'relation' }[osmType];
+  if (!type || !osmId) return null;
+  const [el] = await overpass(`[out:json][timeout:15];\n${type}(${Number(osmId)});\nout center tags;`, { timeoutMs: 9000 });
+  if (!el) return null;
+  const place = toPlace(el, here, '');
+  const key = TAPPABLE.find((k) => el.tags?.[k]);
+  return place && { ...place, kind: prettyKind(el.tags?.[key]) };
 }

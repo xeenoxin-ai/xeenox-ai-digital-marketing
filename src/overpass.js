@@ -11,7 +11,7 @@ const TIMEOUT_MS = 20000;
 
 const cache = new Map();
 
-export async function overpass(query) {
+export async function overpass(query, { timeoutMs = TIMEOUT_MS } = {}) {
   if (cache.has(query)) return cache.get(query);
   let lastErr;
   for (const url of ENDPOINTS) {
@@ -19,7 +19,7 @@ export async function overpass(query) {
       const res = await fetch(url, {
         method: 'POST',
         body: new URLSearchParams({ data: query }),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (!res.ok) throw new Error(`Overpass ${res.status}`);
       const json = await res.json();

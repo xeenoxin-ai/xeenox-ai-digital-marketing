@@ -14,6 +14,7 @@ A Google-Maps-style web app focused on the parts that matter on Indian roads:
 | **Turn-by-turn navigation** | **Start** navigates inside EasyWay: live GPS follow, turn banner, spoken directions (phone's own text-to-speech), ETA, automatic reroute when you leave the route, and every 2 minutes a fresh check for an easier way that switches you when it saves ≥ 2 min. |
 | **Avoid tolls** | Hard toll exclusion via the Valhalla engine. Every route is tagged *Toll* / *No toll*; if no toll-free road exists you are told. |
 | **Breakdown help** | Red **Breakdown** button → pick Car / Bike / Truck and the need (mechanic, puncture, battery, fuel, EV charging, towing) → nearest places with distance, hours, **Call** and **Go**. One-tap 112 and 1033 (highway helpline). |
+| **Shop search & place pages** | Type any shop name or type ("ice cream", "Joy Ice Creams"): nearby OpenStreetMap places by name, brand or type plus towns and addresses, nearest first. Place page with photo (when mapped), Open now / Closed, address, phone, website, cuisine, takeaway/delivery/UPI, Directions, Call, Website, Share link. "Add a missing place" sends a public OpenStreetMap note so mappers add it. |
 | **Nearby places** | Chips under the search box (Hospitals, Petrol, Food, ATM, Pharmacy, Hotels, Police, Grocery, EV, Toilets, Parking, Bus stand, Railway, Worship) scan OpenStreetMap around you, nearest first, with Call and Go. Tap any place on the map for its name, type, hours, phone and Directions. |
 | **Local AI assistant** | Type naturally: "find hospital near me", "nearest ATM", "my bike tyre is punctured", "route to Coimbatore avoiding tolls", "report jam here". Runs a built-in on-device engine; optionally uses a local LLM through [Ollama](https://ollama.com). Nothing is sent to a cloud AI. |
 
@@ -84,7 +85,9 @@ the assistant falls back to the built-in engine automatically.
 - `src/routing.js` – Valhalla/OSRM routing, toll handling, local detours, turn instructions
 - `src/navigation.js` – turn-by-turn logic (snap to route, next turn, voice timing, off-route)
 - `src/drive.js` – live navigation session (GPS, banner, voice, reroute, easier-way checks)
-- `src/places.js` – nearby places by category, tap-a-place lookup
+- `src/places.js` – nearby places by category, name/type search, tap-a-place lookup
+- `src/hours.js` – opening hours → "Open now · closes 9 PM"
+- `src/osmnotes.js` – "Add a missing place" (OpenStreetMap notes)
 - `src/workshops.js` – breakdown service search
 - `src/ai.js` – on-device assistant + Ollama bridge
 - `android/` – Android app (Capacitor), `store/` – Play Store listing
