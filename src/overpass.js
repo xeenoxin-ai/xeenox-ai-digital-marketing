@@ -6,6 +6,9 @@ const ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 
+// Give up on a slow mirror and try the next one (Overpass's own query limit is 25 s).
+const TIMEOUT_MS = 20000;
+
 const cache = new Map();
 
 export async function overpass(query) {
@@ -16,6 +19,7 @@ export async function overpass(query) {
       const res = await fetch(url, {
         method: 'POST',
         body: new URLSearchParams({ data: query }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!res.ok) throw new Error(`Overpass ${res.status}`);
       const json = await res.json();
