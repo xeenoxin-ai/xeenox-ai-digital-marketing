@@ -1,6 +1,6 @@
 {
-  "name": "TMap - Traffic, Toll-free & Breakdown Help",
-  "short_name": "TMap",
+  "name": "EasyWay - Traffic, Toll-free & Breakdown Help",
+  "short_name": "EasyWay",
   "description": "Free traffic-aware routes, toll avoidance and breakdown help",
   "start_url": "./",
   "scope": "./",
