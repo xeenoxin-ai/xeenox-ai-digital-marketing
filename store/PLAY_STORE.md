@@ -23,6 +23,9 @@ EasyWay compares the main road with local-road shortcuts and picks the one that 
 💸 AVOID TOLLS
 Turn on Avoid tolls to get only toll-free roads. Every route is marked Toll or No toll.
 
+🔎 FIND ANY SHOP
+Search a shop name or type, like "ice cream", and see places near you with Open now / Closed, phone, website and directions. Missing shop? Add it in a few taps.
+
 🛠️ BREAKDOWN HELP
 Vehicle broke down? Tap Breakdown, choose Car, Bike or Truck and what you need: mechanic, puncture/tyre, battery, fuel, EV charging or towing. See the nearest places with distance and opening hours, call them or get directions. One-tap calls to 112 and the 1033 highway helpline.
 

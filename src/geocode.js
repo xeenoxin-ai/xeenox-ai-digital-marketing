@@ -20,6 +20,10 @@ async function nominatimSearch(q, near) {
     full: r.display_name,
     lat: Number(r.lat),
     lon: Number(r.lon),
+    osmType: r.osm_type,
+    osmId: r.osm_id,
+    category: r.category,
+    type: r.type,
   }));
 }
 
@@ -42,6 +46,10 @@ async function photonSearch(q, near) {
         full: parts.join(', '),
         lat: f.geometry.coordinates[1],
         lon: f.geometry.coordinates[0],
+        osmType: p.osm_type,
+        osmId: p.osm_id,
+        category: p.osm_key,
+        type: p.osm_value,
       };
     });
 }

@@ -5,7 +5,9 @@ import './styles.css';
 import { findRoutes } from './routing.js';
 import { fetchFeatures, buildHotspots, scoreRoute, describeHotspot, getReports, addReport } from './traffic.js';
 import { findWorkshops, NEEDS } from './workshops.js';
-import { CATEGORIES, findPlaces, placeAt } from './places.js';
+import { CATEGORIES, findPlaces, placeAt, searchByName, placeById, prettyKind } from './places.js';
+import { openStatus } from './hours.js';
+import { addMissingPlace } from './osmnotes.js';
 import { interpret, routeTip } from './ai.js';
 import { searchPlaces, reverse } from './geocode.js';
 import { getSettings, saveSettings } from './storage.js';
@@ -305,7 +307,7 @@ function setDestination(latlng, label) {
   else toMarker = L.marker(latlng, { icon: pinIcon('pin-to') }).addTo(map);
 }
 
-// Tap the map: show the place there (or its address) with a Directions button.
+// Tap the map: show the place there (or its address); "More info" opens its page.
 map.on('click', async (e) => {
   if (drive.active) return;
   const latlng = [e.latlng.lat, e.latlng.lng];
@@ -321,19 +323,24 @@ map.on('click', async (e) => {
   if (!map.hasLayer(popup)) return; // closed meanwhile
   const target = place ? [place.lat, place.lon] : latlng;
   const title = place?.name || address || 'Dropped pin';
+  const status = openStatus(place?.hours);
   box.innerHTML = `
     <strong>${escapeHtml(title)}</strong>
     ${place?.kind ? `<div class="route-sub">${escapeHtml(place.kind)}</div>` : ''}
+    ${status.text ? `<div class="route-sub ${status.open ? 'open' : 'closed'}">${escapeHtml(status.text)}</div>` : ''}
     ${place && address ? `<div class="route-sub">${escapeHtml(address)}</div>` : ''}
-    ${place?.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(place.hours)}</div>` : ''}
     <div class="pop-actions">
-      <button class="btn small primary">${icon('route', 14)} Directions</button>
-      ${place?.phone ? `<a class="btn small" href="tel:${escapeHtml(place.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">${icon('phone', 14)} Call</a>` : ''}
+      <button class="btn small primary" data-act="go">${icon('route', 14)} Directions</button>
+      ${place ? '<button class="btn small" data-act="info">More info</button>' : ''}
     </div>`;
-  box.querySelector('button').addEventListener('click', () => {
+  box.querySelector('[data-act="go"]').addEventListener('click', () => {
     map.closePopup(popup);
     setDestination(target, title);
     planRoute();
+  });
+  box.querySelector('[data-act="info"]')?.addEventListener('click', () => {
+    map.closePopup(popup);
+    showDetails({ ...place, address: place.address || address || '' });
   });
 });
 
@@ -356,24 +363,55 @@ $('swapBtn').addEventListener('click', () => {
 
 // ---------- Place search ----------
 
+// Shops and other points of interest open their place page; towns and
+// addresses go straight to routes.
+const POI_KEYS = new Set(['amenity', 'shop', 'tourism', 'leisure', 'healthcare', 'office', 'craft', 'historic', 'railway']);
+const isPoi = (r) => Boolean(r.kind) || POI_KEYS.has(r.category);
+
+// Shop names and types around you (Overpass) plus addresses and towns
+// (Nominatim / Photon), nearest shops first, without duplicates.
+async function findAnything(q, here, onUpdate) {
+  const merged = [];
+  const seen = new Set();
+  const add = (rows) => {
+    for (const r of rows) {
+      const key = r.osmId ? `${String(r.osmType)[0].toLowerCase()}${r.osmId}` : `${r.lat.toFixed(4)},${r.lon.toFixed(4)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push({ ...r, distance: r.distance ?? haversine(here, [r.lat, r.lon]) });
+    }
+    onUpdate?.([...merged]);
+  };
+  await Promise.allSettled([
+    searchByName(q, here).then(add),
+    searchPlaces(q, here).then((rows) => add(rows.map((r) => ({ ...r, kind: POI_KEYS.has(r.category) ? prettyKind(r.type) : '' })))),
+  ]);
+  return merged;
+}
+
 let activeInput = null;
 let searchTimer;
+let searchSeq = 0;
 
-function wireSearch(input, onPick) {
+function wireSearch(input, onPick, { shops = false } = {}) {
   input.addEventListener('input', () => {
     activeInput = input;
     clearTimeout(searchTimer);
     const q = input.value.trim();
     if (q.length < 3) return ($('suggestions').hidden = true);
     searchTimer = setTimeout(async () => {
+      const seq = ++searchSeq;
+      const here = state.here || [map.getCenter().lat, map.getCenter().lng];
+      const render = (rows) => {
+        if (seq === searchSeq && activeInput === input) showSuggestions(rows, onPick, shops ? q : null);
+      };
       try {
-        const results = await searchPlaces(q, state.here || [map.getCenter().lat, map.getCenter().lng]);
-        if (activeInput !== input) return;
-        showSuggestions(results, onPick);
+        if (shops) await findAnything(q, here, render);
+        else render(await searchPlaces(q, here));
       } catch {
         /* keep typing; next keystroke retries */
       }
-    }, 1000);
+    }, 700);
   });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -383,35 +421,180 @@ function wireSearch(input, onPick) {
   });
 }
 
-function showSuggestions(results, onPick) {
+function showSuggestions(results, onPick, addQuery) {
   const ul = $('suggestions');
   ul.innerHTML = '';
-  if (!results.length) {
-    ul.hidden = true;
-    return;
-  }
-  for (const r of results) {
+  for (const r of results.slice(0, 12)) {
     const li = document.createElement('li');
-    li.textContent = r.name;
-    li.title = r.full;
+    const sub = [r.kind, (r.address || r.full || '').split(',').slice(r.address ? 0 : 1, 3).join(',').trim()].filter(Boolean).join(' · ');
+    li.innerHTML = `
+      <span class="s-icon">${icon(isPoi(r) ? 'store' : 'pin', 18)}</span>
+      <span class="s-text"><div class="s-name">${escapeHtml(r.name)}</div>${sub ? `<div class="s-sub">${escapeHtml(sub)}</div>` : ''}</span>
+      ${r.distance != null ? `<span class="s-dist">${formatDistance(r.distance)}</span>` : ''}`;
+    li.title = r.full || r.name;
     li.addEventListener('click', () => {
       ul.hidden = true;
-      onPick({ latlng: [r.lat, r.lon], label: r.name });
+      onPick(r);
     });
     ul.appendChild(li);
   }
-  ul.hidden = false;
+  if (addQuery) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="s-icon">${icon('add', 18)}</span><span class="s-text s-add">Can't find "${escapeHtml(addQuery)}"? Add a missing place</span>`;
+    li.addEventListener('click', () => {
+      ul.hidden = true;
+      openAddPlace(addQuery);
+    });
+    ul.appendChild(li);
+  }
+  ul.hidden = !ul.children.length;
 }
 
-wireSearch($('toInput'), (place) => {
-  setDestination(place.latlng, place.label);
+wireSearch($('toInput'), (r) => {
+  if (isPoi(r)) return showDetails(r);
+  setDestination([r.lat, r.lon], r.name);
   planRoute();
-});
-wireSearch($('fromInput'), (place) => {
-  state.from = place;
-  $('fromInput').value = place.label;
+}, { shops: true });
+wireSearch($('fromInput'), (r) => {
+  state.from = { latlng: [r.lat, r.lon], label: r.name };
+  $('fromInput').value = r.name;
   if (state.to) planRoute();
 });
+
+// ---------- Place page ----------
+
+let detailsMarker = null;
+
+function photoUrl(t) {
+  if (/^https:\/\//.test(t.image || '')) return t.image;
+  const file = (t.wikimedia_commons || '').replace(/^File:/, '');
+  if (file && !file.startsWith('Category:')) return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=640`;
+  return '';
+}
+
+function shareUrl(p) {
+  const params = new URLSearchParams({ place: `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`, name: p.name });
+  return `${location.origin}${location.pathname}?${params}`;
+}
+
+async function showDetails(place) {
+  const here = state.here || nearbyCentre();
+  let p = { ...place, distance: haversine(here, [place.lat, place.lon]) };
+  openSheet('detailsSheet');
+  render();
+  map.setView([p.lat, p.lon], Math.max(map.getZoom(), 16));
+  if (detailsMarker) detailsMarker.setLatLng([p.lat, p.lon]);
+  else detailsMarker = L.marker([p.lat, p.lon], { icon: pinIcon('pin-to') }).addTo(map);
+
+  // Results from address search carry no shop details: fetch them.
+  if (!p.tags && p.osmId) {
+    const full = await placeById(p.osmType, p.osmId, here).catch(() => null);
+    if (full && !$('detailsSheet').hidden) {
+      p = { ...full, address: full.address || p.address || '', distance: p.distance };
+      render();
+    }
+  }
+
+  function render() {
+    const t = p.tags || {};
+    const status = openStatus(p.hours);
+    const website = t.website || t['contact:website'] || '';
+    const insta = t['contact:instagram'] || '';
+    const phone = (p.phone || '').split(/[;,]/)[0].replace(/\s/g, '');
+    const photo = photoUrl(t);
+    const yes = (k) => t[k] === 'yes' || t[k] === 'only';
+    const extras = [
+      t.cuisine && `Serves: ${t.cuisine.replace(/_/g, ' ').replace(/;/g, ', ')}`,
+      yes('takeaway') && 'Takeaway',
+      yes('delivery') && 'Delivery',
+      (yes('payment:upi') || yes('payment:unified_payments_interface')) && 'UPI accepted',
+      yes('wheelchair') && 'Wheelchair accessible',
+      yes('air_conditioning') && 'Air conditioned',
+    ].filter(Boolean);
+    const address = p.address || (p.full || '').split(',').slice(1, 4).join(',').trim();
+    $('details').innerHTML = `
+      ${photo ? `<img class="place-photo" src="${escapeHtml(photo)}" alt="" loading="lazy" onerror="this.remove()" />` : ''}
+      <h2 class="place-name">${escapeHtml(p.name)}</h2>
+      <div class="place-kind">${escapeHtml([p.kind, formatDistance(p.distance) + ' away'].filter(Boolean).join(' · '))}</div>
+      ${status.text ? `<div class="${status.open ? 'open' : 'closed'}">${escapeHtml(status.text)}</div>` : ''}
+      <div class="place-actions">
+        <button class="btn primary" data-act="go">${icon('route', 16)} Directions</button>
+        ${phone ? `<a class="btn" href="tel:${escapeHtml(phone)}">${icon('phone', 16)} Call</a>` : ''}
+        ${website ? `<a class="btn" href="${escapeHtml(website.startsWith('http') ? website : `https://${website}`)}" target="_blank" rel="noopener">${icon('web', 16)} Website</a>` : ''}
+        <button class="btn" data-act="share">${icon('share', 16)} Share</button>
+      </div>
+      <ul class="facts">
+        ${address ? `<li>${icon('pin', 18)}<span>${escapeHtml(address)}</span></li>` : ''}
+        ${p.hours ? `<li>${icon('clock', 18)}<span>${escapeHtml(p.hours)}</span></li>` : ''}
+        ${p.phone ? `<li>${icon('phone', 18)}<a href="tel:${escapeHtml(phone)}">${escapeHtml(p.phone)}</a></li>` : ''}
+        ${website ? `<li>${icon('web', 18)}<a href="${escapeHtml(website.startsWith('http') ? website : `https://${website}`)}" target="_blank" rel="noopener">${escapeHtml(website.replace(/^https?:\/\//, ''))}</a></li>` : ''}
+        ${insta ? `<li>${icon('web', 18)}<span>Instagram: ${escapeHtml(insta)}</span></li>` : ''}
+        ${extras.length ? `<li>${icon('store', 18)}<span>${escapeHtml(extras.join(' · '))}</span></li>` : ''}
+      </ul>
+      <p class="hint place-foot">Details wrong or missing? ${p.osmId ? `<a href="https://www.openstreetmap.org/edit?${({ N: 'node', W: 'way', R: 'relation' })[String(p.osmType)[0].toUpperCase()]}=${Number(p.osmId)}" target="_blank" rel="noopener">Edit this place</a>` : '<a href="#" data-act="add">Add it</a>'} on OpenStreetMap, free for everyone.</p>`;
+    $('details').querySelector('[data-act="go"]').addEventListener('click', () => {
+      setDestination([p.lat, p.lon], p.name);
+      planRoute();
+    });
+    $('details').querySelector('[data-act="share"]').addEventListener('click', async () => {
+      const url = shareUrl(p);
+      try {
+        if (navigator.share) await navigator.share({ title: p.name, text: `${p.name} on EasyWay`, url });
+        else {
+          await navigator.clipboard.writeText(url);
+          toast('Link copied.');
+        }
+      } catch {
+        /* share sheet closed */
+      }
+    });
+    $('details').querySelector('[data-act="add"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAddPlace(p.name);
+    });
+  }
+}
+
+// ---------- Add a missing place ----------
+
+function openAddPlace(name = '') {
+  const f = $('addForm');
+  f.reset();
+  f.elements.name.value = name;
+  $('addStatus').textContent = '';
+  openSheet('addSheet');
+}
+
+$('addPlaceBtn').addEventListener('click', () => openAddPlace());
+$('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const c = map.getCenter();
+  $('addStatus').textContent = 'Sending…';
+  try {
+    const url = await addMissingPlace([c.lat, c.lng], {
+      name: f.elements.name.value,
+      category: f.elements.category.value,
+      phone: f.elements.phone.value,
+      details: f.elements.details.value,
+    });
+    $('addStatus').innerHTML = `Thank you! Sent to OpenStreetMap mappers. <a href="${escapeHtml(url)}" target="_blank" rel="noopener">See your report</a>`;
+    f.reset();
+  } catch (err) {
+    $('addStatus').textContent = `Could not send right now (${err.message}). Please try again.`;
+  }
+});
+
+// A shared link (?place=lat,lon&name=…) opens that place's page.
+function openSharedPlace() {
+  const params = new URLSearchParams(location.search);
+  const [lat, lon] = (params.get('place') || '').split(',').map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  const name = params.get('name') || 'Shared place';
+  placeAt([lat, lon])
+    .catch(() => null)
+    .then((found) => showDetails(found || { lat, lon, name }));
+}
 
 // ---------- Breakdown / workshops ----------
 
@@ -474,15 +657,20 @@ function renderPlaceList(listEl, places, iconName, sheetId) {
     row.className = 'shop';
     row.innerHTML = `
       <div class="shop-info">
-        <strong>${escapeHtml(p.name)}</strong>
+        <strong class="link">${escapeHtml(p.name)}</strong>
         <div class="route-sub"><span class="place-dist">${formatDistance(p.distance)}</span>${p.emergency ? ' · <span class="tag-emergency">24h emergency</span>' : ''}${p.address ? ` · ${escapeHtml(p.address)}` : ''}</div>
-        ${p.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(p.hours)}</div>` : ''}
+        ${(() => {
+          const st = openStatus(p.hours);
+          if (st.text) return `<div class="route-sub ${st.open ? 'open' : 'closed'}">${escapeHtml(st.text)}</div>`;
+          return p.hours ? `<div class="route-sub">${icon('clock', 12)} ${escapeHtml(p.hours)}</div>` : '';
+        })()}
       </div>
       <div class="shop-actions">
         ${p.phone ? `<a class="btn small" href="tel:${escapeHtml(p.phone.split(/[;,]/)[0].replace(/\s/g, ''))}">${icon('phone', 14)} Call</a>` : ''}
         <button class="btn small primary">Go</button>
       </div>`;
     row.querySelector('button').addEventListener('click', go);
+    row.querySelector('.shop-info').addEventListener('click', () => showDetails(p));
     listEl.appendChild(row);
   }
 }
@@ -538,9 +726,9 @@ async function showSearch(query) {
   $('placesTitle').textContent = `"${query}" near you`;
   $('placesStatus').textContent = 'Searching…';
   $('placesList').innerHTML = '';
-  const results = await searchPlaces(query, here).catch(() => []);
+  const results = await findAnything(query, here).catch(() => []);
   const places = results
-    .map((r) => ({ ...r, id: `${r.lat},${r.lon}`, phone: '', hours: '', address: r.full.split(',').slice(1, 3).join(','), distance: haversine(here, [r.lat, r.lon]) }))
+    .map((r) => ({ phone: '', hours: '', address: (r.full || '').split(',').slice(1, 3).join(','), ...r, id: r.id || `${r.lat},${r.lon}` }))
     .sort((a, b) => a.distance - b.distance);
   $('placesStatus').textContent = places.length ? `${places.length} found, nearest first.` : `Nothing called "${query}" found nearby.`;
   renderPlaceList($('placesList'), places, 'search', 'placesSheet');
@@ -654,7 +842,7 @@ form.addEventListener('submit', (e) => {
   toast('Settings saved.');
 });
 
-const SHEETS = ['routesSheet', 'placesSheet', 'sosSheet', 'aiSheet', 'settingsSheet'];
+const SHEETS = ['routesSheet', 'placesSheet', 'detailsSheet', 'addSheet', 'sosSheet', 'aiSheet', 'settingsSheet'];
 function openSheet(id) {
   for (const s of SHEETS) $(s).hidden = s !== id;
   placeFabs();
@@ -714,3 +902,4 @@ addEventListener('appinstalled', () => toast('EasyWay installed. Open it from yo
 updateAiMode();
 locate();
 refreshHotspots();
+openSharedPlace();

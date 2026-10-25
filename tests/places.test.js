@@ -59,3 +59,22 @@ test('prettyKind turns OSM values into labels', () => {
   assert.equal(prettyKind('fast_food'), 'Fast food');
   assert.equal(prettyKind('yes'), '');
 });
+
+import { nameSearchQuery, regexText } from '../src/places.js';
+import { noteText } from '../src/osmnotes.js';
+
+test('name search covers names, brands and place types, safely escaped', () => {
+  const q = nameSearchQuery('ice cream', [10.78, 76.65]);
+  assert.match(q, /nwr\["name"~"ice cream",i\]/);
+  assert.match(q, /nwr\["name"\]\["amenity"~"ice_cream",i\]/);
+  assert.match(q, /nwr\["name"\]\["cuisine"~"ice_cream",i\]/);
+  assert.equal(regexText('Café "Joy" (1)'), 'Café \\"Joy\\" \\(1\\)');
+});
+
+test('missing-place note text', () => {
+  const t = noteText({ name: ' Joy Ice Creams ', category: 'Ice cream shop', phone: '', details: 'Near bus stand' });
+  assert.match(t, /"Joy Ice Creams"/);
+  assert.match(t, /Type: Ice cream shop/);
+  assert.doesNotMatch(t, /Phone:/);
+  assert.match(t, /Details: Near bus stand/);
+});
