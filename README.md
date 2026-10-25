@@ -3,6 +3,8 @@ First Fully AI-Powered Digital Marketing Agency in Palakkad
 
 ## EasyWay (v0.1)
 
+**Live: https://easyway-maps.vercel.app** (mirror: https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/)
+
 A Google-Maps-style web app focused on the parts that matter on Indian roads:
 
 | Feature | How it works |
@@ -26,7 +28,7 @@ No payments, no ads, no sign-up, no API keys. Every data source is free and open
 | Traffic hotspots, workshops | OpenStreetMap via Overpass (3 free mirrors) |
 | Place search | Nominatim (main), Photon (backup) |
 | AI assistant | On-device; optional Ollama (free, runs on your own computer) |
-| Hosting | GitHub Pages |
+| Hosting | Vercel (free Hobby plan) and GitHub Pages |
 
 The public servers are shared and have fair-use limits. If the app grows to many
 thousands of users a day, run the same free, open-source software (Valhalla,
@@ -62,6 +64,7 @@ npm install
 npm run dev      # http://localhost:5173
 npm test         # logic tests
 npm run build    # production build in dist/ (deployed to GitHub Pages from main)
+vercel deploy --prod   # publish to https://easyway-maps.vercel.app (project: easyway)
 ```
 
 ### Optional: local LLM
