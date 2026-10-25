@@ -17,6 +17,7 @@ const RECHECK_MS = 2 * 60 * 1000;
 const MIN_SAVING_S = 120; // switch only if the new way saves at least 2 minutes...
 const MIN_SAVING_SHARE = 0.08; // ...and at least 8% of the remaining time
 const OFF_ROUTE_FIXES = 3; // consecutive fixes off the line before rerouting
+const SPEED_SAMPLE_M = 150; // share one anonymous speed sample every ~150 m
 
 const $ = (id) => document.getElementById(id);
 
@@ -105,6 +106,7 @@ export function createDrive(map, planner) {
     s.gps = { p: [latitude, longitude], accuracy, heading };
     s.lastPos = s.gps.p;
     s.lastFix = Date.now();
+    sampleSpeed(s.gps.p, position.coords.speed, accuracy);
     update();
   }
 
@@ -148,6 +150,22 @@ export function createDrive(map, planner) {
       s.spoken.add(`${next.id}:${stage}`);
       speak(announcementText(next, prog.toNext, stage));
     }
+  }
+
+  // Speed over the last ~150 m (GPS speed when the phone gives one).
+  function sampleSpeed(p, gpsSpeed, accuracy) {
+    if (!planner.onSpeed || accuracy > 50) return;
+    const now = Date.now();
+    if (!s.sample) {
+      s.sample = { p, t: now };
+      return;
+    }
+    const metres = haversine(s.sample.p, p);
+    if (metres < SPEED_SAMPLE_M) return;
+    const seconds = (now - s.sample.t) / 1000;
+    const kmh = Number.isFinite(gpsSpeed) && gpsSpeed >= 0 ? gpsSpeed * 3.6 : (metres / seconds) * 3.6;
+    s.sample = { p, t: now };
+    if (seconds > 0 && kmh < 200) planner.onSpeed(p, kmh);
   }
 
   function pointAt(loc) {

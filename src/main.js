@@ -8,6 +8,9 @@ import { findWorkshops, NEEDS } from './workshops.js';
 import { CATEGORIES, findPlaces, placeAt, searchByName, placeById, prettyKind } from './places.js';
 import { openStatus } from './hours.js';
 import { addMissingPlace } from './osmnotes.js';
+import {
+  cloudEnabled, shareJam, recentJams, shareSpeed, slowRoads, reviewsFor, saveReview, placeKey, saveUserPlace, userPlacesNear,
+} from './cloud.js';
 import { interpret, routeTip } from './ai.js';
 import { searchPlaces, reverse } from './geocode.js';
 import { getSettings, saveSettings } from './storage.js';
@@ -84,9 +87,26 @@ function origin() {
 let hotspotTimer;
 let hotspots = [];
 
+// Predicted hotspots (map features × time of day) plus, from the shared
+// database, jams other drivers reported and roads where they are crawling now.
 async function hotspotsFor(bbox) {
-  const features = await fetchFeatures(bbox);
-  for (const r of getReports()) features.push({ lat: r.lat, lon: r.lon, type: 'report' });
+  const [s, w, n, e] = bbox;
+  const center = [(s + n) / 2, (w + e) / 2];
+  const radius = Math.min(20000, haversine([s, w], [n, e]) / 2);
+  const [features, jams, slow] = await Promise.all([
+    fetchFeatures(bbox).catch((err) => {
+      if (!cloudEnabled()) throw err;
+      return []; // live data still helps when map features are unavailable
+    }),
+    recentJams(center, radius),
+    slowRoads(center, radius),
+  ]);
+  for (const j of jams) features.push({ lat: j.lat, lon: j.lon, type: 'report' });
+  for (const r of getReports()) {
+    // My own reports are already in the shared list once they are uploaded.
+    if (!jams.some((j) => haversine([j.lat, j.lon], [r.lat, r.lon]) < 30)) features.push({ lat: r.lat, lon: r.lon, type: 'report' });
+  }
+  for (const c of slow) features.push({ lat: c.lat, lon: c.lon, type: 'slow' });
   return buildHotspots(features);
 }
 
@@ -128,7 +148,8 @@ $('reportBtn').addEventListener('click', () => {
   // While driving the jam is where the car is; otherwise at the map centre.
   const c = drive.active && drive.position ? drive.position : [map.getCenter().lat, map.getCenter().lng];
   addReport(c[0], c[1]);
-  toast(drive.active ? 'Jam reported. Looking for a way around it…' : 'Jam reported at the map centre. Routes will avoid it for 1 hour.');
+  shareJam(c); // other drivers see it too when the shared database is on
+  toast(drive.active ? 'Jam reported. Looking for a way around it…' : `Jam reported at the map centre. ${cloudEnabled() ? 'Every EasyWay driver' : 'Your routes'} will avoid it for 1 hour.`);
   refreshHotspots();
   if (drive.active) drive.recheckNow();
 });
@@ -182,6 +203,8 @@ async function bestRoutes(from, to, { avoidTolls }) {
 const drive = createDrive(map, {
   bestRoutes,
   toast,
+  // Anonymous speed samples build live "slow traffic" for everyone.
+  onSpeed: (p, kmh) => state.settings.shareTraffic && shareSpeed(p, kmh),
   onExit: () => {
     routeLayer.clearLayers();
     if (state.routes.length) {
@@ -383,6 +406,7 @@ async function findAnything(q, here, onUpdate) {
     onUpdate?.([...merged]);
   };
   await Promise.allSettled([
+    userPlacesNear(here, 25000, q).then(add),
     searchByName(q, here).then(add),
     searchPlaces(q, here).then((rows) => add(rows.map((r) => ({ ...r, kind: POI_KEYS.has(r.category) ? prettyKind(r.type) : '' })))),
   ]);
@@ -531,6 +555,7 @@ async function showDetails(place) {
         ${insta ? `<li>${icon('web', 18)}<span>Instagram: ${escapeHtml(insta)}</span></li>` : ''}
         ${extras.length ? `<li>${icon('store', 18)}<span>${escapeHtml(extras.join(' · '))}</span></li>` : ''}
       </ul>
+      <div id="reviews"></div>
       <p class="hint place-foot">Details wrong or missing? ${p.osmId ? `<a href="https://www.openstreetmap.org/edit?${({ N: 'node', W: 'way', R: 'relation' })[String(p.osmType)[0].toUpperCase()]}=${Number(p.osmId)}" target="_blank" rel="noopener">Edit this place</a>` : '<a href="#" data-act="add">Add it</a>'} on OpenStreetMap, free for everyone.</p>`;
     $('details').querySelector('[data-act="go"]').addEventListener('click', () => {
       setDestination([p.lat, p.lon], p.name);
@@ -552,7 +577,51 @@ async function showDetails(place) {
       e.preventDefault();
       openAddPlace(p.name);
     });
+    loadReviews(p);
   }
+}
+
+// ---------- Ratings & reviews (shared database) ----------
+
+const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+
+async function loadReviews(p) {
+  const box = $('reviews');
+  if (!box || !cloudEnabled()) return;
+  const key = placeKey(p);
+  box.innerHTML = '<p class="status">Loading reviews…</p>';
+  const { count, avg, items } = await reviewsFor(key);
+  if ($('reviews') !== box) return; // page changed meanwhile
+  const mine = items.find((r) => r.mine);
+  box.innerHTML = `
+    <h3 class="reviews-head">Reviews</h3>
+    ${count ? `<div class="rating-summary"><span class="rating-big">${avg.toFixed(1)}</span><span class="stars">${stars(avg)}</span><span class="route-sub">${count} review${count > 1 ? 's' : ''}</span></div>` : '<p class="route-sub">No reviews yet. Be the first.</p>'}
+    <form class="review-form">
+      <div class="star-input" role="radiogroup" aria-label="Your rating">
+        ${[1, 2, 3, 4, 5].map((n) => `<button type="button" data-star="${n}" aria-label="${n} star${n > 1 ? 's' : ''}">☆</button>`).join('')}
+      </div>
+      <textarea name="text" maxlength="500" rows="2" placeholder="Share your experience (optional)">${escapeHtml(mine?.text || '')}</textarea>
+      <button class="btn small primary" type="submit">${mine ? 'Update review' : 'Post review'}</button>
+    </form>
+    <ul class="review-list">
+      ${items.slice(0, 20).map((r) => `<li><span class="stars">${stars(r.rating)}</span>${r.mine ? ' <small>(you)</small>' : ''}${r.text ? `<div>${escapeHtml(r.text)}</div>` : ''}<small class="route-sub">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString() : ''}</small></li>`).join('')}
+    </ul>`;
+  let rating = mine?.rating || 0;
+  const paint = () => box.querySelectorAll('[data-star]').forEach((b) => {
+    b.textContent = Number(b.dataset.star) <= rating ? '★' : '☆';
+  });
+  paint();
+  box.querySelectorAll('[data-star]').forEach((b) => b.addEventListener('click', () => {
+    rating = Number(b.dataset.star);
+    paint();
+  }));
+  box.querySelector('.review-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!rating) return toast('Tap the stars to rate first.');
+    const ok = await saveReview(key, p.name, rating, e.target.elements.text.value);
+    toast(ok ? 'Thanks for your review!' : 'Could not post right now. Try again.');
+    if (ok) loadReviews(p);
+  });
 }
 
 // ---------- Add a missing place ----------
@@ -571,14 +640,20 @@ $('addForm').addEventListener('submit', async (e) => {
   const f = e.target;
   const c = map.getCenter();
   $('addStatus').textContent = 'Sending…';
+  const info = {
+    name: f.elements.name.value,
+    category: f.elements.category.value,
+    phone: f.elements.phone.value,
+    details: f.elements.details.value,
+  };
   try {
-    const url = await addMissingPlace([c.lat, c.lng], {
-      name: f.elements.name.value,
-      category: f.elements.category.value,
-      phone: f.elements.phone.value,
-      details: f.elements.details.value,
-    });
-    $('addStatus').innerHTML = `Thank you! Sent to OpenStreetMap mappers. <a href="${escapeHtml(url)}" target="_blank" rel="noopener">See your report</a>`;
+    // In EasyWay straight away (shared database), and on OpenStreetMap once mappers add it.
+    const [savedId, url] = await Promise.all([
+      saveUserPlace([c.lat, c.lng], info),
+      addMissingPlace([c.lat, c.lng], info).catch(() => null),
+    ]);
+    if (!savedId && !url) throw new Error('offline');
+    $('addStatus').innerHTML = `Thank you! ${savedId ? 'It now shows in EasyWay search for everyone. ' : ''}${url ? `Sent to OpenStreetMap mappers too. <a href="${escapeHtml(url)}" target="_blank" rel="noopener">See your report</a>` : ''}`;
     f.reset();
   } catch (err) {
     $('addStatus').textContent = `Could not send right now (${err.message}). Please try again.`;
@@ -832,6 +907,7 @@ $('settingsBtn').addEventListener('click', () => {
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   state.settings = {
+    shareTraffic: form.elements.shareTraffic.checked,
     useOllama: form.elements.useOllama.checked,
     ollamaUrl: form.elements.ollamaUrl.value.trim() || 'http://localhost:11434',
     ollamaModel: form.elements.ollamaModel.value.trim() || 'llama3.2',

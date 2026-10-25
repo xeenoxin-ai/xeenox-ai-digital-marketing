@@ -346,3 +346,18 @@ body.navigating .fab-stack { bottom: calc(max(14px, env(safe-area-inset-bottom))
 .facts a { word-break: break-all; }
 .place-foot { margin-top: 10px; }
 .shop-info strong.link { cursor: pointer; }
+
+/* ---------- Reviews ---------- */
+.reviews-head { font-size: 16px; margin: 16px 0 6px; }
+.rating-summary { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.rating-big { font-size: 28px; font-weight: 800; }
+.stars { color: #f59e0b; letter-spacing: 1px; }
+.review-form { display: grid; gap: 6px; margin-bottom: 8px; }
+.review-form textarea {
+  border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font: inherit; resize: vertical;
+  background: var(--bg); color: var(--fg);
+}
+.review-form .btn { justify-self: start; }
+.star-input button { border: 0; background: none; font-size: 28px; line-height: 1; color: #f59e0b; cursor: pointer; padding: 0 2px; }
+.review-list { list-style: none; margin: 0; padding: 0; }
+.review-list li { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; display: grid; gap: 2px; }

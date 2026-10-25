@@ -52,10 +52,13 @@ No ads. No sign-up. No subscriptions. Built on OpenStreetMap open data.
 - **Ads:** No, the app contains no ads.
 - **Content rating questionnaire:** category Utility/Navigation, answer No to all violence, sexual content, gambling and similar questions.
 - **Target audience:** 18 and over.
-- **Data safety:**
-  - Location (approximate and precise): collected, **not shared**, processed only to provide app functionality, not stored. Required for routes and nearby help; the user can deny it.
-  - Other data types: none collected.
-  - Data is encrypted in transit (HTTPS). Users can't request deletion because nothing is stored on a server.
+- **Data safety** (with the shared Firebase database switched on):
+  - Data is encrypted in transit: **Yes**. Users can request deletion: **Yes** (via the contact link in the privacy policy).
+  - **Location → Approximate location**: collected, not shared. Purpose: app functionality. Optional (jam reports and the "Share anonymous traffic speeds" setting).
+  - **Location → Precise location**: collected, not shared. Purpose: app functionality (routes, nearby places). Processed on the phone; not stored except as above.
+  - **App activity → Other user-generated content** (reviews, places added): collected, not shared. Purpose: app functionality. Optional.
+  - **Device or other IDs** (anonymous Firebase app ID): collected, not shared. Purpose: app functionality and fraud prevention (one review per person).
+  - Google Firebase is a service provider, so this does not count as "sharing".
 - **App access:** all features are available without login.
 
 ## Release steps
