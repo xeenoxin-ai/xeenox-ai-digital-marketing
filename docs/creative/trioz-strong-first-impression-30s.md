@@ -5,6 +5,13 @@
 **Story:** A plain, forgettable entrance turns into a stylish steel door in one dramatic reveal.
 **Feeling:** Starts flat and grey, then becomes warm, confident and welcoming.
 
+**Rendered draft:** [`trioz-first-impression/`](trioz-first-impression/)
+- `trioz-strong-first-impression-30s.mp4` is the master: music and sound effects, no voiceover.
+- `trioz-strong-first-impression-6s.mp4` is the cut-down for Stories and bumper ads.
+- `trioz-thumbnail.png` is the cover frame.
+
+The door, windows and "TRIOZ" wordmark in this draft are stylised placeholders. Before publishing, swap in the real logo and approved product renders. To rebuild the files, see `trioz-first-impression/render/README.md`.
+
 ---
 
 ## 1. Visual style guide
