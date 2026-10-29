@@ -15,7 +15,12 @@ const [mode, out, ...times] = process.argv.slice(2);
   await page.evaluate(() => window.ready);
   const canvas = await page.$('canvas');
 
-  if (mode === 'stills') {
+  if (mode === 'frames') {
+    for (let f = +times[0]; f < +times[1]; f++) {
+      await page.evaluate(x => render(x), f / FPS);
+      await canvas.screenshot({ path: path.join(out, `f${String(f).padStart(4, '0')}.png`) });
+    }
+  } else if (mode === 'stills') {
     for (const t of times) {
       await page.evaluate(x => render(x), +t);
       await canvas.screenshot({ path: path.join(out, `still_${(+t).toFixed(2)}.png`) });
