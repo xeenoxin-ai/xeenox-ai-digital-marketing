@@ -418,7 +418,7 @@ function s7(t) {
 function logo(t) {
   lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.clearRect(0, 0, W, 420);
   lctx.font = '800 210px Disp'; lctx.letterSpacing = '26px'; lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
-  const tr = P(t, 27, 28), fill = P(t, 27.7, 28.2);
+  const tr = P(t, 27, 27.6), fill = P(t, 27.35, 27.7);
   if (fill > 0) {
     const g = lctx.createLinearGradient(0, 110, 0, 310); g.addColorStop(0, '#f1f3f5'); g.addColorStop(.55, '#c9ced3'); g.addColorStop(1, '#8e959c');
     lctx.globalAlpha = fill; lctx.fillStyle = g; lctx.fillText('TRIOZ', 553, 210); lctx.globalAlpha = 1;
@@ -429,27 +429,58 @@ function logo(t) {
     const g = lctx.createLinearGradient(-70, 0, 70, 0); g.addColorStop(0, 'rgba(255,214,150,0)'); g.addColorStop(.5, 'rgba(255,226,180,.95)'); g.addColorStop(1, 'rgba(255,214,150,0)');
     lctx.fillStyle = g; lctx.fillRect(-70, -400, 140, 800); lctx.restore();
   }
-  const ta = 1 - P(t, 28.0, 28.5);
+  const ta = 1 - P(t, 27.6, 27.9);
   if (tr > 0 && ta > 0) {
     lctx.save(); lctx.globalAlpha = ta; lctx.lineWidth = 3; lctx.strokeStyle = '#e8edf2'; lctx.shadowColor = 'rgba(200,225,255,.9)'; lctx.shadowBlur = 18;
     lctx.setLineDash([1100 * tr, 1100]); lctx.strokeText('TRIOZ', 553, 210); lctx.restore();
   }
-  screen(); ctx.drawImage(logoC, 0, 820 - 210);
+  screen(); ctx.drawImage(logoC, 0, 690 - 210);
+}
+function icon(kind, x, y, c) {
+  ctx.save(); ctx.translate(x, y); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 4;
+  if (kind === 'pin') {
+    ctx.beginPath(); ctx.arc(0, -6, 14, Math.PI * .8, Math.PI * 2.2); ctx.lineTo(0, 22); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = COL.charcoal; ctx.beginPath(); ctx.arc(0, -6, 5.5, 0, 7); ctx.fill();
+  } else if (kind === 'phone') {
+    rr(ctx, -12, -20, 24, 40, 5); ctx.stroke(); ctx.fillRect(-4, 12, 8, 3);
+  } else {
+    ctx.beginPath(); ctx.arc(0, 0, 17, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, 7, 17, 0, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-17, 0); ctx.lineTo(17, 0); ctx.stroke();
+  }
+  ctx.restore();
+}
+// a centred row of [icon, text] items
+function iconRow(items, y, color, [a, r]) {
+  if (a <= 0) return;
+  screen(); ctx.save(); ctx.globalAlpha = a; ctx.font = '600 48px Body'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const ICON = 36, GAP = 16, SEP = 60;
+  const widths = items.map(([, s]) => ICON + GAP + ctx.measureText(s).width);
+  let x = 540 - (widths.reduce((p, w) => p + w, 0) + SEP * (items.length - 1)) / 2;
+  y += (1 - r) * 24;
+  items.forEach(([k, s], i) => {
+    icon(k, x + ICON / 2, y, COL.amber);
+    ctx.fillStyle = color; ctx.fillText(s, x + ICON + GAP, y + 2);
+    x += widths[i] + SEP;
+  });
+  ctx.restore();
 }
 function s8(t) {
   endBg();
   logo(t);
   screen(); ctx.save(); ctx.font = '600 48px Body'; ctx.letterSpacing = '5px'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.globalAlpha = P(t, 27.8, 28.2); ctx.fillStyle = COL.steel; ctx.fillText('STEEL DOORS AND WINDOWS', 545, 975); ctx.restore();
-  screen(); ctx.fillStyle = COL.amber; const lw = 140 * io(P(t, 27.9, 28.3)); ctx.fillRect(540 - lw / 2, 1040, lw, 5);
-  block(['Make a strong', 'first impression.'], { cy: 1185, size: 92, plate: false, la: [vis(t, 28.0), vis(t, 28.15)] });
-  const [a, r] = vis(t, 28.5);
+  ctx.globalAlpha = P(t, 27.45, 27.75); ctx.fillStyle = COL.steel; ctx.fillText('STEEL DOORS AND WINDOWS', 545, 845); ctx.restore();
+  screen(); ctx.fillStyle = COL.amber; const lw = 140 * io(P(t, 27.5, 27.8)); ctx.fillRect(540 - lw / 2, 905, lw, 5);
+  block(['Make a strong', 'first impression.'], { cy: 1045, size: 92, plate: false, la: [vis(t, 27.6), vis(t, 27.72)] });
+  const [a, r] = vis(t, 27.95);
   if (a > 0) {
     screen(); ctx.save(); ctx.globalAlpha = a; ctx.font = '700 52px Disp'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const label = 'Explore the range today', w = ctx.measureText(label).width + 96, y = 1400 + (1 - r) * 30;
+    const label = 'Explore the range today', w = ctx.measureText(label).width + 96, y = 1245 + (1 - r) * 30;
     ctx.fillStyle = COL.amber; rr(ctx, 540 - w / 2, y - 52, w, 104, 52); ctx.fill();
     ctx.fillStyle = COL.charcoal; ctx.fillText(label, 540, y + 2); ctx.restore();
   }
+  iconRow([['pin', 'Kadambazhipuram'], ['phone', '9074847340']], 1375, COL.off, vis(t, 28.15));
+  iconRow([['globe', 'www.triozsteel.com']], 1460, COL.off, vis(t, 28.3));
   grain(t, .03);
 }
 

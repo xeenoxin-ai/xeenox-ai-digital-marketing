@@ -86,8 +86,9 @@ The door, windows and "TRIOZ" wordmark in this draft are stylised placeholders. 
   - **Make a strong first impression.**
   - **Trioz Steel Doors and Windows**
   - **Explore the range today**
-  - *[Client to supply: website / phone / WhatsApp / showroom address. Leave this line blank until it is confirmed.]*
-- **Animation:** The logo is drawn in 0:27.0–0:28.0. The headline slides up at 0:28.0 and the call to action at 0:28.5. A last amber light sweep crosses the logo at 0:29.3. Hold to 0:30.
+  - **📍 Kadambazhipuram  📞 9074847340**
+  - **🌐 www.triozsteel.com**
+- **Animation:** The logo is drawn in 0:27.0–0:27.6. The headline slides up at 0:27.6, the call to action at 0:27.95, the location and phone line at 0:28.15, and the website at 0:28.3, so the contact details stay readable for nearly 2 seconds. The icons are drawn as simple amber vector shapes rather than emoji, so they look the same on every platform. A last amber light sweep crosses the logo at 0:29.3. Hold to 0:30.
 - **Transition out:** Hold, no fade, so the end card can loop cleanly into Scene 1.
 
 ---
@@ -103,7 +104,7 @@ The door, windows and "TRIOZ" wordmark in this draft are stylised placeholders. 
 | 0:15–0:20 | Details | Bold lines. / Modern style. / Made to stand out. | Macro glides, light sweep |
 | 0:20–0:24 | Inviting entrance | An entrance that welcomes. | Door opens, warm glow |
 | 0:24–0:27 | Before / after | Before. / After. | Split-screen wipe |
-| 0:27–0:30 | End card | Make a strong first impression. / Trioz Steel Doors and Windows / Explore the range today | Logo trace, call to action |
+| 0:27–0:30 | End card | Make a strong first impression. / Trioz Steel Doors and Windows / Explore the range today / Kadambazhipuram · 9074847340 · www.triozsteel.com | Logo trace, call to action, contact |
 
 ---
 
@@ -152,12 +153,12 @@ The door, windows and "TRIOZ" wordmark in this draft are stylised placeholders. 
 
 ## 6. Claims and content guardrails
 
-The script deliberately contains **no** product specifications, materials grades, certifications, prices, offers, warranties or guarantees, security or weather-resistance claims, or contact details. Only visual and emotional language is used ("bold lines", "modern style", "made to stand out", "an entrance that welcomes").
+The script deliberately contains **no** product specifications, materials grades, certifications, prices, offers, warranties or guarantees, or security or weather-resistance claims. The only contact details are the ones Trioz supplied (location, phone, website). Only visual and emotional language is used ("bold lines", "modern style", "made to stand out", "an entrance that welcomes").
 
 Before final render, the client must supply or approve:
 - [ ] Logo files (SVG or high-resolution PNG) and any brand colours or fonts that should replace the suggested palette
 - [ ] Real product images, CAD files or approved renders of the door and window designs to feature
-- [ ] The exact call-to-action details for the end card (website, phone, WhatsApp, showroom); leave the line blank until these are confirmed
+- [x] Contact details for the end card: Kadambazhipuram, 9074847340, www.triozsteel.com (supplied by the client)
 - [ ] Sign-off that every design shown in the video is in Trioz's current range
 
 ---
