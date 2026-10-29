@@ -1,0 +1,383 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SB Felines – Why Cats Make Great Companions</title>
+<style>
+@font-face{font-family:Pop;src:url(fonts/Poppins-500.ttf);font-weight:500}
+@font-face{font-family:Pop;src:url(fonts/Poppins-700.ttf);font-weight:700}
+@font-face{font-family:Pop;src:url(fonts/Poppins-800.ttf);font-weight:800}
+@font-face{font-family:Fra;src:url(fonts/Fraunces-600i.ttf);font-weight:600;font-style:italic}
+html,body{margin:0;background:#000}
+canvas{display:block;max-height:100vh;margin:0 auto}
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+// 30 s vertical (1080x1920) motion graphic. render(t) draws the frame at time t (seconds).
+// Open with ?play to preview in a browser; render.js drives it frame by frame for export.
+const W = 1080, H = 1920, DUR = 30;
+const G = '#F4CB3E', CR = '#FFF3DA', AM = '#E8923A', BL = '#F2A493', INK = '#140D07';
+
+const main = document.getElementById('c'), M = main.getContext('2d');
+function mk() { const c = document.createElement('canvas'); c.width = W; c.height = H; return [c, c.getContext('2d')]; }
+const [cA, A] = mk(), [cB, B] = mk(), [cT, T] = mk();
+const logo = new Image(); logo.src = 'logo.png';
+
+// ---------- helpers ----------
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => cl((t - a) / (b - a));
+const L = (a, b, x) => a + (b - a) * x;
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eb = x => { x = cl(x); const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const rnd = i => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const bump = (t, a, b) => Math.sin(Math.PI * P(t, a, b)); // 0 → 1 → 0 over [a,b]
+function rgba(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; }
+function ell(c, x, y, rx, ry, r = 0) { c.beginPath(); c.ellipse(x, y, rx, ry, r, 0, Math.PI * 2); c.fill(); }
+function goldGrad(c, y0, y1) {
+  const g = c.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, '#FFE795'); g.addColorStop(.5, G); g.addColorStop(1, '#D4961C'); return g;
+}
+
+// ---------- background ----------
+function bg(c, t, glow = G, gx = 540, gy = 1120) {
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#22170C'); g.addColorStop(.55, '#170F08'); g.addColorStop(1, '#0B0704');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const pul = .22 + .05 * Math.sin(t * 2.1);
+  const r = c.createRadialGradient(gx, gy, 0, gx, gy, 780);
+  r.addColorStop(0, rgba(glow, pul)); r.addColorStop(.5, rgba(glow, pul * .35)); r.addColorStop(1, rgba(glow, 0));
+  c.fillStyle = r; c.fillRect(0, 0, W, H);
+  for (let i = 0; i < 28; i++) { // drifting bokeh
+    const sp = 18 + rnd(i) * 42, x = rnd(i + 7) * W + Math.sin(t * .6 + i) * 22;
+    let y = (rnd(i + 3) * H - t * sp) % H; if (y < 0) y += H;
+    const rr = 4 + rnd(i + 11) * 15, a = (.05 + rnd(i + 5) * .15) * (.6 + .4 * Math.sin(t * 1.4 + i));
+    c.fillStyle = rgba(i % 3 ? G : CR, a); c.beginPath(); c.arc(x, y, rr, 0, 7); c.fill();
+  }
+  const v = c.createRadialGradient(540, 960, 520, 540, 960, 1250);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.55)');
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+}
+function floorShadow(c, x, y, rx, a = .45) {
+  const g = c.createRadialGradient(x, y, 0, x, y, rx);
+  g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+  c.save(); c.translate(x, y); c.scale(1, .12); c.translate(-x, -y); c.fillStyle = g; c.fillRect(x - rx, y - rx, rx * 2, rx * 2); c.restore();
+}
+
+// ---------- text ----------
+function line(c, s, y, o) {
+  const q = o.q; if (q <= 0) return;
+  let size = o.size;
+  const f = () => `${o.it ? 'italic ' : ''}${o.w || 800} ${size}px ${o.fam || 'Pop'}`;
+  c.save(); c.letterSpacing = (o.ls || 0) + 'px'; c.font = f();
+  while (c.measureText(s).width > (o.maxW || 940) && size > 20) { size -= 2; c.font = f(); }
+  const e = eo(q), sc = L(.9, 1, eb(q));
+  c.globalAlpha = cl(q * 1.5) * (o.alpha ?? 1);
+  c.translate(540, y + (1 - e) * 56); c.scale(sc, sc);
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 26; c.shadowOffsetY = 6;
+  c.fillStyle = o.col === 'gold' ? goldGrad(c, -size * .5, size * .5) : (o.col || CR);
+  c.fillText(s, 0, 0); c.restore();
+}
+function badge(c, n, y, q) {
+  if (q <= 0) return;
+  const s = eb(q);
+  c.save(); c.translate(540, y); c.scale(s, s); c.rotate((1 - eo(q)) * -.7);
+  c.shadowColor = rgba(G, .6); c.shadowBlur = 30;
+  c.fillStyle = goldGrad(c, -54, 54); c.beginPath(); c.arc(0, 0, 54, 0, 7); c.fill();
+  c.shadowBlur = 0; c.strokeStyle = rgba(CR, .55); c.lineWidth = 3; c.beginPath(); c.arc(0, 0, 66, 0, 7); c.stroke();
+  c.fillStyle = INK; c.font = '800 44px Pop'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(n, 0, 3);
+  c.restore();
+}
+function watermark(c, a) {
+  if (a <= 0 || !logo.complete) return;
+  const w = 104, h = w * logo.height / logo.width;
+  c.save(); c.globalAlpha = a * .95; c.drawImage(logo, 540 - w / 2, 96, w, h); c.restore();
+}
+
+// ---------- decorative shapes ----------
+function star(c, x, y, r, a, col = G) {
+  if (a <= 0) return;
+  c.save(); c.globalAlpha = a; c.fillStyle = col; c.shadowColor = col; c.shadowBlur = 18; c.translate(x, y); c.beginPath();
+  for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.quadraticCurveTo(r * .12, -r * .12, 0, -r); c.quadraticCurveTo(-r * .12, -r * .12, 0, 0); }
+  c.fill(); c.restore();
+}
+function heart(c, x, y, s, a, col = BL) {
+  c.save(); c.globalAlpha = a; c.translate(x, y); c.scale(s, s); c.fillStyle = col; c.shadowColor = col; c.shadowBlur = .3;
+  c.beginPath(); c.moveTo(0, .35); c.bezierCurveTo(-.6, -.02, -.34, -.5, 0, -.2); c.bezierCurveTo(.34, -.5, .6, -.02, 0, .35); c.fill(); c.restore();
+}
+function paw(c, x, y, s, rot, a, col = G) {
+  if (a <= 0) return;
+  c.save(); c.globalAlpha = a; c.translate(x, y); c.rotate(rot); c.scale(s, s); c.fillStyle = col;
+  ell(c, 0, .12, .3, .25);
+  [[-.34, -.2, .12], [-.13, -.38, .13], [.13, -.38, .13], [.34, -.2, .12]].forEach(([px, py, r]) => ell(c, px, py, r, r * 1.2));
+  c.restore();
+}
+// draw a silhouette offscreen, then stamp it with a soft gold glow (avoids glow bleeding between overlapping parts)
+function glowStamp(c, fn, glow = G, blur = 46, alpha = 1) {
+  T.setTransform(1, 0, 0, 1, 0, 0); T.clearRect(0, 0, W, H); fn(T);
+  c.save(); c.globalAlpha = alpha; c.shadowColor = rgba(glow, .75); c.shadowBlur = blur; c.drawImage(cT, 0, 0); c.restore();
+}
+
+// ---------- cats (unit coordinates, ground at y=0, s = height in px) ----------
+function eyes(c, xs, y, rx, ry, blink) {
+  const k = Math.max(.08, 1 - blink);
+  xs.forEach(x => {
+    c.fillStyle = G; ell(c, x, y, rx, ry * k);
+    c.fillStyle = INK; ell(c, x, y, rx * .28, ry * .85 * k);
+    if (k > .5) { c.fillStyle = 'rgba(255,255,255,.9)'; ell(c, x - rx * .35, y - ry * .35, rx * .18, rx * .18); }
+  });
+}
+function sitCat(c, x, y, s, o = {}) {
+  const tail = o.tail || 0, tilt = o.tilt || 0, blink = o.blink || 0, ear = o.ear || 0;
+  c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = CR; c.strokeStyle = CR;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.lineWidth = .075; c.beginPath(); c.moveTo(.2, -.04);       // tail
+  c.bezierCurveTo(.5, .02, .6 + tail * .04, -.2, .48 + tail * .12, -.42 + Math.abs(tail) * .03); c.stroke();
+  c.beginPath(); c.moveTo(-.12, -.6);                            // body
+  c.bezierCurveTo(-.3, -.46, -.38, -.15, -.3, 0); c.quadraticCurveTo(0, .025, .3, 0);
+  c.bezierCurveTo(.38, -.15, .3, -.46, .12, -.6); c.closePath(); c.fill();
+  ell(c, -.1, -.015, .085, .04); ell(c, .1, -.015, .085, .04);  // paws
+  c.save(); c.translate(0, -.6); c.rotate(tilt);                 // head
+  ell(c, 0, -.1, .2, .165);
+  const earL = [[-.18, -.13], [-.16, -.38], [-.03, -.24]], earR = earL.map(([a, b]) => [-a, b]);
+  [[earL, -1], [earR, 1]].forEach(([e, side]) => {
+    c.save(); const tw = side > 0 ? ear * .25 : 0; c.translate(.1 * side, -.22); c.rotate(tw * side); c.translate(-.1 * side, .22);
+    c.beginPath(); e.forEach(([a, b], i) => i ? c.lineTo(a, b) : c.moveTo(a, b)); c.closePath(); c.lineWidth = .03; c.fill(); c.stroke(); c.restore();
+  });
+  c.lineWidth = .007; c.globalAlpha = .9;                        // whiskers
+  [[-1, -.02], [-1, .02], [1, -.02], [1, .02]].forEach(([sd, dy]) => { c.beginPath(); c.moveTo(sd * .14, -.05 + dy); c.lineTo(sd * .34, -.07 + dy * 3); c.stroke(); });
+  c.globalAlpha = 1;
+  eyes(c, [-.078, .078], -.11, .04, .048, blink);
+  c.fillStyle = BL; c.beginPath(); c.moveTo(-.02, -.055); c.lineTo(.02, -.055); c.lineTo(0, -.03); c.closePath(); c.fill();
+  c.restore(); c.restore();
+}
+function sleepCat(c, x, y, s, o = {}) {
+  const br = 1 + .025 * Math.sin((o.t || 0) * 2.6), tw = Math.sin((o.t || 0) * 1.7) * .03;
+  c.save(); c.translate(x, y); c.scale(s, s * br); c.fillStyle = CR; c.strokeStyle = CR; c.lineCap = 'round'; c.lineJoin = 'round';
+  ell(c, .02, -.19, .46, .2); ell(c, .2, -.27, .26, .15, -.15);
+  ell(c, -.31, -.23, .165, .135, -.1);
+  [[[-.45, -.27], [-.5, -.45], [-.34, -.35]], [[-.27, -.35], [-.19, -.5], [-.15, -.31]]].forEach(e => {
+    c.beginPath(); e.forEach(([a, b], i) => i ? c.lineTo(a, b) : c.moveTo(a, b)); c.closePath(); c.lineWidth = .03; c.fill(); c.stroke();
+  });
+  c.lineWidth = .075; c.beginPath(); c.moveTo(.42, -.12);
+  c.bezierCurveTo(.36, .03, -.1, .05, -.3 + tw, -.05); c.stroke();
+  c.strokeStyle = INK; c.lineWidth = .012;                       // closed eyes
+  [-.37, -.26].forEach(ex => { c.beginPath(); c.arc(ex, -.245, .028, .15 * Math.PI, .85 * Math.PI); c.stroke(); });
+  c.fillStyle = BL; c.beginPath(); c.arc(-.315, -.19, .012, 0, 7); c.fill();
+  c.restore();
+}
+// side view, facing right. legs: angles (rad, + = forward), order [farFront, nearFront, farBack, nearBack]
+function sideCat(c, x, y, s, o = {}) {
+  const len = o.len ?? .34, legs = o.legs || [0, 0, 0, 0], rot = o.rot || 0, tail = o.tail || 0;
+  const hipY = -(len + .05);
+  c.save(); c.translate(x, y); c.scale(s, s); c.translate(0, hipY); c.rotate(rot); c.translate(0, -hipY);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const hips = [.17, .11, -.23, -.17];
+  const leg = (i, col) => {
+    const a = legs[i], hx = hips[i], ex = hx + Math.sin(a) * len, ey = hipY + Math.cos(a) * len;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = .075;
+    c.beginPath(); c.moveTo(hx, hipY - .02); c.lineTo(ex, ey); c.stroke(); ell(c, ex + .02, ey, .05, .03);
+  };
+  leg(0, '#D9C7A6'); leg(2, '#D9C7A6');
+  c.strokeStyle = CR; c.fillStyle = CR; c.lineWidth = .07;
+  c.beginPath(); c.moveTo(-.33, hipY - .06);                                    // tail
+  c.bezierCurveTo(-.5, hipY - .08, -.56 + tail * .05, hipY - .32, -.44 + tail * .1, hipY - .44); c.stroke();
+  ell(c, -.03, hipY - .05, .33, .13); ell(c, .19, hipY - .07, .14, .14);         // body + chest
+  c.save(); c.translate(.35, hipY - .23); c.rotate(o.tilt || 0);                // head
+  ell(c, 0, 0, .13, .115); ell(c, .11, .035, .055, .045);
+  [[[-.09, -.05], [-.08, -.22], [.0, -.1]], [[.02, -.1], [.09, -.23], [.11, -.05]]].forEach(e => {
+    c.beginPath(); e.forEach(([a, b], i) => i ? c.lineTo(a, b) : c.moveTo(a, b)); c.closePath(); c.lineWidth = .03; c.fill(); c.stroke();
+  });
+  c.lineWidth = .006; [[-.01], [.02]].forEach(([dy]) => { c.beginPath(); c.moveTo(.13, .04 + dy); c.lineTo(.3, .02 + dy * 3); c.stroke(); });
+  eyes(c, [.05], -.01, .03, .04, o.blink || 0);
+  c.restore();
+  leg(1, CR); leg(3, CR);
+  c.restore();
+}
+function walkLegs(ph, amp = .4) {
+  return [amp * Math.sin(ph + Math.PI), amp * Math.sin(ph), amp * Math.sin(ph + Math.PI / 2), amp * Math.sin(ph + 1.5 * Math.PI)];
+}
+function yarn(c, x, y, r, rot) {
+  c.save(); c.translate(x, y);
+  const g = c.createRadialGradient(-r * .3, -r * .35, r * .1, 0, 0, r);
+  g.addColorStop(0, '#F9C3B6'); g.addColorStop(1, '#D9776A');
+  c.fillStyle = g; c.shadowColor = rgba(BL, .6); c.shadowBlur = 30; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill(); c.shadowBlur = 0;
+  c.save(); c.beginPath(); c.arc(0, 0, r, 0, 7); c.clip(); c.rotate(rot);
+  c.strokeStyle = 'rgba(150,62,52,.55)'; c.lineWidth = 5;
+  for (let i = -3; i <= 3; i++) { c.beginPath(); c.ellipse(i * r * .22, 0, r * .25, r * 1.05, .5, 0, 7); c.stroke(); }
+  c.rotate(1.6); for (let i = -2; i <= 2; i++) { c.beginPath(); c.ellipse(i * r * .3, 0, r * .2, r * 1.05, 0, 0, 7); c.stroke(); }
+  c.restore(); c.restore();
+}
+
+// ---------- scenes: f(ctx, local time, global time) ----------
+function s1(c, lt, t) {           // 0.0–4.3  Hook
+  bg(c, t, G, 540, 1150);
+  const q = P(lt, .1, 1.1), cy = 1430 + (1 - eb(q)) * 760;
+  floorShadow(c, 540, 1432, 330 * eo(q));
+  glowStamp(c, k => sitCat(k, 540, cy, 600, {
+    tail: Math.sin(t * 3), blink: bump(lt, 2.4, 2.65), ear: bump(lt, 1.6, 1.8), tilt: .1 * eio(P(lt, 1.1, 1.7)) - .1 * eio(P(lt, 2.9, 3.5))
+  }));
+  [[250, 1000, 1.2], [840, 920, 1.45], [880, 1260, 1.7], [205, 1300, 1.95]].forEach(([x, y, st], i) =>
+    star(c, x, y, 26 + 8 * Math.sin(t * 4 + i), P(lt, st, st + .3) * (.6 + .4 * Math.sin(t * 5 + i))));
+  watermark(c, P(lt, .2, .8));
+  line(c, 'Why cats make', 520, { q: P(lt, .45, 1.05), size: 92, w: 700 });
+  line(c, 'great companions', 652, { q: P(lt, .7, 1.3), size: 124, fam: 'Fra', w: 600, it: true, col: 'gold' });
+}
+function s2(c, lt, t) {           // 3.7–10.8  Benefit 1: cozy company
+  bg(c, t, AM, 540, 1200);
+  floorShadow(c, 540, 1440, 420, .6);
+  const cg = c.createLinearGradient(0, 1300, 0, 1460); cg.addColorStop(0, '#8A4A22'); cg.addColorStop(1, '#4A2410');
+  c.fillStyle = cg; ell(c, 540, 1395, 360, 78);
+  c.fillStyle = 'rgba(255,215,160,.18)'; ell(c, 540, 1370, 300, 40);
+  const q = eo(P(lt, .2, 1.0));
+  glowStamp(c, k => sleepCat(k, 540, 1385, 600 * L(.85, 1, q), { t }), AM, 50, q);
+  for (let k = 0; k < 3; k++) {    // floating z's
+    const ph = ((lt * .7 + k / 3) % 1), a = Math.sin(Math.PI * ph) * P(lt, 1.2, 1.6);
+    if (a <= 0) continue;
+    c.save(); c.globalAlpha = a; c.fillStyle = G; c.font = `italic 600 ${44 + ph * 46}px Fra`;
+    c.fillText('z', 330 - ph * 60 + Math.sin(ph * 7) * 14, 1170 - ph * 230); c.restore();
+  }
+  c.save(); c.translate(860, 980); c.rotate(Math.sin(t * 1.3) * .06);  // little crescent moon
+  c.globalAlpha = P(lt, 1.4, 2.0); c.strokeStyle = rgba(G, .5); c.lineWidth = 3; c.beginPath(); c.moveTo(0, -240); c.lineTo(0, -40); c.stroke();
+  c.fillStyle = G; c.shadowColor = G; c.shadowBlur = 30; c.beginPath(); c.arc(0, 0, 46, 0, 7); c.fill();
+  c.globalCompositeOperation = 'destination-out'; c.shadowBlur = 0; c.beginPath(); c.arc(20, -14, 40, 0, 7); c.fill(); c.restore();
+  star(c, 180, 1050, 22, P(lt, 1.8, 2.2) * (.5 + .5 * Math.sin(t * 4)));
+  watermark(c, 1);
+  badge(c, '01', 350, P(lt, .45, 1.0));
+  line(c, 'Cozy', 500, { q: P(lt, .6, 1.2), size: 116 });
+  line(c, 'company', 636, { q: P(lt, .75, 1.35), size: 140, fam: 'Fra', w: 600, it: true, col: 'gold' });
+  line(c, 'A warm, quiet presence', 772, { q: P(lt, 1.05, 1.65), size: 54, w: 500, alpha: .9 });
+  line(c, 'to come home to', 842, { q: P(lt, 1.2, 1.8), size: 54, w: 500, alpha: .9 });
+}
+function s3(c, lt, t) {           // 10.2–17.3  Benefit 2: playful moments
+  bg(c, t, G, 540, 1220);
+  const GY = 1440;
+  // yarn ball: rolls in, gets bumped by the pounce, settles
+  let bx = L(1260, 790, eo(P(lt, .5, 1.7)));
+  bx += 150 * eo(P(lt, 2.95, 3.8));
+  const by = GY - 72 - 60 * bump(lt, 2.95, 3.4) - 18 * bump(lt, 3.4, 3.65);
+  const brot = -(bx - 1260) / 72;
+  floorShadow(c, bx, GY, 110, .5);
+  c.save(); c.strokeStyle = '#E58B7C'; c.lineWidth = 5; c.lineCap = 'round'; c.beginPath(); c.moveTo(bx + 40, by + 55);
+  c.bezierCurveTo(bx + 160, GY + 10, bx + 220, GY - 30, 1140, GY - 4); c.stroke(); c.restore();
+  yarn(c, bx, by, 72, brot);
+  // cat: crouch + wiggle → pounce → playful crouch
+  const pq = P(lt, 2.2, 2.95), jumping = pq > 0 && pq < 1;
+  let cx = L(320, 610, eio(pq)), cy = GY - Math.sin(Math.PI * pq) * 110, o;
+  if (jumping) {
+    o = { len: .34, legs: [1.15, 1.25, -1.1, -1.2], rot: L(-.2, .22, pq), tail: -1 };
+  } else {
+    const wig = lt < 2.2 ? Math.sin(lt * 22) * .035 * P(lt, 1.3, 1.6) : 0;
+    const land = bump(lt, 2.95, 3.3);
+    o = { len: .2 + .04 * land, legs: [.5, .45, -.6, -.65], rot: .12 + wig - land * .1, tail: Math.sin(t * 4), blink: bump(lt, 4.6, 4.8), tilt: lt > 3.6 ? .12 * Math.sin((lt - 3.6) * 2) : 0 };
+  }
+  floorShadow(c, cx, GY, 260 * (1 - .5 * Math.sin(Math.PI * pq)), .5);
+  glowStamp(c, k => sideCat(k, cx, cy, 560, o));
+  if (lt > 2.95 && lt < 3.8) { // impact sparkles
+    const a = 1 - P(lt, 2.95, 3.8);
+    for (let i = 0; i < 6; i++) { const an = -Math.PI / 2 + (i - 2.5) * .45, d = 90 + 120 * eo(P(lt, 2.95, 3.6)); star(c, bx + Math.cos(an) * d, by + Math.sin(an) * d, 18, a); }
+  }
+  watermark(c, 1);
+  badge(c, '02', 350, P(lt, .45, 1.0));
+  line(c, 'Playful', 500, { q: P(lt, .6, 1.2), size: 116 });
+  line(c, 'moments', 636, { q: P(lt, .75, 1.35), size: 140, fam: 'Fra', w: 600, it: true, col: 'gold' });
+  line(c, 'Little chases, big smiles', 772, { q: P(lt, 1.05, 1.65), size: 54, w: 500, alpha: .9 });
+}
+function s4(c, lt, t) {           // 16.7–23.8  Benefit 3: affection on their terms
+  bg(c, t, BL, 540, 1180);
+  const GY = 1500, wq = P(lt, .1, 2.6), cx = L(-260, 540, 1 - Math.pow(1 - wq, 2));
+  const sw = P(lt, 2.6, 3.0); // side view → front-facing sit
+  floorShadow(c, cx, GY, 280, .5);
+  if (sw < 1) glowStamp(c, k => sideCat(k, cx, GY, 520, { legs: walkLegs(cx / 38, .42 * (1 - P(lt, 2.2, 2.6))), tail: Math.sin(t * 3), rot: -.02 * Math.sin(cx / 19) }), G, 46, 1 - sw);
+  if (sw > 0) {
+    const s = 540 * L(.92, 1, eb(sw));
+    glowStamp(c, k => sitCat(k, 540, GY, s, { tail: Math.sin(t * 2.4), tilt: .16 * eio(P(lt, 3.2, 3.8)), blink: bump(lt, 4.1, 4.9) * .95 + bump(lt, 5.6, 5.9) }), BL, 50, sw);
+  }
+  for (let k = 0; k < 7; k++) {   // rising hearts
+    const st = 3.3 + k * .42, hq = P(lt, st, st + 2.2);
+    if (hq <= 0 || hq >= 1) continue;
+    const x = 540 + (k % 2 ? 1 : -1) * (170 + 60 * rnd(k)) + Math.sin(hq * 6 + k) * 24, y = 1150 - hq * 190;
+    heart(c, x, y, 70 + 30 * rnd(k + 2), Math.sin(Math.PI * hq), k % 3 ? BL : G);
+  }
+  watermark(c, 1);
+  badge(c, '03', 350, P(lt, .45, 1.0));
+  line(c, 'Affection,', 500, { q: P(lt, .6, 1.2), size: 116 });
+  line(c, 'their way', 636, { q: P(lt, .75, 1.35), size: 140, fam: 'Fra', w: 600, it: true, col: 'gold' });
+  line(c, 'Independent spirits', 772, { q: P(lt, 1.05, 1.65), size: 54, w: 500, alpha: .9 });
+  line(c, 'who choose you', 842, { q: P(lt, 1.2, 1.8), size: 54, w: 500, alpha: .9 });
+}
+function s5(c, lt, t) {           // 23.2–30  CTA
+  bg(c, t, G, 540, 640);
+  const q = P(lt, .25, 1.3), w = 540, h = w * logo.height / logo.width, s = L(.82, 1, eb(q));
+  if (logo.complete) {
+    T.setTransform(1, 0, 0, 1, 0, 0); T.clearRect(0, 0, W, H);
+    T.save(); T.translate(540, 260 + h / 2); T.scale(s, s); T.drawImage(logo, -w / 2, -h / 2, w, h); T.restore();
+    const sh = P(lt, 1.5, 2.5);       // shimmer sweep
+    if (sh > 0 && sh < 1) {
+      T.save(); T.globalCompositeOperation = 'source-atop';
+      const x0 = L(-300, 1380, sh), g = T.createLinearGradient(x0 - 160, 0, x0 + 160, 0);
+      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, 'rgba(255,250,225,.85)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      T.translate(540, 600); T.rotate(.35); T.translate(-540, -600); T.fillStyle = g; T.fillRect(-400, -400, W + 800, H + 800); T.restore();
+    }
+    c.save(); c.globalAlpha = cl(q * 1.6); c.shadowColor = rgba(G, .55); c.shadowBlur = 60; c.drawImage(cT, 0, 0); c.restore();
+  }
+  line(c, 'Find your feline friend', 1090, { q: P(lt, 1.15, 1.75), size: 76, w: 700 });
+  line(c, 'with SB Felines.', 1222, { q: P(lt, 1.4, 2.0), size: 120, fam: 'Fra', w: 600, it: true, col: 'gold' });
+  const uq = eio(P(lt, 1.9, 2.5));  // hand-drawn underline swoosh
+  if (uq > 0) {
+    c.save(); c.strokeStyle = G; c.lineWidth = 7; c.lineCap = 'round'; c.shadowColor = G; c.shadowBlur = 14;
+    c.beginPath(); for (let i = 0; i <= 40 * uq; i++) { const x = L(330, 760, i / 40), y = 1308 + Math.sin(i / 40 * Math.PI) * -10 + (i / 40) * 6; i ? c.lineTo(x, y) : c.moveTo(x, y); }
+    c.stroke(); c.restore();
+  }
+  for (let i = 0; i < 8; i++) {    // paw prints trotting across
+    const st = 2.1 + i * .28, a = P(lt, st, st + .15) * (1 - P(lt, st + 1.6, st + 2.2));
+    paw(c, 170 + i * 105, 1470 + (i % 2 ? -34 : 34), 52, 1.45, a * .8);
+  }
+}
+
+const SC = [{ s: 0, f: s1 }, { s: 3.7, f: s2 }, { s: 10.2, f: s3 }, { s: 16.7, f: s4 }, { s: 23.2, f: s5 }];
+const TR = [{ a: 3.7, b: 4.3, k: 'iris', cx: 540, cy: 1150 }, { a: 10.2, b: 10.8, k: 'push' },
+            { a: 16.7, b: 17.3, k: 'zoom' }, { a: 23.2, b: 23.8, k: 'iris', cx: 540, cy: 880 }];
+
+function drawScene(c, i, t) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.filter = 'none'; c.clearRect(0, 0, W, H); SC[i].f(c, t - SC[i].s, t); }
+
+function render(t) {
+  M.setTransform(1, 0, 0, 1, 0, 0); M.globalAlpha = 1; M.filter = 'none';
+  const ti = TR.findIndex(r => t >= r.a && t < r.b);
+  if (ti < 0) {
+    let i = SC.length - 1; while (SC[i].s > t) i--;
+    drawScene(A, i, t); M.drawImage(cA, 0, 0);
+  } else {
+    const r = TR[ti], q = eio(P(t, r.a, r.b));
+    drawScene(A, ti, t); drawScene(B, ti + 1, t);
+    if (r.k === 'iris') {
+      M.drawImage(cA, 0, 0);
+      const R = q * 1500;
+      M.save(); M.beginPath(); M.arc(r.cx, r.cy, R, 0, 7); M.clip(); M.drawImage(cB, 0, 0); M.restore();
+      M.save(); M.strokeStyle = rgba(G, .9 * (1 - q)); M.lineWidth = 4 + 22 * (1 - q); M.shadowColor = G; M.shadowBlur = 40;
+      M.beginPath(); M.arc(r.cx, r.cy, R, 0, 7); M.stroke(); M.restore();
+    } else if (r.k === 'push') {
+      M.filter = `blur(${Math.sin(Math.PI * q) * 12}px)`;
+      M.drawImage(cA, -W * q, 0); M.drawImage(cB, W * (1 - q), 0); M.filter = 'none';
+    } else {
+      M.save(); M.filter = `blur(${10 * q}px)`; M.translate(540, 960); M.scale(1 + .18 * q, 1 + .18 * q); M.drawImage(cA, -540, -960); M.restore();
+      M.save(); M.globalAlpha = q; M.translate(540, 960); const s = 1.1 - .1 * q; M.scale(s, s); M.drawImage(cB, -540, -960); M.restore();
+    }
+  }
+  if (t < .5) { M.fillStyle = `rgba(0,0,0,${1 - t / .5})`; M.fillRect(0, 0, W, H); }
+}
+
+window.ready = Promise.all([
+  document.fonts.load('500 50px Pop'), document.fonts.load('700 50px Pop'), document.fonts.load('800 50px Pop'),
+  document.fonts.load('italic 600 50px Fra'), logo.decode()
+]).then(() => render(0));
+
+if (location.search.includes('play')) {
+  window.ready.then(() => { const t0 = performance.now(); const loop = () => { render(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); }; loop(); });
+}
+</script>
+</body>
+</html>
