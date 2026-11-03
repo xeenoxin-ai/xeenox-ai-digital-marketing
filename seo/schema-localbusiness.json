@@ -1,0 +1,78 @@
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "@id": "https://xeenox.in/#business",
+  "name": "Xeenox Technologies",
+  "alternateName": "Xeenox",
+  "description": "AI-powered digital marketing agency in HSR Layout, Bengaluru offering SEO, local SEO, Google Ads, Meta Ads, social media marketing, website design, AI chatbots and marketing automation.",
+  "url": "https://xeenox.in/",
+  "logo": "https://xeenox.in/logo.png",
+  "image": "https://xeenox.in/logo.png",
+  "telephone": "+91-90745-80473",
+  "email": "xeenox.in@gmail.com",
+  "priceRange": "₹₹",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "9th Main Road, Sector 7, HSR Layout",
+    "addressLocality": "Bengaluru",
+    "addressRegion": "Karnataka",
+    "postalCode": "560102",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": "REPLACE_WITH_GBP_PIN_LATITUDE",
+    "longitude": "REPLACE_WITH_GBP_PIN_LONGITUDE"
+  },
+  "hasMap": "REPLACE_WITH_GBP_SHARE_LINK",
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+      "opens": "09:30",
+      "closes": "19:00"
+    }
+  ],
+  "areaServed": [
+    { "@type": "City", "name": "Bengaluru" },
+    { "@type": "Place", "name": "HSR Layout" },
+    { "@type": "Place", "name": "Koramangala" },
+    { "@type": "Place", "name": "Bellandur" },
+    { "@type": "Place", "name": "BTM Layout" },
+    { "@type": "Place", "name": "Sarjapur Road" },
+    { "@type": "Place", "name": "Electronic City" },
+    { "@type": "Place", "name": "Whitefield" }
+  ],
+  "knowsAbout": [
+    "Digital Marketing",
+    "Search Engine Optimization",
+    "Local SEO",
+    "Google Ads",
+    "Facebook Ads",
+    "Instagram Marketing",
+    "Social Media Marketing",
+    "Website Design",
+    "AI Chatbots",
+    "Marketing Automation"
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Digital Marketing Services",
+    "itemListElement": [
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "SEO Services in Bangalore" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Local SEO & Google Business Profile Optimisation" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Google Ads Management" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Facebook & Instagram Ads" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Social Media Marketing" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Website Design & Development" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Chatbot Development" } },
+      { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "AI Marketing Automation" } }
+    ]
+  },
+  "sameAs": [
+    "https://www.instagram.com/thexeenox/",
+    "https://www.facebook.com/profile.php?id=61585031618963",
+    "REPLACE_WITH_LINKEDIN_COMPANY_URL",
+    "REPLACE_WITH_GBP_SHARE_LINK"
+  ]
+}
