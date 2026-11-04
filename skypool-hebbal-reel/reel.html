@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SkyPool Hebbal Reel</title>
+<style>
+@font-face{font-family:"Rupee";src:url(assets/fonts/inter-800-rupee.otf);unicode-range:U+20B9;font-weight:100 900}
+@font-face{font-family:"Anton";src:url(assets/fonts/anton-400.woff2) format("woff2")}
+@font-face{font-family:"Mont";src:url(assets/fonts/montserrat-800.woff2) format("woff2");font-weight:800}
+@font-face{font-family:"Mont";src:url(assets/fonts/montserrat-600.woff2) format("woff2");font-weight:600}
+
+:root{
+  --navy:#0a2a7a; --navy2:#0d3aa0; --blue:#1667e0; --cyan:#3cc8ff;
+  --yellow:#ffd21f; --yellow2:#ffb800; --red:#e3262e; --white:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#063a8f}
+body{font-family:"Rupee","Mont",sans-serif;font-weight:800;color:#fff;-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden}
+.abs{position:absolute}
+
+/* ---------- background ---------- */
+#bg{position:absolute;inset:0;background:linear-gradient(180deg,#c9eeff 0%,#7fd0f7 11%,#2b93e6 30%,#0f63cc 55%,#0846a6 78%,#062f7d 100%)}
+#caustic{position:absolute;left:-200px;top:-300px;width:1500px;height:2600px;mix-blend-mode:screen;opacity:.33;will-change:transform}
+#caustic2{position:absolute;left:-200px;top:-300px;width:1500px;height:2600px;mix-blend-mode:screen;opacity:.22;will-change:transform}
+.ray{position:absolute;top:-200px;width:180px;height:1700px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));transform-origin:top center;filter:blur(18px)}
+#fx{position:absolute;inset:0}
+#palmL{position:absolute;left:-40px;top:-30px;width:470px;transform-origin:0 0}
+#palmR{position:absolute;right:-50px;top:-30px;width:560px;transform-origin:100% 0}
+#waveBottom{position:absolute;left:0;bottom:0;width:1080px;height:380px}
+
+/* ---------- shared bits ---------- */
+.logoDisc{border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,30,90,.35)}
+.logoMark{display:block;object-fit:contain}
+
+#topbar{left:50px;top:118px;width:980px;height:120px;display:flex;align-items:center;gap:22px}
+#topbar .logoDisc{width:112px;height:112px}
+#topbar .logoMark{width:104px;height:104px}
+#topbar .name{line-height:1}
+#topbar .name b{display:block;font-size:56px;color:var(--navy);letter-spacing:1px}
+#topbar .name span{display:block;font-size:30px;color:var(--navy2);letter-spacing:6px;margin-top:6px}
+#pin{margin-left:18px;background:var(--navy);color:#fff;font-size:30px;padding:14px 22px 14px 18px;border-radius:40px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 18px rgba(0,30,90,.3)}
+#pin svg{width:34px;height:34px;color:var(--yellow)}
+
+#badge{left:836px;top:62px;width:220px;height:220px}
+#badge .txt{font-size:24px}
+.badgeSvg svg{position:absolute;inset:0}
+.badgeSvg .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0a2a7a;font-size:31px;line-height:1.02;text-align:center;transform:rotate(-12deg)}
+.badgeSvg .txt i{display:block;width:90px;height:5px;background:#0a2a7a;margin-top:8px;border-radius:3px}
+
+#footer{left:0;top:1508px;width:1080px;display:flex;align-items:center;justify-content:center;gap:22px;font-size:44px;letter-spacing:3px;text-shadow:0 4px 14px rgba(0,20,70,.6)}
+#footer .ln{width:70px;height:4px;background:#fff;border-radius:2px}
+#footer .dot{color:var(--yellow)}
+
+/* section header */
+.kicker{font-size:36px;color:var(--navy);letter-spacing:4px;text-shadow:0 2px 8px rgba(255,255,255,.8)}
+.pill{display:inline-flex;align-items:center;gap:20px;background:linear-gradient(90deg,#0b46c4,#1a78f0);border:4px solid rgba(255,255,255,.85);border-radius:80px;padding:10px 40px 10px 12px;box-shadow:0 10px 30px rgba(0,30,100,.45)}
+.pill .ic{width:104px;height:104px;border-radius:50%;background:#fff;color:var(--navy2);display:flex;align-items:center;justify-content:center;flex:none}
+.pill .ic svg{width:70px;height:70px}
+.pill .t{font-size:54px;line-height:1;white-space:nowrap}
+.hdr{left:50px;top:280px}
+.hdr .kicker{margin:0 0 16px 8px}
+
+/* price rows */
+.rows{left:50px;width:980px}
+.row{background:linear-gradient(90deg,rgba(8,40,130,.92),rgba(14,62,170,.88));border:3px solid rgba(120,200,255,.55);border-radius:34px;box-shadow:0 12px 30px rgba(0,20,80,.35);display:flex;align-items:center;padding:0 40px 0 34px}
+.row .bul{width:30px;height:30px;border-radius:50%;background:var(--yellow);box-shadow:0 0 14px rgba(255,210,31,.8);flex:none;margin-right:26px}
+.row .lab{font-size:66px;line-height:1;white-space:nowrap}
+.row .price{margin-left:auto;font-family:"Rupee","Anton",sans-serif;font-weight:400;font-size:104px;line-height:1;color:var(--yellow);letter-spacing:1px;text-shadow:0 4px 0 rgba(0,0,0,.18)}
+.row .price .r{font-family:"Rupee";font-weight:800;font-size:84px;margin-right:6px}
+.row .price small{font-size:60px;color:#fff;margin-left:4px}
+.tag{position:absolute;top:-22px;right:36px;background:var(--red);color:#fff;font-size:28px;letter-spacing:2px;padding:6px 18px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+
+.tag.inl{position:static;margin:0 18px 0 16px;font-size:22px;letter-spacing:1px;padding:6px 10px;white-space:nowrap;flex:none}
+/* recharge rows: two lines */
+.row.two{flex-direction:column;align-items:stretch;justify-content:center;padding:0 36px}
+.row.two .top{display:flex;align-items:center}
+.row.two .lab{font-size:62px}
+.row.two .price{font-size:88px}
+.row.two .price .r{font-size:72px}
+.row.two .price small{font-size:50px}
+.meta{display:flex;gap:16px;margin:8px 0 0 56px}
+.chip{display:inline-flex;align-items:center;gap:10px;font-size:31px;padding:6px 16px;border-radius:24px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.35);white-space:nowrap}
+.chip svg{width:32px;height:32px;color:var(--cyan)}
+.chip.y{background:var(--yellow);color:var(--navy);border-color:var(--yellow)}
+.chip.y svg{color:var(--navy)}
+
+/* training rows */
+.row.tr{flex-direction:column;align-items:stretch;justify-content:center;padding:0 40px}
+.row.tr .top{display:flex;align-items:center}
+.row.tr .lab{font-size:60px}
+.row.tr .price{font-size:96px}
+.row.tr .price .r{font-size:78px}
+.row.tr .meta{margin-left:56px;margin-top:10px}
+.row.tr .chip{font-size:36px;padding:8px 20px}
+.dayTag{display:inline-flex;align-items:stretch;margin:22px 0 0 8px;border-radius:14px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.dayTag b{background:var(--red);font-size:46px;padding:8px 24px;letter-spacing:2px}
+.dayTag span{background:var(--yellow);color:var(--navy);font-size:40px;padding:12px 24px;letter-spacing:1px}
+
+/* perks */
+.perk{display:flex;align-items:center;gap:30px;height:150px;background:rgba(8,40,130,.82);border:3px solid rgba(120,200,255,.5);border-radius:80px;padding:0 40px 0 16px;box-shadow:0 10px 26px rgba(0,20,80,.3)}
+.perk .ic{width:118px;height:118px;border-radius:50%;background:#fff;color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none;border:5px solid var(--blue)}
+.perk .ic svg{width:72px;height:72px}
+.perk .t{font-size:58px}
+.capBar{display:flex;align-items:center;gap:26px;height:150px;border-radius:40px;background:linear-gradient(90deg,#ffd21f,#ffb000);color:var(--navy);padding:0 40px;box-shadow:0 10px 26px rgba(0,0,0,.3);border:4px solid #fff}
+.capBar svg{width:96px;height:96px;color:#fff;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+.capBar .t{font-size:52px;line-height:1.05}
+
+/* intro */
+#introLogo{left:390px;top:250px;width:300px;height:300px}
+#introLogo .logoMark{width:282px;height:282px}
+.bigTitle{left:0;width:1080px;text-align:center;color:var(--navy);line-height:.95}
+#tSky{top:585px;font-size:190px;letter-spacing:4px;text-shadow:0 6px 0 #fff,0 10px 30px rgba(255,255,255,.6)}
+#tFit{top:770px;font-size:84px;letter-spacing:2px;color:var(--navy);text-shadow:0 4px 0 rgba(255,255,255,.8)}
+#tTag{top:880px;left:0;width:1080px;display:flex;justify-content:center;align-items:center;gap:22px;font-size:46px;color:#fff;letter-spacing:3px;text-shadow:0 3px 12px rgba(0,20,80,.6)}
+#tTag .ln{width:60px;height:4px;background:#fff}
+#tTag .dot{color:var(--yellow)}
+#swimWrap{left:90px;top:960px;width:900px;height:620px;border-radius:60px;overflow:hidden;
+  -webkit-mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 62%,transparent 100%);mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 62%,transparent 100%)}
+#swimImg{position:absolute;left:40px;top:-150px;width:820px;height:auto}
+#bestRibbon{left:90px;top:1590px;width:900px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;background:linear-gradient(90deg,#ffb000,#ffd21f 30%,#ffd21f 70%,#ffb000);color:var(--navy);font-size:56px;border-radius:24px;border:5px solid #fff;box-shadow:0 12px 30px rgba(0,0,0,.35);letter-spacing:1px}
+#introBadge{left:40px;top:1000px;width:250px;height:250px}
+
+/* close */
+#cLogo{left:420px;top:230px;width:240px;height:240px}
+#cLogo .logoMark{width:226px;height:226px}
+#cName{top:485px;font-size:120px;color:var(--navy);text-shadow:0 5px 0 #fff}
+#cName2{top:603px;font-size:66px;color:var(--navy)}
+#cLoc{left:0;top:700px;width:1080px;display:flex;justify-content:center}
+#cLoc .p{display:flex;align-items:center;gap:14px;font-size:50px;background:var(--navy);padding:14px 36px 14px 26px;border-radius:50px;box-shadow:0 8px 20px rgba(0,30,90,.35)}
+#cLoc svg{width:52px;height:52px;color:var(--yellow)}
+#regCard{left:90px;top:830px;width:900px;height:290px;border-radius:40px;overflow:hidden;border:5px solid #fff;box-shadow:0 14px 36px rgba(0,20,80,.45);background:linear-gradient(90deg,#0a3aa8,#1468e0)}
+#regCard .rtop{height:200px;display:flex;align-items:center;padding:0 40px;gap:28px}
+#regCard .shield{width:120px;height:120px;color:#fff;flex:none}
+#regCard .lbl{font-size:44px;color:var(--yellow);line-height:1.05}
+#regCard .amt{margin-left:auto;font-family:"Rupee","Anton";font-weight:400;font-size:112px;line-height:1;white-space:nowrap}
+#regCard .amt .r{font-family:"Rupee";font-weight:800;font-size:88px}
+#regCard .gst{height:80px;background:var(--yellow);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:46px;letter-spacing:2px}
+#cta{left:90px;top:1160px;width:900px;height:184px;border-radius:92px;background:linear-gradient(90deg,#ffd21f,#ffb000);color:var(--navy);display:flex;align-items:center;gap:26px;padding:0 40px 0 22px;border:5px solid #fff;box-shadow:0 14px 36px rgba(0,0,0,.35)}
+#cta .ph{width:136px;height:136px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+#cta .ph svg{width:76px;height:76px}
+#cta .cl{display:flex;flex-direction:column;line-height:1}
+#cta .cl small{font-size:34px;letter-spacing:3px;margin-bottom:8px}
+#cta .cl b{font-family:"Anton";font-weight:400;font-size:104px;letter-spacing:3px}
+#cMaps{left:0;top:1372px;width:1080px;text-align:center;font-size:36px;font-weight:600;font-family:"Mont";color:#fff;text-shadow:0 3px 10px rgba(0,20,70,.6);line-height:1.35}
+#cMaps b{font-weight:800;color:var(--yellow)}
+
+/* wipe */
+#wipe{position:absolute;left:0;top:0;width:1080px;height:2600px;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- background -->
+  <div id="bg"></div>
+  <svg id="caustic" viewBox="0 0 1500 2600"><filter id="cf" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="2" seed="7"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0.1 1 0.1 0 0 0"/></feComponentTransfer></filter><rect width="1500" height="2600" filter="url(#cf)"/></svg>
+  <svg id="caustic2" viewBox="0 0 1500 2600"><filter id="cf2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.009 0.006" numOctaves="2" seed="23"/><feColorMatrix type="matrix" values="0 0 0 0 0.8  0 0 0 0 1  0 0 0 0 1  1 0 0 0 0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0 0 0 0.2 1 0.2 0 0 0"/></feComponentTransfer></filter><rect width="1500" height="2600" filter="url(#cf2)"/></svg>
+  <div class="ray" id="ray1" style="left:120px"></div>
+  <div class="ray" id="ray2" style="left:430px;width:120px"></div>
+  <div class="ray" id="ray3" style="left:720px;width:220px"></div>
+  <svg id="waveBottom" viewBox="0 0 1080 380" preserveAspectRatio="none">
+    <defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f8ff0" stop-opacity=".85"/><stop offset="1" stop-color="#05307e"/></linearGradient></defs>
+    <path id="wb1" fill="url(#wg)" opacity=".7"/>
+    <path id="wb2" fill="#0a3f9c" opacity=".85"/>
+  </svg>
+  <canvas id="fx" width="1080" height="1920"></canvas>
+  <img id="palmL" src="assets/palmL.png" alt="">
+  <img id="palmR" src="assets/palmR.png" alt="">
+
+  <!-- ============ SCENE 1: INTRO ============ -->
+  <div id="s1">
+    <div id="introLogo" class="abs logoDisc"><img class="logoMark" src="assets/logo_blue.png" alt=""></div>
+    <div id="tSky" class="abs bigTitle">SKYPOOL</div>
+    <div id="tFit" class="abs bigTitle">FITNESS STUDIO</div>
+    <div id="tTag" class="abs"><span class="ln"></span><span>SWIM STRONG</span><span class="dot">•</span><span>LIVE STRONG</span><span class="ln"></span></div>
+    <div id="swimWrap" class="abs"><img id="swimImg" src="assets/swimmer.jpg" alt=""></div>
+    <div id="introBadge" class="abs badgeSvg"></div>
+    <div id="bestRibbon" class="abs"><span style="font-size:38px;letter-spacing:6px">★ HEBBAL'S ★</span><span>BEST SWIMMING POOL</span></div>
+  </div>
+
+  <!-- persistent brand bar -->
+  <div id="topbar" class="abs">
+    <div class="logoDisc"><img class="logoMark" src="assets/logo_blue.png" alt=""></div>
+    <div class="name"><b>SKYPOOL</b><span>FITNESS STUDIO</span></div>
+    <div id="pin"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>HEBBAL</div>
+  </div>
+
+  <!-- ============ SCENE 2: REGULAR ============ -->
+  <div id="s2">
+    <div class="abs hdr">
+      <div class="kicker">PROGRAM 1 OF 3</div>
+      <div class="pill"><div class="ic"><svg viewBox="0 0 64 64"><use href="#i-swim"/></svg></div><div class="t">REGULAR SWIMMING</div></div>
+    </div>
+    <div class="abs rows" id="r2"></div>
+  </div>
+
+  <!-- ============ SCENE 3: RECHARGE ============ -->
+  <div id="s3">
+    <div class="abs hdr">
+      <div class="kicker">PROGRAM 2 OF 3 · PAY PER HOUR</div>
+      <div class="pill"><div class="ic"><svg viewBox="0 0 64 64"><use href="#i-swim"/></svg></div><div class="t">RECHARGE SWIMMING</div></div>
+    </div>
+    <div class="abs rows" id="r3"></div>
+  </div>
+
+  <!-- ============ SCENE 4/5: TRAINING ============ -->
+  <div id="s4">
+    <div class="abs hdr">
+      <div class="kicker">PROGRAM 3 OF 3 · COACHING</div>
+      <div class="pill"><div class="ic"><svg viewBox="0 0 64 64"><use href="#i-group"/></svg></div><div class="t" style="font-size:46px">TRAINING · KIDS & ADULTS</div></div>
+      <div class="dayTag"><b>WKD</b><span>WEEKDAY BATCHES</span></div>
+    </div>
+    <div class="abs rows" id="r4"></div>
+  </div>
+  <div id="s5">
+    <div class="abs hdr">
+      <div class="kicker">PROGRAM 3 OF 3 · COACHING</div>
+      <div class="pill"><div class="ic"><svg viewBox="0 0 64 64"><use href="#i-group"/></svg></div><div class="t" style="font-size:46px">TRAINING · KIDS & ADULTS</div></div>
+      <div class="dayTag"><b>WKND</b><span>WEEKEND BATCHES</span></div>
+    </div>
+    <div class="abs rows" id="r5"></div>
+  </div>
+
+  <!-- ============ SCENE 6: PERKS ============ -->
+  <div id="s6">
+    <div class="abs hdr">
+      <div class="kicker">WHY SWIM WITH US</div>
+      <div class="pill"><div class="ic"><svg viewBox="0 0 64 64"><use href="#i-star"/></svg></div><div class="t">THE SKYPOOL PROMISE</div></div>
+    </div>
+    <div class="abs rows" id="r6"></div>
+  </div>
+
+  <!-- ============ SCENE 7: CLOSE ============ -->
+  <div id="s7">
+    <div id="cLogo" class="abs logoDisc"><img class="logoMark" src="assets/logo_blue.png" alt=""></div>
+    <div id="cName" class="abs bigTitle">SKYPOOL</div>
+    <div id="cName2" class="abs bigTitle">FITNESS STUDIO</div>
+    <div id="cLoc" class="abs"><div class="p"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>HEBBAL, BENGALURU</div></div>
+    <div id="regCard" class="abs">
+      <div class="rtop">
+        <svg class="shield" viewBox="0 0 64 64"><use href="#i-rupee-shield"/></svg>
+        <div class="lbl">REGISTRATION<br>FEE</div>
+        <div class="amt"><span class="r">₹</span>200/-</div>
+      </div>
+      <div class="gst">+ 5% GST APPLICABLE</div>
+    </div>
+    <div id="cta" class="abs"><div class="ph"><svg viewBox="0 0 64 64"><use href="#i-phone"/></svg></div><div class="cl"><small>ENROLL TODAY · CALL NOW</small><b>98449 90954</b></div></div>
+    <div id="cMaps" class="abs">Find us on Google Maps:<br><b>SKYPOOL FITNESS STUDIO · HEBBAL</b></div>
+  </div>
+
+  <!-- persistent tagline + badge -->
+  <div id="footer" class="abs"><span class="ln"></span><span>SWIM STRONG</span><span class="dot">•</span><span>LIVE STRONG</span><span class="ln"></span></div>
+  <div id="badge" class="abs badgeSvg"></div>
+
+  <!-- transition wipe -->
+  <svg id="wipe" viewBox="0 0 1080 2600" preserveAspectRatio="none">
+    <defs><linearGradient id="wipeg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3cc8ff"/><stop offset=".12" stop-color="#1673e6"/><stop offset="1" stop-color="#0a3c9e"/></linearGradient></defs>
+    <path id="wipeFoam" fill="#e8f8ff" opacity=".9"/>
+    <path id="wipeBody" fill="url(#wipeg)"/>
+  </svg>
+</div>
+
+<!-- icon sprites -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="i-swim" fill="currentColor"><circle cx="46" cy="17" r="7"/><path d="M8 34c6-1 11-5 15-10l6-7c2-2 5-2 7 0l9 11-6 5-6-7-5 6 9 7c-3 0-5 1-7 2-3-2-6-2-9 0-3-2-6-2-9 0-1 0-2-1-4-1z"/><path d="M4 44c4 0 6-3 10-3s6 3 10 3 6-3 10-3 6 3 10 3 6-3 10-3 6 3 6 3v5s-2-3-6-3-6 3-10 3-6-3-10-3-6 3-10 3-6-3-10-3-6 3-10 3-6-3-10-3z"/><path d="M4 54c4 0 6-3 10-3s6 3 10 3 6-3 10-3 6 3 10 3 6-3 10-3 6 3 6 3v5s-2-3-6-3-6 3-10 3-6-3-10-3-6 3-10 3-6-3-10-3-6 3-10 3-6-3-10-3z"/></g>
+    <g id="i-group" fill="currentColor"><circle cx="32" cy="18" r="9"/><path d="M16 50c0-10 7-17 16-17s16 7 16 17z"/><circle cx="13" cy="24" r="6.5"/><path d="M1 50c0-8 5-13 12-13 2 0 4 .5 5.5 1.3C15 41 13.5 45 13.3 50z"/><circle cx="51" cy="24" r="6.5"/><path d="M63 50c0-8-5-13-12-13-2 0-4 .5-5.5 1.3C49 41 50.5 45 50.7 50z"/></g>
+    <g id="i-person" fill="currentColor"><circle cx="32" cy="18" r="11"/><path d="M12 58c0-13 9-22 20-22s20 9 20 22z"/></g>
+    <g id="i-clock" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"><circle cx="32" cy="32" r="25"/><path d="M32 17v16l10 7"/></g>
+    <g id="i-coach" fill="currentColor"><path d="M17 20c0-9 7-15 15-15s15 6 15 15H17z"/><rect x="12" y="19" width="40" height="5" rx="2.5"/><path d="M21 27h22c0 7-5 13-11 13s-11-6-11-13z"/><path d="M10 62c0-12 9-19 22-19s22 7 22 19z"/><path d="M32 43l-4 9h8z" fill="#fff"/><circle cx="44" cy="52" r="3.5" fill="#fff"/></g>
+    <g id="i-drop" fill="currentColor"><path d="M32 4C24 16 16 25 16 35a16 16 0 0 0 32 0C48 25 40 16 32 4z"/><path d="M4 56c5 0 7-4 11-4s6 4 11 4 7-4 11-4 6 4 11 4 7-4 12-4v6c-5 0-7 4-12 4s-7-4-11-4-6 4-11 4-7-4-11-4-6 4-11 4z"/><path d="M25 34a8 8 0 0 0 8 8" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/></g>
+    <g id="i-shield" fill="currentColor"><path d="M32 3 8 12v17c0 15 10 27 24 32 14-5 24-17 24-32V12z"/><rect x="22" y="29" width="20" height="16" rx="3" fill="#fff"/><path d="M26 29v-5a6 6 0 0 1 12 0v5" stroke="#fff" stroke-width="4" fill="none"/></g>
+    <g id="i-dumbbell" fill="currentColor"><rect x="4" y="24" width="7" height="16" rx="2"/><rect x="11" y="16" width="9" height="32" rx="3"/><rect x="20" y="29" width="24" height="6" rx="2"/><rect x="44" y="16" width="9" height="32" rx="3"/><rect x="53" y="24" width="7" height="16" rx="2"/></g>
+    <g id="i-cal" fill="currentColor"><rect x="6" y="11" width="52" height="47" rx="6"/><rect x="6" y="11" width="52" height="12" rx="6"/><rect x="16" y="4" width="6" height="13" rx="3"/><rect x="42" y="4" width="6" height="13" rx="3"/><g fill="#fff"><rect x="13" y="29" width="8" height="7" rx="1.5"/><rect x="28" y="29" width="8" height="7" rx="1.5"/><rect x="43" y="29" width="8" height="7" rx="1.5"/><rect x="13" y="43" width="8" height="7" rx="1.5"/><rect x="28" y="43" width="8" height="7" rx="1.5"/><rect x="43" y="43" width="8" height="7" rx="1.5"/></g></g>
+    <g id="i-phone" fill="currentColor"><path d="M19 6c2-1 4 0 5 2l4 9c1 2 0 4-1 5l-4 3c2 6 7 11 13 13l3-4c1-1 3-2 5-1l9 4c2 1 3 3 2 5l-2 7c-1 3-4 5-7 5C27 54 10 37 9 18c0-3 2-6 5-7z"/></g>
+    <g id="i-star" fill="currentColor"><path d="M32 4l8.5 17.6 19.5 2.7-14.2 13.6 3.5 19.3L32 48l-17.3 9.2 3.5-19.3L4 24.3l19.5-2.7z"/></g>
+    <g id="i-goggles" fill="currentColor"><path d="M4 30c0-6 4-9 10-9h8c5 0 8 3 10 6 2-3 5-6 10-6h8c6 0 10 3 10 9s-4 12-11 12h-6c-5 0-8-3-11-8-3 5-6 8-11 8h-6C8 42 4 36 4 30z"/><ellipse cx="18" cy="31" rx="8" ry="5.5" fill="#7fd6ff"/><ellipse cx="46" cy="31" rx="8" ry="5.5" fill="#7fd6ff"/></g>
+    <g id="i-rupee-shield"><path fill="currentColor" d="M32 3 8 12v17c0 15 10 27 24 32 14-5 24-17 24-32V12z"/><path fill="#0d3aa0" d="M22 17h21v5h-7c1 1 2 2.5 2.4 4H43v5h-4.6c-.8 4.6-4.4 7.5-9.4 8l10 12h-7.2L22 39v-5h5c3 0 5-1 5.6-3H22v-5h10.4c-.7-2-2.6-3-5.4-3H22z"/></g>
+  </defs>
+</svg>
+
+<script>
+/* ---------------- data (exactly as on the poster) ---------------- */
+const REGULAR=[["1 MONTH","4,500"],["3 MONTHS","12,000"],["6 MONTHS","21,000"],["12 MONTHS","31,000","BEST VALUE"]];
+const RECHARGE=[["10 HRS","3,000",2,30],["30 HRS","7,500",3,60],["50 HRS","10,000",4,90],["100 HRS","16,999",4,150],["200 HRS","26,999",4,365]];
+const WKD=[["18 CLASSES","5,500",40],["54 CLASSES","16,999",150],["100 CLASSES","23,000",180]];
+const WKND=[["18 CLASSES","6,000",90],["54 CLASSES","18,999",300],["100 CLASSES","24,999",400]];
+const PERKS=[["i-coach","EXPERT COACHES"],["i-drop","SAFE & HYGIENIC"],["i-shield","SAFE & SECURE"],["i-dumbbell","FITNESS FOR EVERYONE"],["i-cal","FLEXIBLE SCHEDULES"]];
+
+const price=(p)=>`<span class="price"><span class="r">₹</span>${p}<small>/-</small></span>`;
+const ic=(id)=>`<svg viewBox="0 0 64 64"><use href="#${id}"/></svg>`;
+
+function buildRows(){
+  let y=0,h=196,g=28,html="";
+  REGULAR.forEach((r,i)=>{html+=`<div class="row abs" style="left:0;top:${560+i*(h+g)-560}px;width:980px;height:${h}px">${r[2]?`<div class="tag">★ ${r[2]}</div>`:""}<span class="bul"></span><span class="lab">${r[0]}</span>${price(r[1])}</div>`});
+  document.getElementById("r2").innerHTML=html; document.getElementById("r2").style.top="540px";
+
+  html="";h=170;g=20;
+  RECHARGE.forEach((r,i)=>{html+=`<div class="row two abs" style="left:0;top:${i*(h+g)}px;width:980px;height:${h}px"><div class="top"><span class="bul"></span><span class="lab">${r[0]}</span>${i==4?`<span class="tag inl">★ BEST VALUE</span>`:""}${price(r[1])}</div><div class="meta"><span class="chip">${ic("i-group")}${r[2]} PERSON ACCESS</span><span class="chip">${ic("i-clock")}${r[3]} DAYS VALIDITY</span></div></div>`});
+  document.getElementById("r3").innerHTML=html; document.getElementById("r3").style.top="500px";
+
+  for(const [id,data] of [["r4",WKD],["r5",WKND]]){
+    html="";h=250;g=34;
+    data.forEach((r,i)=>{html+=`<div class="row tr abs" style="left:0;top:${i*(h+g)}px;width:980px;height:${h}px"><div class="top"><span class="bul"></span><span class="lab">${r[0]}</span>${price(r[1])}</div><div class="meta"><span class="chip y">${ic("i-clock")}VALIDITY: ${r[2]} DAYS</span></div></div>`});
+    const el=document.getElementById(id); el.innerHTML=html; el.style.top="620px";
+  }
+
+  html="";h=150;g=15;
+  PERKS.forEach((p,i)=>{html+=`<div class="perk abs" style="left:0;top:${i*(h+g)}px;width:980px"><div class="ic">${ic(p[0])}</div><div class="t">${p[1]}</div></div>`});
+  html+=`<div class="capBar abs" style="left:0;top:${5*(h+g)+14}px;width:980px">${ic("i-goggles")}<div class="t">SWIM CAP & GOGGLES<br>AVAILABLE</div></div>`;
+  const r6=document.getElementById("r6"); r6.innerHTML=html; r6.style.top="492px";
+
+  // scalloped yellow badge (poster style)
+  const pts=[];const N=28;for(let i=0;i<N*2;i++){const a=i/(N*2)*Math.PI*2;const rr=i%2?112:120;pts.push((120+rr*Math.cos(a)).toFixed(1)+","+(120+rr*Math.sin(a)).toFixed(1));}
+  const badge=`<svg viewBox="0 0 240 240"><polygon points="${pts.join(" ")}" fill="#ffd21f" stroke="#fff" stroke-width="6"/><circle cx="120" cy="120" r="96" fill="none" stroke="#ffb000" stroke-width="4"/></svg><div class="txt">BUILD<br>CONFIDENCE<br>STAY FIT<i></i></div>`;
+  document.querySelectorAll(".badgeSvg").forEach(b=>b.innerHTML=badge);
+  document.getElementById("introBadge").querySelector(".txt").style.fontSize="27px";
+}
+buildRows();
+
+/* ---------------- timeline ---------------- */
+const DUR=30;
+const SC={s1:[0,4],s2:[4,9.5],s3:[9.5,15.5],s4:[15.5,19.5],s5:[19.5,23.5],s6:[23.5,26.5],s7:[26.5,30]};
+const BOUNDS=[4,9.5,15.5,19.5,23.5,26.5];
+
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eOut=t=>1-Math.pow(1-t,3);
+const eInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const eBack=t=>{const c1=1.7,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+const P=(t,s,d)=>clamp((t-s)/d);
+
+function setStyle(el,o,tr){el.style.opacity=o;el.style.transform=tr||"";el.style.visibility=o<=0.001?"hidden":"visible"}
+
+/* generic element animation inside a scene */
+function anim(el,t,start,type,sceneEnd,dur=.55){
+  const p=P(t,start,dur);
+  const out=sceneEnd!=null?P(t,sceneEnd-.32,.32):0;
+  let o=clamp(p*1.6)*(1-out), tr="";
+  switch(type){
+    case "up": tr=`translateY(${(1-eOut(p))*90}px)`;break;
+    case "down": tr=`translateY(${-(1-eOut(p))*70}px)`;break;
+    case "right": tr=`translateX(${(1-eOut(p))*700}px)`;break;
+    case "left": tr=`translateX(${-(1-eOut(p))*700}px)`;break;
+    case "pop": tr=`scale(${lerp(.3,1,eBack(p))})`;break;
+    case "popR": tr=`scale(${lerp(.2,1,eBack(p))}) rotate(${lerp(-90,0,eOut(p))}deg)`;break;
+    case "fade": tr="";break;
+    case "zoom": tr=`scale(${lerp(1.35,1,eOut(p))})`;break;
+  }
+  if(out>0) tr+=` translateY(${-eInOut(out)*60}px)`;
+  setStyle(el,o,tr);
+}
+
+const $=id=>document.getElementById(id);
+const rowsOf=id=>[...$(id).children];
+
+/* ---------------- fx: bubbles + splash ---------------- */
+const cv=$("fx"),cx=cv.getContext("2d");
+function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+const BUB=Array.from({length:46},(_,i)=>({x:rnd(i)*1080,r:4+rnd(i+99)*16,sp:90+rnd(i+7)*170,ph:rnd(i+3)*2000,wob:20+rnd(i+11)*30}));
+function drawFx(t){
+  cx.clearRect(0,0,1080,1920);
+  for(const b of BUB){
+    const y=1960-((t*b.sp+b.ph)%2100);
+    const x=b.x+Math.sin(t*1.6+b.ph)*b.wob;
+    cx.beginPath();cx.arc(x,y,b.r,0,Math.PI*2);
+    cx.strokeStyle="rgba(255,255,255,.55)";cx.lineWidth=2.5;cx.stroke();
+    cx.fillStyle="rgba(255,255,255,.10)";cx.fill();
+    cx.beginPath();cx.arc(x-b.r*.35,y-b.r*.35,b.r*.25,0,Math.PI*2);cx.fillStyle="rgba(255,255,255,.7)";cx.fill();
+  }
+  // splash droplets around the swimmer during intro
+  if(t<4.2){
+    for(let i=0;i<70;i++){
+      const life=1.3, st=.9+rnd(i+500)*2.6, k=(t-st)/life;
+      if(k<0||k>1)continue;
+      const ang=-Math.PI*(.1+rnd(i+600)*.8), sp=380+rnd(i+700)*520;
+      const x=540+Math.cos(ang)*sp*k*1.6+(rnd(i+800)-.5)*300;
+      const y=1230+Math.sin(ang)*sp*k+ 900*k*k;
+      const r=3+rnd(i+900)*9;
+      cx.beginPath();cx.arc(x,y,r*(1-k*.5),0,Math.PI*2);
+      cx.fillStyle=`rgba(225,248,255,${.85*(1-k)})`;cx.fill();
+    }
+  }
+}
+
+function wavePath(y0,amp,len,phase,w=1080,bottom){
+  let d=`M0 ${bottom}L0 ${y0}`;
+  for(let x=0;x<=w;x+=20){d+=`L${x} ${(y0+Math.sin(x/len*Math.PI*2+phase)*amp+Math.sin(x/(len*.47)+phase*1.7)*amp*.35).toFixed(1)}`}
+  return d+`L${w} ${bottom}Z`;
+}
+
+/* ---------------- render a frame ---------------- */
+function renderAt(t){
+  // background motion
+  $("caustic").style.transform=`translate(${Math.sin(t*.35)*60}px,${-t*14%600}px) scale(1.05)`;
+  $("caustic2").style.transform=`translate(${Math.cos(t*.3)*70}px,${-(t*9)%600+40}px)`;
+  [["ray1",-14,.7],["ray2",-6,1.1],["ray3",8,.9]].forEach(([id,a,s],i)=>{
+    $(id).style.transform=`rotate(${a+Math.sin(t*s+i)*4}deg)`;$(id).style.opacity=.32+.22*Math.sin(t*s*1.3+i*2);
+  });
+  $("wb1").setAttribute("d",wavePath(150,22,540,t*2.2,1080,380));
+  $("wb2").setAttribute("d",wavePath(220,16,380,-t*2.8+1,1080,380));
+  drawFx(t);
+
+  // palm leaves sway (enter in intro)
+  const pin=eOut(P(t,.05,1.0));
+  $("palmL").style.transform=`translate(${-(1-pin)*300}px,${-(1-pin)*200}px) rotate(${Math.sin(t*1.1)*2.2}deg)`;
+  $("palmR").style.transform=`translate(${(1-pin)*300}px,${-(1-pin)*200}px) rotate(${Math.sin(t*1.0+1)*-2.4}deg)`;
+  // shrink palms slightly while a header sits beneath them
+  const pal=(t>3.6)?.78:1; $("palmL").style.width=470*pal+"px"; $("palmR").style.width=560*pal+"px";
+
+  // scene visibility
+  for(const [id,[a,b]] of Object.entries(SC)){ $(id).style.display=(t>=a-0.001&&t<b+0.001)?"block":"none"; }
+
+  /* ---- S1 intro ---- */
+  if(t<4.05){
+    const E=4;
+    anim($("introLogo"),t,.15,"popR",E,.8);
+    anim($("tSky"),t,.55,"zoom",E,.6);
+    anim($("tFit"),t,.85,"up",E);
+    anim($("tTag"),t,1.15,"up",E);
+    anim($("swimWrap"),t,1.0,"up",E,.7);
+    $("swimImg").style.transform=`translate(${Math.sin(t*2.2)*10}px,${Math.sin(t*3.1)*8}px) scale(${1+P(t,1,3)*.08})`;
+    anim($("introBadge"),t,1.8,"popR",E,.7);
+    anim($("bestRibbon"),t,2.15,"up",E);
+  }
+  /* ---- persistent brand bar, badge, footer ---- */
+  const inProg=t>=4&&t<26.5;
+  anim($("topbar"),t,4.0,"down",null,.5); if(!inProg) setStyle($("topbar"),0);
+  if(inProg){ anim($("badge"),t,4.35,"popR",null,.7); $("badge").style.transform+=` rotate(${Math.sin(t*1.4)*4}deg) scale(${1+Math.sin(t*3)*.02})`;} else setStyle($("badge"),0);
+  anim($("footer"),t,4.2,"up",null,.5); if(t<4) setStyle($("footer"),0);
+
+  /* ---- S2..S6 program scenes ---- */
+  for(const [id,rid,dir] of [["s2","r2","right"],["s3","r3","right"],["s4","r4","left"],["s5","r5","right"],["s6","r6","left"]]){
+    const [a,b]=SC[id];
+    if(t<a-.01||t>b+.01) continue;
+    const s=$(id);
+    anim(s.querySelector(".hdr"),t,a+.12,"left",b,.5);
+    rowsOf(rid).forEach((r,i)=>anim(r,t,a+.35+i*.14,dir,b,.55));
+  }
+
+  /* ---- S7 close ---- */
+  if(t>=26.5){
+    const a=26.5;
+    anim($("cLogo"),t,a+.1,"popR",null,.6);
+    anim($("cName"),t,a+.2,"zoom",null,.5);
+    anim($("cName2"),t,a+.32,"up",null,.5);
+    anim($("cLoc"),t,a+.45,"up",null,.5);
+    anim($("regCard"),t,a+.3,"pop",null,.6);
+    const pulse=1+Math.max(0,Math.sin((t-a-1)*5))*.04;
+    anim($("cta"),t,a+.65,"up",null,.5); if(t>a+1.2) $("cta").style.transform=`scale(${pulse})`;
+    $("cta").querySelector(".ph svg").style.transform=t>a+1.2?`rotate(${Math.sin((t-a)*22)*12*Math.max(0,Math.sin((t-a-1.2)*2.5))}deg)`:"";
+    anim($("cMaps"),t,a+.8,"fade",null,.5);
+  }
+
+  /* ---- wave wipe transitions ---- */
+  let wy=3000;
+  for(const bd of BOUNDS){
+    const k=(t-(bd-.34))/.68;
+    if(k>=0&&k<=1){ wy=lerp(1920,-2600,eInOut(k)); }
+  }
+  $("wipe").style.transform=`translateY(${wy}px)`;
+  $("wipeFoam").setAttribute("d",wavePath(30,26,300,t*9,1080,2600));
+  $("wipeBody").setAttribute("d",wavePath(60,30,420,-t*7,1080,2600));
+}
+window.renderAt=renderAt;
+window.DUR=DUR;
+renderAt(0);
+</script>
+</body>
+</html>
