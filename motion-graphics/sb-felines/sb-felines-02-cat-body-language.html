@@ -1,0 +1,363 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>SB Felines Body Language</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&family=Playfair+Display:ital,wght@0,700;1,600;1,700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d9b45c;--gold2:#f4dc95;--em:#0c4632;--em2:#13805a;--ink:#040705;}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--ink);}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:Poppins,sans-serif;color:#fff;background:var(--ink)}
+.abs{position:absolute}
+.scene{position:absolute;inset:0;opacity:0}
+.c{text-align:center;width:100%;left:0}
+.chip{display:inline-block;padding:14px 34px;border:3px solid var(--gold);border-radius:60px;color:var(--gold2);font-weight:700;font-size:38px;letter-spacing:8px}
+.title{font-weight:800;font-size:104px;line-height:1.05;letter-spacing:-1px}
+.serif{font-family:'Playfair Display',serif;font-style:italic;font-weight:700;color:var(--gold2)}
+.sub{font-weight:400;font-size:50px;line-height:1.35;color:#e8efe9}
+.gold{color:var(--gold2)}
+svg{overflow:visible}
+</style></head>
+<body>
+<div id="stage">
+  <svg width="0" height="0" class="abs"><defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6e2a2"/><stop offset=".45" stop-color="#d9b45c"/><stop offset="1" stop-color="#9c7a2e"/>
+    </linearGradient>
+    <radialGradient id="faceG" cx=".5" cy=".4" r=".7">
+      <stop offset="0" stop-color="#16573f"/><stop offset="1" stop-color="#0a3022"/>
+    </radialGradient>
+    <g id="paw">
+      <ellipse cx="0" cy="22" rx="34" ry="28"/>
+      <ellipse cx="-36" cy="-18" rx="13" ry="17"/><ellipse cx="-12" cy="-36" rx="13" ry="17"/>
+      <ellipse cx="14" cy="-36" rx="13" ry="17"/><ellipse cx="38" cy="-18" rx="13" ry="17"/>
+    </g>
+  </defs></svg>
+
+  <!-- background -->
+  <div id="glow" class="abs" style="inset:0"></div>
+  <svg id="dust" class="abs" width="1080" height="1920" style="left:0;top:0"></svg>
+  <div id="dim" class="abs" style="inset:0;background:#000;opacity:0"></div>
+
+  <!-- header -->
+  <div id="hdr" class="abs c" style="top:96px">
+    <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:40px;letter-spacing:12px;color:var(--gold)">SB&nbsp;FELINES</div>
+    <div id="dots" style="margin-top:22px;display:flex;justify-content:center;gap:18px"></div>
+  </div>
+
+  <!-- SCENE 1: hook -->
+  <div class="scene" id="s1">
+    <svg id="s1cat" class="abs" viewBox="0 0 600 720" width="600" height="720" style="left:240px;top:330px">
+      <ellipse cx="300" cy="700" rx="230" ry="18" fill="#000" opacity=".5"/>
+      <g id="s1tail"><path d="M430 650 C 590 650, 600 500, 530 420" stroke="url(#g)" stroke-width="42" fill="none" stroke-linecap="round"/></g>
+      <g fill="url(#g)">
+        <path d="M300 300 C 170 300, 120 470, 140 600 C 150 670, 220 690, 300 690 C 380 690, 450 670, 460 600 C 480 470, 430 300, 300 300 Z"/>
+        <g id="s1earL"><polygon points="195,215 205,70 285,150"/></g>
+        <g id="s1earR"><polygon points="405,215 395,70 315,150"/></g>
+        <circle cx="300" cy="240" r="118"/>
+      </g>
+      <g id="s1eyes" fill="#040705">
+        <ellipse cx="255" cy="235" rx="17" ry="25"/><ellipse cx="345" cy="235" rx="17" ry="25"/>
+      </g>
+      <polygon points="288,272 312,272 300,286" fill="#5a3f12"/>
+    </svg>
+    <div class="abs c" style="top:1150px">
+      <div class="title" id="s1l1"><span class="w">What</span> <span class="w">is</span> <span class="w">your</span></div>
+      <div class="title serif" style="font-size:118px;margin-top:6px" id="s1l2"><span class="w">cat</span> <span class="w">telling</span> <span class="w">you?</span></div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: intro -->
+  <div class="scene" id="s2">
+    <div class="abs" style="left:0;top:640px;width:1080px;display:flex;justify-content:center;gap:56px">
+      <div class="num">1</div><div class="num">2</div><div class="num">3</div>
+    </div>
+    <div class="abs c" style="top:1020px">
+      <div class="title" id="s2t" style="font-size:132px"><span class="gold">3</span> signals</div>
+      <div class="title serif" id="s2t2" style="font-size:96px">to know</div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: slow blink -->
+  <div class="scene" id="s3">
+    <div id="face3" class="abs" style="left:160px;top:330px"></div>
+    <svg id="spark" class="abs" width="1080" height="1100" style="left:0;top:250px"></svg>
+    <div class="abs c" style="top:1150px" id="s3txt">
+      <div class="chip">SIGNAL 01</div>
+      <div class="title" style="margin-top:34px">The slow blink</div>
+      <div class="sub" style="margin-top:26px">Often a sign of a <span class="gold">relaxed,<br>comfortable</span> cat</div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: tail high -->
+  <div class="scene" id="s4">
+    <svg class="abs" viewBox="0 0 900 720" width="900" height="720" style="left:90px;top:380px">
+      <g id="hearts"></g>
+      <ellipse cx="460" cy="660" rx="300" ry="18" fill="#000" opacity=".5"/>
+      <g id="walker">
+        <g id="tail4"><path d="M250 400 C 200 300, 205 200, 245 120 C 268 80, 318 88, 300 128" stroke="url(#g)" stroke-width="40" fill="none" stroke-linecap="round"/></g>
+        <g fill="url(#g)">
+          <g id="leg0"><rect x="290" y="440" width="44" height="210" rx="22"/></g>
+          <g id="leg1"><rect x="560" y="440" width="44" height="210" rx="22"/></g>
+          <ellipse cx="450" cy="440" rx="225" ry="112"/>
+          <g id="leg2"><rect x="350" y="450" width="44" height="200" rx="22"/></g>
+          <g id="leg3"><rect x="620" y="450" width="44" height="200" rx="22"/></g>
+          <polygon points="628,280 640,160 700,245"/><polygon points="712,248 760,165 770,285"/>
+          <circle cx="700" cy="330" r="100"/>
+        </g>
+        <ellipse cx="738" cy="318" rx="11" ry="17" fill="#040705"/>
+        <polygon points="796,345 804,360 788,360" fill="#5a3f12"/>
+      </g>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s4txt">
+      <div class="chip">SIGNAL 02</div>
+      <div class="title" style="margin-top:34px">Tail held high</div>
+      <div class="sub" style="margin-top:26px">Often a <span class="gold">friendly, confident</span><br>greeting</div>
+    </div>
+  </div>
+
+  <!-- SCENE 5: flattened ears -->
+  <div class="scene" id="s5">
+    <div id="face5" class="abs" style="left:160px;top:330px"></div>
+    <svg id="space" class="abs" viewBox="-300 -60 600 120" width="600" height="120" style="left:240px;top:1010px">
+      <g stroke="#f4dc95" stroke-width="10" stroke-linecap="round" fill="none">
+        <g id="arrL"><path d="M-120 0 H-260 M-225 -32 L-262 0 L-225 32"/></g>
+        <g id="arrR"><path d="M120 0 H260 M225 -32 L262 0 L225 32"/></g>
+      </g>
+      <text x="0" y="16" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="42" fill="#f4dc95" letter-spacing="3">SPACE</text>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s5txt">
+      <div class="chip">SIGNAL 03</div>
+      <div class="title" style="margin-top:34px">Flattened ears</div>
+      <div class="sub" style="margin-top:26px">May mean they feel <span class="gold">unsure</span><br>or <span class="gold">need space</span></div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: context -->
+  <div class="scene" id="s6">
+    <svg class="abs" viewBox="-450 -450 900 900" width="900" height="900" style="left:90px;top:250px">
+      <g id="ring"><circle r="330" fill="none" stroke="url(#g)" stroke-width="6" stroke-dasharray="4 26" stroke-linecap="round"/></g>
+      <circle r="270" fill="none" stroke="#d9b45c" stroke-opacity=".35" stroke-width="3"/>
+      <g id="s6cat" transform="translate(-150,-205) scale(.5)">
+        <g fill="url(#g)">
+          <path d="M430 650 C 590 650, 600 500, 530 420" stroke="url(#g)" stroke-width="42" fill="none" stroke-linecap="round"/>
+          <path d="M300 300 C 170 300, 120 470, 140 600 C 150 670, 220 690, 300 690 C 380 690, 450 670, 460 600 C 480 470, 430 300, 300 300 Z"/>
+          <polygon points="195,215 205,70 285,150"/><polygon points="405,215 395,70 315,150"/>
+          <circle cx="300" cy="240" r="118"/>
+        </g>
+        <g fill="#040705"><ellipse cx="255" cy="235" rx="17" ry="25"/><ellipse cx="345" cy="235" rx="17" ry="25"/></g>
+      </g>
+      <g id="ic0" class="icon"><circle r="78" fill="#0c4632" stroke="#d9b45c" stroke-width="5"/>
+        <path d="M-40 0 Q 0 -34 40 0 Q 0 34 -40 0 Z" fill="#f4dc95"/><ellipse rx="8" ry="20" fill="#040705"/></g>
+      <g id="ic1" class="icon"><circle r="78" fill="#0c4632" stroke="#d9b45c" stroke-width="5"/>
+        <path d="M-10 38 C -34 10, -30 -20, -4 -36 C 10 -46, 26 -36, 16 -26" stroke="#f4dc95" stroke-width="13" fill="none" stroke-linecap="round"/></g>
+      <g id="ic2" class="icon"><circle r="78" fill="#0c4632" stroke="#d9b45c" stroke-width="5"/>
+        <circle cy="10" r="32" fill="#f4dc95"/><polygon points="-26,-6 -62,-12 -34,16" fill="#f4dc95"/><polygon points="26,-6 62,-12 34,16" fill="#f4dc95"/><ellipse cx="-11" cy="8" rx="4" ry="7" fill="#040705"/><ellipse cx="11" cy="8" rx="4" ry="7" fill="#040705"/></g>
+    </svg>
+    <div class="abs c" style="top:1170px" id="s6txt">
+      <div class="title" style="font-size:96px">Every cat is <span class="serif" style="font-size:108px">different.</span></div>
+      <div class="sub" style="margin-top:30px">Read the whole picture —<br><span class="gold">surroundings + other signals.</span></div>
+    </div>
+  </div>
+
+  <!-- SCENE 7: end card -->
+  <div class="scene" id="s7">
+    <div class="abs c" style="top:300px" id="logo">
+      <svg viewBox="-160 -160 320 320" width="330" height="330">
+        <circle r="150" fill="#0a3022" stroke="url(#g)" stroke-width="8"/>
+        <circle r="132" fill="none" stroke="#d9b45c" stroke-opacity=".5" stroke-width="2"/>
+        <g fill="url(#g)">
+          <polygon points="-88,-38 -78,-118 -26,-70"/><polygon points="88,-38 78,-118 26,-70"/>
+        </g>
+        <text x="0" y="38" text-anchor="middle" font-family="Playfair Display" font-weight="700" font-size="118" fill="url(#g)">SB</text>
+        <clipPath id="lc"><circle r="146"/></clipPath><g clip-path="url(#lc)"><rect id="shine" x="-260" y="-170" width="46" height="340" fill="#fff" opacity=".35" transform="skewX(-20)"/></g>
+      </svg>
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:74px;letter-spacing:22px;color:var(--gold2);margin-top:26px;padding-left:22px">FELINES</div>
+      <div style="font-size:32px;letter-spacing:10px;color:#cfd8d2;margin-top:6px">CAT CARE STUDIO · PALAKKAD</div>
+    </div>
+    <div class="abs c" style="top:930px" id="s7txt">
+      <div class="title" style="font-size:90px">Learn more with</div>
+      <div class="title serif" style="font-size:130px;margin-top:8px">SB Felines.</div>
+    </div>
+    <div id="footer" class="abs" style="left:0;top:1360px;width:1080px;height:560px">
+      <svg class="abs" viewBox="0 0 1080 560" width="1080" height="560" style="left:0;top:0">
+        <path d="M0 90 L 380 90 L 540 0 L 700 90 L 1080 90 L 1080 560 L 0 560 Z" fill="#0c4632"/>
+        <path d="M0 90 L 380 90 L 540 0 L 700 90 L 1080 90" fill="none" stroke="url(#g)" stroke-width="5"/>
+      </svg>
+      <div class="abs c" style="top:150px;font-size:44px;line-height:1.7;color:#fff">
+        <div><svg width="40" height="48" viewBox="-20 -24 40 48" style="vertical-align:-8px;margin-right:14px"><path d="M0 22 C -18 0, -18 -8, -18 -6 A 18 18 0 1 1 18 -6 C 18 -8, 18 0, 0 22 Z" fill="#f4dc95"/><circle cy="-6" r="7" fill="#0c4632"/></svg>Pallipuram, Chakanthara, Palakkad</div>
+        <div style="font-weight:700;font-size:58px;color:var(--gold2)"><svg width="46" height="46" viewBox="0 0 24 24" style="vertical-align:-6px;margin-right:14px"><path fill="#f4dc95" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>087145 62875</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- paw swipe transition -->
+  <div id="swipe" class="abs" style="left:0;top:-200px;width:1500px;height:2320px;background:linear-gradient(90deg,#0a3022,#13805a 50%,#0a3022);transform:translateX(-2000px) skewX(-12deg)">
+    <svg class="abs" width="1500" height="2320" style="left:0;top:0">
+      <g fill="#d9b45c" opacity=".9">
+        <use href="#paw" transform="translate(560,620) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(860,1000) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(600,1400) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(900,1780) rotate(20) scale(2.2)"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const seg = (t,a,b)=>clamp((t-a)/(b-a));
+const eo = x=>1-Math.pow(1-x,3);
+const eio = x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const eback = x=>{const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+function enter(el,t,t0,d=.55,dy=50){const p=eo(seg(t,t0,t0+d));el.style.opacity=p;el.style.transform=`translateY(${(1-p)*dy}px)`;}
+
+// face template
+function face(p){return `
+<svg viewBox="0 0 760 720" width="760" height="720">
+  <ellipse cx="380" cy="690" rx="250" ry="16" fill="#000" opacity=".45"/>
+  <g id="${p}earL"><polygon points="150,330 185,55 370,215" fill="#0e3b2c" stroke="url(#g)" stroke-width="9" stroke-linejoin="round"/>
+     <polygon points="190,280 208,130 310,220" fill="url(#g)" opacity=".55"/></g>
+  <g id="${p}earR"><polygon points="610,330 575,55 390,215" fill="#0e3b2c" stroke="url(#g)" stroke-width="9" stroke-linejoin="round"/>
+     <polygon points="570,280 552,130 450,220" fill="url(#g)" opacity=".55"/></g>
+  <ellipse cx="380" cy="420" rx="275" ry="235" fill="url(#faceG)" stroke="url(#g)" stroke-width="9"/>
+  ${[285,475].map((x,i)=>`<g transform="translate(${x},390)"><g id="${p}eye${i}">
+     <path d="M-72 0 Q 0 -64 72 0 Q 0 64 -72 0 Z" fill="url(#g)"/>
+     <ellipse id="${p}pup${i}" rx="15" ry="42" fill="#040705"/>
+     <circle cx="-14" cy="-16" r="8" fill="#fff" opacity=".85"/></g>
+     <path id="${p}lid${i}" d="M-72 0 Q 0 26 72 0" stroke="url(#g)" stroke-width="9" fill="none" stroke-linecap="round" opacity="0"/></g>`).join('')}
+  <polygon points="352,480 408,480 380,512" fill="#f4dc95"/>
+  <path d="M380 512 q -26 34 -58 12 M380 512 q 26 34 58 12" stroke="#d9b45c" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <g stroke="#d9b45c" stroke-width="5" stroke-linecap="round" opacity=".8">
+    <line x1="250" y1="500" x2="70" y2="470"/><line x1="250" y1="525" x2="70" y2="540"/>
+    <line x1="510" y1="500" x2="690" y2="470"/><line x1="510" y1="525" x2="690" y2="540"/></g>
+</svg>`;}
+$('face3').innerHTML = face('f3');
+$('face5').innerHTML = face('f5');
+
+// numbers
+document.querySelectorAll('.num').forEach(n=>{n.style.cssText='width:190px;height:190px;border-radius:50%;border:6px solid #d9b45c;display:flex;align-items:center;justify-content:center;font-size:110px;font-weight:800;color:#f4dc95;background:#0c4632';});
+// dots
+for(let i=0;i<3;i++){const d=document.createElement('div');d.style.cssText='width:16px;height:16px;border-radius:10px;background:#d9b45c;opacity:.3;transition:none';$('dots').appendChild(d);}
+// dust
+let seed=7; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const dust=[]; for(let i=0;i<38;i++){const c=document.createElementNS('http://www.w3.org/2000/svg','circle');const r=1.5+rnd()*4;c.setAttribute('r',r);c.setAttribute('fill','#e8c977');$('dust').appendChild(c);dust.push({c,x:rnd()*1080,y:rnd()*1920,s:20+rnd()*50,ph:rnd()*6.28,o:.15+rnd()*.45});}
+// sparkles
+const sparks=[[150,180,1],[890,140,.8],[960,520,1.2],[110,620,.9],[840,900,.7],[230,960,.8]].map(([x,y,s],i)=>{const g=document.createElementNS('http://www.w3.org/2000/svg','path');g.setAttribute('d','M0 -30 Q 4 -4 30 0 Q 4 4 0 30 Q -4 4 -30 0 Q -4 -4 0 -30 Z');g.setAttribute('fill','#f4dc95');$('spark').appendChild(g);return {g,x,y,s,i};});
+// hearts
+const hearts=[0,1,2,3,4].map(i=>{const g=document.createElementNS('http://www.w3.org/2000/svg','path');g.setAttribute('d','M0 12 C -30 -10, -18 -34, 0 -18 C 18 -34, 30 -10, 0 12 Z');g.setAttribute('fill',i%2?'#f4dc95':'#d9b45c');$('hearts').appendChild(g);return g;});
+
+const scenes=[['s1',0,3],['s2',3,5],['s3',5,11],['s4',11,17],['s5',17,23],['s6',23,27],['s7',27,30.01]];
+const swipes=[5,11,17,23];
+
+function render(t){
+  // background glow
+  const gx=540+Math.sin(t*.4)*120, gy=700+Math.cos(t*.3)*160;
+  const endBoost=seg(t,27,28);
+  $('glow').style.background=`radial-gradient(circle at ${gx}px ${gy}px, rgba(19,128,90,${.55+.2*endBoost}) 0%, rgba(12,70,50,.35) 35%, rgba(4,7,5,0) 70%)`;
+  dust.forEach(d=>{let y=((d.y - t*d.s)%1920+1920)%1920; d.c.setAttribute('cx',d.x+Math.sin(t*.8+d.ph)*14); d.c.setAttribute('cy',y); d.c.setAttribute('opacity',d.o*(.6+.4*Math.sin(t*2+d.ph)));});
+
+  // scene visibility
+  scenes.forEach(([id,a,b],i)=>{let o=(t>=a&&t<b)?1:0;
+    if(id==='s1') o = t<3? (1-seg(t,2.75,3.05)):0;
+    if(id==='s2') o = t>=2.85&&t<5? seg(t,2.85,3.15):0;
+    if(id==='s6') o = t>=23&&t<27? 1-seg(t,26.7,27.05):0;
+    if(id==='s7') o = t>=26.8? seg(t,26.8,27.2):0;
+    $(id).style.opacity=o;});
+
+  // header
+  $('hdr').style.opacity = t<27 ? eo(seg(t,.2,.8)) : 1-seg(t,26.8,27.1);
+  const sig = t>=5&&t<11?0: t>=11&&t<17?1 : t>=17&&t<23?2 : -1;
+  [...$('dots').children].forEach((d,i)=>{const on=(i===sig)||(t>=23&&t<27);d.style.opacity=on?1:.3;d.style.width=(i===sig?48:16)+'px';});
+
+  // swipe
+  let sx=-2000;
+  for(const b of swipes){ if(t>b-.45&&t<b+.45){ const p=eio(seg(t,b-.45,b+.45)); sx=-1900+p*3400; } }
+  $('swipe').style.transform=`translateX(${sx}px) skewX(-12deg)`;
+
+  // S1
+  if(t<3.1){
+    const bob=Math.sin(t*2.2)*6;
+    const sc=.9+.1*eback(seg(t,0,.8));
+    $('s1cat').style.transform=`translateY(${bob}px) scale(${sc})`;
+    $('s1cat').style.opacity=eo(seg(t,0,.6));
+    $('s1tail').setAttribute('transform',`rotate(${Math.sin(t*3.2)*10} 430 650)`);
+    const tw=Math.max(0,Math.sin((t-1.1)*18))*(t>1.1&&t<1.45?1:0);
+    $('s1earL').setAttribute('transform',`rotate(${-tw*14} 240 190)`);
+    const tw2=Math.max(0,Math.sin((t-2)*18))*(t>2&&t<2.35?1:0);
+    $('s1earR').setAttribute('transform',`rotate(${tw2*14} 360 190)`);
+    const bl = t>1.6&&t<1.8? 1-Math.sin(seg(t,1.6,1.8)*Math.PI)*.9 : 1;
+    $('s1eyes').setAttribute('transform',`translate(0,235) scale(1,${bl}) translate(0,-235)`);
+    document.querySelectorAll('#s1 .w').forEach((w,i)=>{w.style.display='inline-block';enter(w,t,.35+i*.28,.45,60);});
+  }
+  // S2
+  if(t>2.8&&t<5.1){
+    document.querySelectorAll('.num').forEach((n,i)=>{const p=eback(seg(t,3.15+i*.22,3.55+i*.22));n.style.transform=`scale(${Math.max(0,p)})`;n.style.opacity=clamp(p*2);});
+    enter($('s2t'),t,3.05,.5,70); enter($('s2t2'),t,3.3,.5,70);
+  }
+  // S3 slow blink
+  if(t>4.9&&t<11.1){
+    const lt=t-5;
+    $('face3').style.transform=`scale(${.92+.08*eo(seg(lt,0,1))}) translateY(${Math.sin(t*1.6)*6}px)`;
+    // slow blinks: 1.6-3.0 close+open, 3.8-5.2
+    let k=1;
+    const blink=(a)=>{ if(lt>a&&lt<a+1.6){const p=seg(lt,a,a+1.6); return 1-Math.sin(p*Math.PI)*(p>.35&&p<.65?1:Math.sin(p*Math.PI)); } return 1;};
+    k=Math.min(blink(1.4),blink(3.6));
+    k=Math.max(.04,k);
+    [0,1].forEach(i=>{$('f3eye'+i).setAttribute('transform',`scale(1,${k})`); $('f3lid'+i).setAttribute('opacity',k<.25?1:0);});
+    sparks.forEach(s=>{const ph=lt*2.2+s.i*1.1; const v=Math.max(0,Math.sin(ph))*eo(seg(lt,1.2,2)); s.g.setAttribute('transform',`translate(${s.x},${s.y}) scale(${s.s*v}) rotate(${lt*40})`); s.g.setAttribute('opacity',v);});
+    enter($('s3txt'),t,5.45,.6,60);
+  }
+  // S4 tail high
+  if(t>10.9&&t<17.1){
+    const lt=t-11;
+    const mp=eo(seg(lt,.1,2.4));
+    const x=-950*(1-mp);
+    const speed=1-mp;
+    $('walker').setAttribute('transform',`translate(${x},${Math.abs(Math.sin(lt*9))*speed*-10})`);
+    const sw=Math.sin(lt*9)*24*clamp(speed*3);
+    [[0,sw],[1,-sw],[2,-sw],[3,sw]].forEach(([i,a])=>{const xs=[312,582,372,642][i];$('leg'+i).setAttribute('transform',`rotate(${a} ${xs} 460)`);});
+    const tp=eback(seg(lt,2.1,3.5));
+    const ang=-105*(1-tp)+Math.sin(lt*2.5)*4*seg(lt,3.5,4);
+    $('tail4').setAttribute('transform',`rotate(${ang} 250 400)`);
+    hearts.forEach((h,i)=>{const st=3.4+i*.38; const p=seg(lt,st,st+1.8); const y=110-p*260; const xx=270+Math.sin(p*6+i)*40+(i-2)*35; h.setAttribute('transform',`translate(${xx},${y}) scale(${1.4*eo(clamp(p*4))})`); h.setAttribute('opacity',p>0&&p<1? (1-p)*1.2:0);});
+    enter($('s4txt'),t,11.45,.6,60);
+  }
+  // S5 flattened ears
+  if(t>16.9&&t<23.1){
+    const lt=t-17;
+    const fp=eio(seg(lt,1.2,2.3));
+    $('face5').style.transform=`scale(${(.92+.08*eo(seg(lt,0,1)))*(1-.04*fp)}) translateY(${18*fp}px)`;
+    $('f5earL').setAttribute('transform',`rotate(${-38*fp} 260 280) translate(${-10*fp},${50*fp})`);
+    $('f5earR').setAttribute('transform',`rotate(${38*fp} 500 280) translate(${10*fp},${50*fp})`);
+    [0,1].forEach(i=>{$('f5pup'+i).setAttribute('rx',15+16*fp); $('f5pup'+i).setAttribute('ry',42-4*fp); $('f5eye'+i).setAttribute('transform',`scale(1,${1-.25*fp})`);});
+    $('dim').style.opacity = .35*fp*(1-seg(t,22.6,23));
+    const ap=eo(seg(lt,2.5,3.2)); const push=Math.sin(lt*4)*10*ap;
+    $('space').style.opacity=ap;
+    $('arrL').setAttribute('transform',`translate(${-push-30*(1-ap)},0)`);
+    $('arrR').setAttribute('transform',`translate(${push+30*(1-ap)},0)`);
+    enter($('s5txt'),t,17.45,.6,60);
+  } else $('dim').style.opacity=0;
+  // S6 context
+  if(t>22.9&&t<27.1){
+    const lt=t-23;
+    $('ring').setAttribute('transform',`rotate(${lt*18}) scale(${.8+.2*eo(seg(lt,0,.8))})`);
+    $('s6cat').setAttribute('opacity',eo(seg(lt,.1,.7)));
+    const pos=[[-330,0],[0,-330],[330,0]];
+    [0,1,2].forEach(i=>{const p=eback(seg(lt,.5+i*.25,1.1+i*.25));const [px,py]=pos[i];$('ic'+i).setAttribute('transform',`translate(${px*p},${py*p+ (1-p)*0}) scale(${Math.max(0,p)})`);$('ic'+i).setAttribute('opacity',clamp(p*2));});
+    enter($('s6txt'),t,24.1,.6,60);
+  }
+  // S7 end card
+  if(t>26.7){
+    const lt=t-27;
+    const lp=eback(seg(lt,0,.8));
+    $('logo').style.opacity=clamp(seg(lt,0,.4)); $('logo').style.transform=`scale(${.8+.2*lp})`;
+    $('shine').setAttribute('x', -260+seg(lt,.9,1.7)*520);
+    enter($('s7txt'),t,27.5,.6,60);
+    const fp=eo(seg(lt,.9,1.6));
+    $('footer').style.transform=`translateY(${(1-fp)*560}px)`;
+  }
+}
+window.render=render;
+render(0);
+</script>
+</body></html>
