@@ -1,0 +1,374 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>SB Felines New Cat Home</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;800&family=Playfair+Display:ital,wght@0,700;1,600;1,700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#d9b45c;--gold2:#f4dc95;--cream:#fff3d6;--coral:#f2a07b;--em:#0c4632;--em2:#13805a;--ink:#040705;}
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:var(--ink);}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;font-family:Poppins,sans-serif;color:#fff;background:var(--ink)}
+.abs{position:absolute}
+.scene{position:absolute;inset:0;opacity:0}
+.c{text-align:center;width:100%;left:0}
+.chip{display:inline-block;padding:14px 34px;border:3px solid var(--gold);border-radius:60px;color:var(--gold2);font-weight:700;font-size:38px;letter-spacing:8px}
+.title{font-weight:800;font-size:104px;line-height:1.05;letter-spacing:-1px}
+.serif{font-family:'Playfair Display',serif;font-style:italic;font-weight:700;color:var(--gold2)}
+.sub{font-weight:400;font-size:50px;line-height:1.35;color:#e8efe9}
+.gold{color:var(--gold2)}
+svg{overflow:visible}
+.row{display:flex;align-items:center;gap:34px;height:150px;padding:0 40px;border-radius:30px;background:rgba(12,70,50,.75);border:3px solid rgba(217,180,92,.55);margin-bottom:26px;font-size:50px;font-weight:700}
+.tick{margin-left:auto;width:84px;height:84px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center}
+</style></head>
+<body>
+<div id="stage">
+  <svg width="0" height="0" class="abs"><defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6e2a2"/><stop offset=".45" stop-color="#d9b45c"/><stop offset="1" stop-color="#9c7a2e"/>
+    </linearGradient>
+    <g id="paw">
+      <ellipse cx="0" cy="22" rx="34" ry="28"/>
+      <ellipse cx="-36" cy="-18" rx="13" ry="17"/><ellipse cx="-12" cy="-36" rx="13" ry="17"/>
+      <ellipse cx="14" cy="-36" rx="13" ry="17"/><ellipse cx="38" cy="-18" rx="13" ry="17"/>
+    </g>
+    <!-- small icons, centred at 0,0, ~100px -->
+    <g id="icBox"><path d="M-46 -6 H46 L36 34 H-36 Z" fill="#f4dc95"/><rect x="-50" y="-14" width="100" height="12" rx="6" fill="#d9b45c"/>
+      <circle cx="-14" cy="-22" r="5" fill="#f4dc95"/><circle cx="6" cy="-26" r="5" fill="#f4dc95"/><circle cx="20" cy="-20" r="5" fill="#f4dc95"/></g>
+    <g id="icBowl"><path d="M-48 0 H48 Q 44 34 0 36 Q -44 34 -48 0 Z" fill="#f4dc95"/><ellipse cx="0" cy="0" rx="48" ry="10" fill="#d9b45c"/>
+      <path d="M-20 -14 q 4 -14 0 -26 M0 -16 q 4 -14 0 -26 M20 -14 q 4 -14 0 -26" stroke="#f4dc95" stroke-width="5" fill="none" stroke-linecap="round" opacity=".8"/></g>
+    <g id="icPost"><rect x="-44" y="30" width="88" height="14" rx="6" fill="#d9b45c"/><rect x="-14" y="-38" width="28" height="70" fill="#f4dc95"/>
+      <rect x="-36" y="-50" width="72" height="14" rx="6" fill="#d9b45c"/>
+      <path d="M-14 -24 L14 -14 M-14 -6 L14 4 M-14 12 L14 22" stroke="#9c7a2e" stroke-width="4"/></g>
+    <g id="icBed"><ellipse cx="0" cy="14" rx="54" ry="24" fill="#d9b45c"/><ellipse cx="0" cy="6" rx="40" ry="14" fill="#0c4632"/>
+      <circle cx="-6" cy="0" r="18" fill="#f4dc95"/><polygon points="-20,-8 -18,-26 -6,-16" fill="#f4dc95"/><polygon points="8,-8 6,-26 -4,-16" fill="#f4dc95"/>
+      <text x="30" y="-22" font-family="Poppins" font-weight="800" font-size="24" fill="#f4dc95">z</text></g>
+  </defs></svg>
+
+  <div id="glow" class="abs" style="inset:0"></div>
+  <svg id="dust" class="abs" width="1080" height="1920" style="left:0;top:0"></svg>
+
+  <div id="hdr" class="abs c" style="top:96px">
+    <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:40px;letter-spacing:12px;color:var(--gold)">SB&nbsp;FELINES</div>
+    <div id="dots" style="margin-top:22px;display:flex;justify-content:center;gap:18px"></div>
+  </div>
+
+  <!-- S1 hook: house -->
+  <div class="scene" id="s1">
+    <svg class="abs" viewBox="0 0 760 760" width="760" height="760" style="left:160px;top:300px">
+      <ellipse cx="380" cy="730" rx="300" ry="18" fill="#000" opacity=".5"/>
+      <g id="house">
+        <path d="M120 360 L380 130 L640 360" fill="none" stroke="url(#g)" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="170" y="340" width="420" height="380" rx="14" fill="#0e3b2c" stroke="url(#g)" stroke-width="10"/>
+        <rect x="470" y="170" width="54" height="110" fill="#0e3b2c" stroke="url(#g)" stroke-width="8"/>
+        <rect x="215" y="400" width="110" height="110" rx="10" fill="#f4dc95" opacity=".85"/>
+        <path d="M270 400 V510 M215 455 H325" stroke="#0e3b2c" stroke-width="8"/>
+        <!-- doorway -->
+        <rect x="390" y="470" width="150" height="250" rx="75" ry="20" fill="#f6e2a2" opacity=".95"/>
+        <g id="peek">
+          <g fill="#0b1f17">
+            <circle cx="465" cy="640" r="52"/>
+            <polygon points="420,612 424,560 452,596"/><polygon points="510,612 506,560 478,596"/>
+            <ellipse cx="465" cy="730" rx="70" ry="60"/>
+          </g>
+          <ellipse cx="447" cy="636" rx="9" ry="13" fill="#f4dc95"/><ellipse cx="483" cy="636" rx="9" ry="13" fill="#f4dc95"/>
+        </g>
+        <rect x="380" y="460" width="170" height="270" fill="#0e3b2c" opacity="0"/>
+        <g id="door"><rect x="390" y="470" width="150" height="250" rx="12" fill="#13805a" stroke="url(#g)" stroke-width="8"/>
+          <circle cx="515" cy="600" r="9" fill="#f4dc95"/></g>
+      </g>
+      <g id="heart"><path d="M0 18 C -46 -14, -28 -52, 0 -26 C 28 -52, 46 -14, 0 18 Z" fill="#f2a07b"/></g>
+    </svg>
+    <div class="abs c" style="top:1150px">
+      <div class="title" id="s1l1"><span class="w">New</span> <span class="w">cat</span></div>
+      <div class="title serif" style="font-size:118px;margin-top:6px" id="s1l2"><span class="w">coming</span> <span class="w">home?</span></div>
+    </div>
+  </div>
+
+  <!-- S2 intro grid -->
+  <div class="scene" id="s2">
+    <div class="abs" style="left:240px;top:400px;width:600px;display:grid;grid-template-columns:1fr 1fr;gap:60px;justify-items:center">
+      <div class="gi"><svg viewBox="-100 -100 200 200" width="230" height="230"><circle r="96" fill="#0c4632" stroke="#d9b45c" stroke-width="6"/><use href="#icBox" transform="scale(1.1)"/></svg></div>
+      <div class="gi"><svg viewBox="-100 -100 200 200" width="230" height="230"><circle r="96" fill="#0c4632" stroke="#d9b45c" stroke-width="6"/><use href="#icBowl" transform="scale(1.1)"/></svg></div>
+      <div class="gi"><svg viewBox="-100 -100 200 200" width="230" height="230"><circle r="96" fill="#0c4632" stroke="#d9b45c" stroke-width="6"/><use href="#icPost" transform="scale(1.1)"/></svg></div>
+      <div class="gi"><svg viewBox="-100 -100 200 200" width="230" height="230"><circle r="96" fill="#0c4632" stroke="#d9b45c" stroke-width="6"/><use href="#icBed" transform="scale(1.1)"/></svg></div>
+    </div>
+    <div class="abs c" style="top:1110px">
+      <div class="title" id="s2t" style="font-size:128px"><span class="gold">4</span> essentials</div>
+      <div class="title serif" id="s2t2" style="font-size:96px">to get ready</div>
+    </div>
+  </div>
+
+  <!-- S3 litter box -->
+  <div class="scene" id="s3">
+    <svg class="abs" viewBox="0 0 760 760" width="760" height="760" style="left:160px;top:300px">
+      <ellipse cx="380" cy="700" rx="290" ry="18" fill="#000" opacity=".5"/>
+      <clipPath id="boxclip"><rect x="0" y="0" width="760" height="470"/></clipPath><g clip-path="url(#boxclip)"><g id="boxcat">
+        <g fill="url(#g)"><circle cx="380" cy="400" r="110"/>
+          <polygon points="290,350 300,220 365,300"/><polygon points="470,350 460,220 395,300"/></g>
+        <g fill="#040705"><ellipse id="bce0" cx="342" cy="395" rx="15" ry="22"/><ellipse id="bce1" cx="418" cy="395" rx="15" ry="22"/></g>
+        <polygon points="368,432 392,432 380,446" fill="#5a3f12"/>
+      </g></g>
+      <g id="granules"></g>
+      <path d="M140 470 H620 L585 690 H175 Z" fill="#13805a" stroke="url(#g)" stroke-width="10" stroke-linejoin="round"/>
+      <rect x="120" y="448" width="520" height="40" rx="20" fill="url(#g)"/>
+      <path d="M230 560 H530" stroke="#f4dc95" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s3txt">
+      <div class="chip">ESSENTIAL 01</div>
+      <div class="title" style="margin-top:34px">Litter box</div>
+      <div class="sub" style="margin-top:26px">In a <span class="gold">quiet, easy-to-reach</span><br>spot</div>
+    </div>
+  </div>
+
+  <!-- S4 bowls -->
+  <div class="scene" id="s4">
+    <svg class="abs" viewBox="0 0 900 760" width="900" height="760" style="left:90px;top:300px">
+      <ellipse cx="450" cy="680" rx="380" ry="18" fill="#000" opacity=".5"/>
+      <g id="bowlW">
+        <path d="M80 520 H400 Q 390 660 240 666 Q 90 660 80 520 Z" fill="url(#g)"/>
+        <ellipse cx="240" cy="520" rx="160" ry="34" fill="#9c7a2e"/>
+        <ellipse cx="240" cy="524" rx="140" ry="26" fill="#7fd1c0"/>
+        <ellipse id="rip" cx="240" cy="524" rx="20" ry="5" fill="none" stroke="#ffffff" stroke-width="4"/>
+        <text x="240" y="625" text-anchor="middle" font-family="Poppins" font-weight="800" font-size="40" fill="#0c4632">WATER</text>
+      </g>
+      <g id="bowlF">
+        <path d="M500 520 H820 Q 810 660 660 666 Q 510 660 500 520 Z" fill="url(#g)"/>
+        <ellipse cx="660" cy="520" rx="160" ry="34" fill="#9c7a2e"/>
+        <ellipse cx="660" cy="524" rx="140" ry="26" fill="#4a3210"/>
+        <text x="660" y="625" text-anchor="middle" font-family="Poppins" font-weight="800" font-size="40" fill="#0c4632">FOOD</text>
+      </g>
+      <g id="kibble"></g>
+      <g id="drop"><path d="M0 -40 C 18 -12, 26 4, 0 20 C -26 4, -18 -12, 0 -40 Z" fill="#7fd1c0"/></g>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s4txt">
+      <div class="chip">ESSENTIAL 02</div>
+      <div class="title" style="margin-top:34px;font-size:92px">Food &amp; water bowls</div>
+      <div class="sub" style="margin-top:26px">Keep <span class="gold">fresh water</span><br>available every day</div>
+    </div>
+  </div>
+
+  <!-- S5 scratching post -->
+  <div class="scene" id="s5">
+    <svg class="abs" viewBox="0 0 760 760" width="760" height="760" style="left:160px;top:300px">
+      <ellipse cx="380" cy="700" rx="260" ry="18" fill="#000" opacity=".5"/>
+      <g id="post">
+        <rect x="170" y="640" width="420" height="50" rx="16" fill="url(#g)"/>
+        <rect x="315" y="190" width="130" height="455" fill="#e9cf8a"/>
+        <g id="rope" stroke="#b38c3c" stroke-width="7"></g>
+        <rect x="220" y="150" width="320" height="50" rx="16" fill="url(#g)"/>
+        <g id="toy"><line x1="500" y1="200" x2="500" y2="300" stroke="#f4dc95" stroke-width="5"/><circle cx="500" cy="318" r="22" fill="#f2a07b"/></g>
+      </g>
+      <g id="scr" stroke="#7a5a1e" stroke-width="9" stroke-linecap="round" fill="none">
+        <path id="sc0" d="M335 330 L365 430"/><path id="sc1" d="M362 322 L392 422"/><path id="sc2" d="M389 314 L419 414"/>
+      </g>
+      <g id="pawhit" fill="url(#g)"><use href="#paw" transform="rotate(-20) scale(1.6)"/></g>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s5txt">
+      <div class="chip">ESSENTIAL 03</div>
+      <div class="title" style="margin-top:34px">Scratching post</div>
+      <div class="sub" style="margin-top:26px">A safe spot for<br><span class="gold">natural scratching</span></div>
+    </div>
+  </div>
+
+  <!-- S6 resting place -->
+  <div class="scene" id="s6">
+    <svg class="abs" viewBox="0 0 760 760" width="760" height="760" style="left:160px;top:300px">
+      <g id="moon"><path d="M620 140 A 70 70 0 1 0 690 230 A 56 56 0 1 1 620 140 Z" fill="#f4dc95"/></g>
+      <ellipse cx="380" cy="690" rx="300" ry="18" fill="#000" opacity=".5"/>
+      <ellipse cx="380" cy="590" rx="290" ry="100" fill="url(#g)"/>
+      <ellipse cx="380" cy="560" rx="230" ry="66" fill="#0e3b2c"/>
+      <g id="sleeper">
+        <path d="M520 580 C 600 560, 590 470, 520 470" stroke="url(#g)" stroke-width="34" fill="none" stroke-linecap="round"/>
+        <ellipse cx="400" cy="520" rx="150" ry="85" fill="url(#g)"/>
+        <circle cx="290" cy="500" r="72" fill="url(#g)"/>
+        <polygon points="240,470 236,390 290,440" fill="url(#g)"/><polygon points="320,450 330,380 350,456" fill="url(#g)"/>
+        <path d="M262 505 q 12 10 24 0 M300 505 q 12 10 24 0" stroke="#040705" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+      <g id="zz" font-family="Poppins" font-weight="800" fill="#f4dc95"></g>
+    </svg>
+    <div class="abs c" style="top:1150px" id="s6txt">
+      <div class="chip">ESSENTIAL 04</div>
+      <div class="title" style="margin-top:34px;font-size:86px">A quiet place to rest</div>
+      <div class="sub" style="margin-top:26px">A <span class="gold">cozy bed or hideaway</span>,<br>away from the noise</div>
+    </div>
+  </div>
+
+  <!-- S7 recap -->
+  <div class="scene" id="s7">
+    <div class="abs" style="left:110px;top:330px;width:860px" id="rows">
+      <div class="row"><svg viewBox="-60 -60 120 120" width="110" height="110"><use href="#icBox"/></svg>Litter box<div class="tick"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" stroke="#0c4632" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="row"><svg viewBox="-60 -60 120 120" width="110" height="110"><use href="#icBowl"/></svg>Food &amp; water<div class="tick"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" stroke="#0c4632" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="row"><svg viewBox="-60 -60 120 120" width="110" height="110"><use href="#icPost"/></svg>Scratching post<div class="tick"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" stroke="#0c4632" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="row"><svg viewBox="-60 -60 120 120" width="110" height="110"><use href="#icBed"/></svg>Quiet resting spot<div class="tick"><svg width="50" height="50" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" stroke="#0c4632" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+    </div>
+    <div class="abs c" style="top:1150px" id="s7txt">
+      <div class="title" style="font-size:84px">A little preparation</div>
+      <div class="title serif" style="font-size:96px;margin-top:8px">goes a long way.</div>
+    </div>
+  </div>
+
+  <!-- S8 end card -->
+  <div class="scene" id="s8">
+    <div class="abs c" style="top:300px" id="logo">
+      <svg viewBox="-160 -160 320 320" width="330" height="330">
+        <circle r="150" fill="#0a3022" stroke="url(#g)" stroke-width="8"/>
+        <circle r="132" fill="none" stroke="#d9b45c" stroke-opacity=".5" stroke-width="2"/>
+        <g fill="url(#g)"><polygon points="-88,-38 -78,-118 -26,-70"/><polygon points="88,-38 78,-118 26,-70"/></g>
+        <text x="0" y="38" text-anchor="middle" font-family="Playfair Display" font-weight="700" font-size="118" fill="url(#g)">SB</text>
+        <clipPath id="lc"><circle r="146"/></clipPath><g clip-path="url(#lc)"><rect id="shine" x="-260" y="-170" width="46" height="340" fill="#fff" opacity=".35" transform="skewX(-20)"/></g>
+      </svg>
+      <div style="font-family:'Playfair Display',serif;font-weight:700;font-size:74px;letter-spacing:22px;color:var(--gold2);margin-top:26px;padding-left:22px">FELINES</div>
+      <div style="font-size:32px;letter-spacing:10px;color:#cfd8d2;margin-top:6px">CAT CARE STUDIO · PALAKKAD</div>
+    </div>
+    <div class="abs c" style="top:930px" id="s8txt">
+      <div class="title" style="font-size:90px">Follow <span class="serif" style="font-size:110px">SB Felines</span></div>
+      <div class="title" style="font-size:90px;margin-top:8px">for more.</div>
+    </div>
+    <div id="footer" class="abs" style="left:0;top:1360px;width:1080px;height:560px">
+      <svg class="abs" viewBox="0 0 1080 560" width="1080" height="560" style="left:0;top:0">
+        <path d="M0 90 L 380 90 L 540 0 L 700 90 L 1080 90 L 1080 560 L 0 560 Z" fill="#0c4632"/>
+        <path d="M0 90 L 380 90 L 540 0 L 700 90 L 1080 90" fill="none" stroke="url(#g)" stroke-width="5"/>
+      </svg>
+      <div class="abs c" style="top:150px;font-size:44px;line-height:1.7;color:#fff">
+        <div><svg width="40" height="48" viewBox="-20 -24 40 48" style="vertical-align:-8px;margin-right:14px"><path d="M0 22 C -18 0, -18 -8, -18 -6 A 18 18 0 1 1 18 -6 C 18 -8, 18 0, 0 22 Z" fill="#f4dc95"/><circle cy="-6" r="7" fill="#0c4632"/></svg>Pallipuram, Chakanthara, Palakkad</div>
+        <div style="font-weight:700;font-size:58px;color:var(--gold2)"><svg width="46" height="46" viewBox="0 0 24 24" style="vertical-align:-6px;margin-right:14px"><path fill="#f4dc95" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>087145 62875</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="swipe" class="abs" style="left:0;top:-200px;width:1500px;height:2320px;background:linear-gradient(90deg,#0a3022,#13805a 50%,#0a3022);transform:translateX(-2000px) skewX(-12deg)">
+    <svg class="abs" width="1500" height="2320" style="left:0;top:0">
+      <g fill="#d9b45c" opacity=".9">
+        <use href="#paw" transform="translate(560,620) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(860,1000) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(600,1400) rotate(20) scale(2.2)"/>
+        <use href="#paw" transform="translate(900,1780) rotate(20) scale(2.2)"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eo=x=>1-Math.pow(1-x,3);
+const eio=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const eback=x=>{const c=1.7;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+function enter(el,t,t0,d=.55,dy=50){const p=eo(seg(t,t0,t0+d));el.style.opacity=p;el.style.transform=`translateY(${(1-p)*dy}px)`;}
+let seed=11; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+
+for(let i=0;i<4;i++){const d=document.createElement('div');d.style.cssText='width:16px;height:16px;border-radius:10px;background:#d9b45c;opacity:.3';$('dots').appendChild(d);}
+const dust=[];for(let i=0;i<38;i++){const c=document.createElementNS(NS,'circle');c.setAttribute('r',1.5+rnd()*4);c.setAttribute('fill','#e8c977');$('dust').appendChild(c);dust.push({c,x:rnd()*1080,y:rnd()*1920,s:20+rnd()*50,ph:rnd()*6.28,o:.15+rnd()*.45});}
+// granules
+const gran=[];for(let i=0;i<40;i++){const c=document.createElementNS(NS,'circle');c.setAttribute('r',7+rnd()*5);c.setAttribute('fill',i%3?'#f4dc95':'#e9cf8a');$('granules').appendChild(c);gran.push({c,x:200+rnd()*360,y1:470+rnd()*20,t0:rnd()*1.1,sp:.4+rnd()*.25});}
+// kibble
+const kib=[];for(let i=0;i<14;i++){const c=document.createElementNS(NS,'ellipse');c.setAttribute('rx',13);c.setAttribute('ry',9);c.setAttribute('fill',i%2?'#b77a3a':'#8d5a26');$('kibble').appendChild(c);kib.push({c,x:560+rnd()*200,y1:505+rnd()*14,t0:rnd()*1.0,r:rnd()*180});}
+// rope
+for(let y=210;y<640;y+=26){const l=document.createElementNS(NS,'line');l.setAttribute('x1',315);l.setAttribute('x2',445);l.setAttribute('y1',y);l.setAttribute('y2',y+16);$('rope').appendChild(l);}
+// zz
+const zz=[0,1,2].map(i=>{const t=document.createElementNS(NS,'text');t.textContent='z';$('zz').appendChild(t);return t;});
+
+const swipes=[5.5,10.5,15.5,20.5];
+function render(t){
+  const gx=540+Math.sin(t*.4)*120, gy=700+Math.cos(t*.3)*160;
+  $('glow').style.background=`radial-gradient(circle at ${gx}px ${gy}px, rgba(24,150,104,.62) 0%, rgba(12,70,50,.38) 36%, rgba(4,7,5,0) 72%)`;
+  dust.forEach(d=>{const y=((d.y-t*d.s)%1920+1920)%1920;d.c.setAttribute('cx',d.x+Math.sin(t*.8+d.ph)*14);d.c.setAttribute('cy',y);d.c.setAttribute('opacity',d.o*(.6+.4*Math.sin(t*2+d.ph)));});
+
+  const vis={s1:t<3?1-seg(t,2.75,3.05):0, s2:t>=2.85&&t<5.5?seg(t,2.85,3.15):0, s3:t>=5.5&&t<10.5?1:0, s4:t>=10.5&&t<15.5?1:0,
+    s5:t>=15.5&&t<20.5?1:0, s6:t>=20.5&&t<25?1:0, s7:t>=20.5&&t<27.7? (t<25?0:seg(t,24.85,25.2))*(1-seg(t,27.3,27.65)):0, s8:t>=27.3?seg(t,27.3,27.7):0};
+  if(t>=24.85&&t<25.2) vis.s6=1-seg(t,24.85,25.2);
+  for(const k in vis) $(k).style.opacity=vis[k];
+
+  $('hdr').style.opacity = t<27.3? eo(seg(t,.2,.8)) : 1-seg(t,27.3,27.6);
+  const sig = t>=5.5&&t<25 ? Math.floor((t-5.5)/5) : -1;
+  [...$('dots').children].forEach((d,i)=>{const on=i===sig||(t>=25);d.style.opacity=on?1:.3;d.style.width=(i===sig?48:16)+'px';});
+
+  let sx=-2000; for(const b of swipes){if(t>b-.45&&t<b+.45){sx=-1900+eio(seg(t,b-.45,b+.45))*3400;}}
+  $('swipe').style.transform=`translateX(${sx}px) skewX(-12deg)`;
+
+  // S1
+  if(t<3.1){
+    const hp=eback(seg(t,0,.8));
+    $('house').setAttribute('transform',`translate(380,720) scale(${.85+.15*hp}) translate(-380,-720)`);
+    $('house').setAttribute('opacity',eo(seg(t,0,.5)));
+    const dp=eio(seg(t,.7,1.4));
+    $('door').setAttribute('transform',`translate(390,0) scale(${1-.82*dp},1) translate(-390,0)`);
+    const pk=eo(seg(t,1.2,1.8));
+    $('peek').setAttribute('transform',`translate(0,${(1-pk)*120})`);
+    $('peek').setAttribute('opacity',pk);
+    const hh=eback(seg(t,1.7,2.2));
+    $('heart').setAttribute('transform',`translate(380,${70-Math.sin(t*3)*6}) scale(${Math.max(0,hh)*1.3})`);
+    document.querySelectorAll('#s1 .w').forEach((w,i)=>{w.style.display='inline-block';enter(w,t,.35+i*.3,.45,60);});
+  }
+  // S2
+  if(t>2.8&&t<5.6){
+    document.querySelectorAll('.gi').forEach((g,i)=>{const p=eback(seg(t,3.2+i*.2,3.6+i*.2));g.style.transform=`scale(${Math.max(0,p)}) rotate(${(1-clamp(p))*-30}deg)`;g.style.opacity=clamp(p*2);});
+    enter($('s2t'),t,3.05,.5,70); enter($('s2t2'),t,3.3,.5,70);
+  }
+  // S3 litter box
+  if(t>5.4&&t<10.6){
+    const lt=t-5.5;
+    gran.forEach(g=>{const p=seg(lt,.5+g.t0,.5+g.t0+g.sp);const y=-60+(g.y1+60)*(p*p);g.c.setAttribute('cx',g.x);g.c.setAttribute('cy',p>0?y:-100);g.c.setAttribute('opacity',p>0?1:0);});
+    const cp=eback(seg(lt,2.2,2.9));
+    $('boxcat').setAttribute('transform',`translate(0,${(1-cp)*260+Math.sin(t*2)*4})`);
+    const bl=lt>3.7&&lt<3.9?1-Math.sin(seg(lt,3.7,3.9)*Math.PI)*.9:1;
+    ['bce0','bce1'].forEach(id=>$(id).setAttribute('ry',22*bl));
+    enter($('s3txt'),t,5.95,.6,60);
+  }
+  // S4 bowls
+  if(t>10.4&&t<15.6){
+    const lt=t-10.5;
+    const a=eo(seg(lt,.15,.9)), b=eo(seg(lt,.35,1.1));
+    $('bowlW').setAttribute('transform',`translate(${-500*(1-a)},0)`);
+    $('bowlF').setAttribute('transform',`translate(${500*(1-b)},0)`);
+    const dp=seg(lt,1.3,1.8);
+    $('drop').setAttribute('transform',`translate(240,${200+dp*dp*320})`);$('drop').setAttribute('opacity',dp>0&&dp<1?1:0);
+    const rp=(lt-1.8)%1.4; const rv=lt>1.8?rp/1.4:0;
+    $('rip').setAttribute('rx',20+110*rv);$('rip').setAttribute('ry',5+20*rv);$('rip').setAttribute('opacity',lt>1.8?(1-rv)*.8:0);
+    kib.forEach(k=>{const p=seg(lt,1.6+k.t0,2.1+k.t0);const y=200+(k.y1-200)*p*p;k.c.setAttribute('cx',k.x);k.c.setAttribute('cy',y);k.c.setAttribute('transform',`rotate(${k.r*p} ${k.x} ${y})`);k.c.setAttribute('opacity',p>0?1:0);});
+    enter($('s4txt'),t,10.95,.6,60);
+  }
+  // S5 post
+  if(t>15.4&&t<20.6){
+    const lt=t-15.5;
+    const gp=eback(seg(lt,.1,1));
+    $('post').setAttribute('transform',`translate(380,690) scale(1,${Math.max(.01,gp)}) translate(-380,-690)`);
+    $('toy').setAttribute('transform',`rotate(${Math.sin(lt*3)*12} 500 200)`);
+    // paw swipes 3 times
+    const sw=[1.6,2.2,2.8]; let px=600,py=260,po=0;
+    sw.forEach((s,i)=>{if(lt>s-.25&&lt<s+.35){const p=seg(lt,s-.25,s+.35);po=Math.sin(p*Math.PI);px=520-140*p;py=260+120*p;}});
+    $('pawhit').setAttribute('transform',`translate(${px},${py})`);$('pawhit').setAttribute('opacity',po);
+    [0,1,2].forEach(i=>{const p=seg(lt,sw[i]-.05,sw[i]+.25);const el=$('sc'+i);el.setAttribute('stroke-dasharray','110');el.setAttribute('stroke-dashoffset',110*(1-p));el.setAttribute('opacity',p>0?.9:0);});
+    enter($('s5txt'),t,15.95,.6,60);
+  }
+  // S6 rest
+  if(t>20.4&&t<25.3){
+    const lt=t-20.5;
+    const sp=eo(seg(lt,.2,1));
+    const br=1+Math.sin(lt*2.6)*.025;
+    $('sleeper').setAttribute('transform',`translate(400,560) scale(${br*sp}) translate(-400,-560)`);
+    $('sleeper').setAttribute('opacity',sp);
+    $('moon').setAttribute('opacity',eo(seg(lt,.5,1.2)));
+    $('moon').setAttribute('transform',`translate(0,${Math.sin(lt*1.5)*8})`);
+    zz.forEach((z,i)=>{const p=((lt-1.2-i*.6)%1.8)/1.8; const on=lt>1.2+i*.6; z.setAttribute('x',260+i*30+p*70);z.setAttribute('y',400-p*170);z.setAttribute('font-size',40+p*40);z.setAttribute('opacity',on?Math.sin(p*Math.PI):0);});
+    enter($('s6txt'),t,20.95,.6,60);
+  }
+  // S7 recap
+  if(t>24.8&&t<27.8){
+    const lt=t-25;
+    [...$('rows').children].forEach((r,i)=>{const p=eo(seg(lt,.05+i*.16,.45+i*.16));r.style.opacity=p;r.style.transform=`translateX(${(1-p)*-120}px)`;
+      const tk=eback(seg(lt,.5+i*.22,.8+i*.22));r.querySelector('.tick').style.transform=`scale(${Math.max(0,tk)})`;});
+    enter($('s7txt'),t,25.3,.5,50);
+  }
+  // S8 end
+  if(t>27.2){
+    const lt=t-27.5; const lp=eback(seg(lt,-.2,.6));
+    $('logo').style.opacity=clamp(seg(lt,-.2,.2)); $('logo').style.transform=`scale(${.8+.2*lp})`;
+    $('shine').setAttribute('x',-260+seg(lt,.7,1.5)*520);
+    enter($('s8txt'),t,27.8,.5,60);
+    $('footer').style.transform=`translateY(${(1-eo(seg(lt,.6,1.2)))*560}px)`;
+  }
+}
+window.render=render; render(0);
+</script>
+</body></html>
