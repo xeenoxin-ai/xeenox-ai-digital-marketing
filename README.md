@@ -118,8 +118,14 @@ the assistant falls back to the built-in engine automatically.
 
 ## BillX – billing & invoicing (v0.1)
 
-Open **`/billx/`** on the same site (e.g. https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/billx/ once merged to `main`).
-Free, works offline in the browser, no sign-up. Code is in [`billx/`](billx/).
+Website with features and pricing at **`/billx/`**, the app at **`/billx/app/`**
+(e.g. https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/billx/). Code is in [`billx/`](billx/).
+
+- **Free mode** (default): no login, data stays in the browser.
+- **Paid service**: accounts, cloud sync across devices, staff logins, a 14-day free trial,
+  Starter ₹499 / Business ₹1,499 / Pro ₹3,999 per month via Razorpay, read-only when unpaid,
+  and an admin console. Switch it on with Firebase + Razorpay + Cloudflare Pages:
+  **[docs/BILLX_LAUNCH.md](docs/BILLX_LAUNCH.md)**.
 
 | Feature | What you get |
 | --- | --- |
@@ -134,4 +140,4 @@ Free, works offline in the browser, no sign-up. Code is in [`billx/`](billx/).
 | **Reports** | Month-by-month sales & collections, GST by rate (for GSTR-1/3B), receivables ageing, top clients, CSV export. |
 | **Your data** | Saved in the browser; JSON backup/restore from Settings. |
 
-Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm test` (`tests/billx.test.js`).
+Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm test` (`tests/billx*.test.js`), `npm run test:billx-rules` (security rules on the Firebase emulator).

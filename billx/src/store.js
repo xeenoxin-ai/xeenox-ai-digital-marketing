@@ -4,8 +4,28 @@
 import { formatNumber, addDays } from './calc.js';
 import { industry, starterItems, sectorOf, sampleValue } from './industries.js';
 
-const INDEX_KEY = 'billx-workspaces';
-const keyFor = (id) => (id === 'main' ? 'billx-v1' : `billx-v1:${id}`);
+// Where data lives in this browser. Signed-in cloud accounts get their own
+// namespace so two accounts on one computer never mix.
+const LOCAL_NS = { index: 'billx-workspaces', key: (id) => (id === 'main' ? 'billx-v1' : `billx-v1:${id}`) };
+let NS = LOCAL_NS;
+export function useNamespace(prefix) {
+  NS = prefix ? { index: `${prefix}:index`, key: (id) => `${prefix}:ws:${id}` } : LOCAL_NS;
+  state = null;
+}
+
+/**
+ * Cloud sync plugs in here. Local-only use leaves these empty.
+ * canWrite() returning false makes the app read-only (trial ended / unpaid).
+ */
+export const hooks = {
+  upsert: null, remove: null, replaced: null, workspaceCreated: null, workspaceRemoved: null,
+  canWrite: () => true,
+};
+const blocked = () => {
+  if (hooks.canWrite()) return false;
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('billx:readonly'));
+  return true;
+};
 
 export const DOC_TYPES = {
   invoice: { name: 'Invoice', plural: 'Invoices', title: 'Tax Invoice', prefix: 'INV-' },
@@ -136,13 +156,13 @@ function migrate(s) {
 
 function readIndex() {
   try {
-    const ix = JSON.parse(localStorage.getItem(INDEX_KEY));
+    const ix = JSON.parse(localStorage.getItem(NS.index));
     if (ix && Array.isArray(ix.list) && ix.list.length) return ix;
   } catch { /* fall through */ }
   return { active: 'main', list: [{ id: 'main', name: '' }] };
 }
 function writeIndex(ix) {
-  try { localStorage.setItem(INDEX_KEY, JSON.stringify(ix)); } catch { /* storage unavailable */ }
+  try { localStorage.setItem(NS.index, JSON.stringify(ix)); } catch { /* storage unavailable */ }
 }
 
 export function workspaces() {
@@ -155,7 +175,7 @@ export const activeWorkspace = () => readIndex().active;
 export function workspaceInfo(id) {
   if (state && id === activeWorkspace()) return { name: state.settings.business.name, industry: state.settings.industry, onboarded: state.settings.onboarded };
   try {
-    const d = JSON.parse(localStorage.getItem(keyFor(id)));
+    const d = JSON.parse(localStorage.getItem(NS.key(id)));
     return { name: d.settings.business.name, industry: d.settings.industry, onboarded: d.settings.onboarded };
   } catch {
     return { name: 'New business', industry: '', onboarded: false };
@@ -172,6 +192,7 @@ export function switchWorkspace(id) {
 }
 
 export function createWorkspace() {
+  if (blocked()) return null;
   flush();
   const ix = readIndex();
   const id = uid();
@@ -179,6 +200,7 @@ export function createWorkspace() {
   ix.active = id;
   writeIndex(ix);
   load();
+  if (hooks.workspaceCreated) hooks.workspaceCreated(id);
   return id;
 }
 
@@ -186,16 +208,17 @@ export function removeWorkspace(id) {
   const ix = readIndex();
   if (ix.list.length < 2) return false;
   ix.list = ix.list.filter((w) => w.id !== id);
-  try { localStorage.removeItem(keyFor(id)); } catch { /* ignore */ }
+  try { localStorage.removeItem(NS.key(id)); } catch { /* ignore */ }
   if (ix.active === id) ix.active = ix.list[0].id;
   writeIndex(ix);
   load();
+  if (hooks.workspaceRemoved) hooks.workspaceRemoved(id);
   return true;
 }
 
 export function load() {
   try {
-    const raw = localStorage.getItem(keyFor(activeWorkspace()));
+    const raw = localStorage.getItem(NS.key(activeWorkspace()));
     state = raw ? migrate(JSON.parse(raw)) : blank();
   } catch {
     state = blank();
@@ -213,7 +236,7 @@ export function flush() {
   clearTimeout(saveTimer);
   try {
     const ix = readIndex();
-    localStorage.setItem(keyFor(ix.active), JSON.stringify(state));
+    localStorage.setItem(NS.key(ix.active), JSON.stringify(state));
     const w = ix.list.find((x) => x.id === ix.active);
     if (w && w.name !== state.settings.business.name) { w.name = state.settings.business.name; writeIndex(ix); }
     return true;
@@ -237,6 +260,7 @@ export const all = (col) => db()[col];
 export const get = (col, id) => db()[col].find((x) => x.id === id);
 
 export function upsert(col, obj) {
+  if (blocked()) return obj;
   const list = db()[col];
   const now = new Date().toISOString();
   if (!obj.id) {
@@ -250,15 +274,63 @@ export function upsert(col, obj) {
   }
   obj.updatedAt = now;
   persist();
+  if (hooks.upsert) hooks.upsert(col, obj);
   return obj;
 }
 
 export function remove(col, id) {
+  if (blocked()) return;
   const list = db()[col];
   const i = list.findIndex((x) => x.id === id);
   if (i >= 0) list.splice(i, 1);
   persist();
+  if (hooks.remove) hooks.remove(col, id);
 }
+
+/* ---- applying changes that came from the cloud (no echo back) ---- */
+const remoteListeners = new Set();
+export const onRemote = (fn) => (remoteListeners.add(fn), () => remoteListeners.delete(fn));
+const remoteChanged = () => { flush(); remoteListeners.forEach((fn) => fn()); };
+
+/** Apply a record from the cloud. Returns true if anything changed. */
+export function applyRemote(col, obj, { silent = false } = {}) {
+  const list = db()[col];
+  const i = list.findIndex((x) => x.id === obj.id);
+  if (i === -1) list.unshift(obj);
+  else if (JSON.stringify(list[i]) === JSON.stringify(obj)) return false;
+  else if ((list[i].updatedAt || '') <= (obj.updatedAt || '')) list[i] = obj;
+  else return false;
+  if (!silent) remoteChanged();
+  return true;
+}
+export function applyRemoteRemove(col, id, { silent = false } = {}) {
+  const list = db()[col];
+  const i = list.findIndex((x) => x.id === id);
+  if (i === -1) return false;
+  list.splice(i, 1);
+  if (!silent) remoteChanged();
+  return true;
+}
+export const notifyRemote = () => remoteChanged();
+export function applyRemoteSettings(s) {
+  const next = migrate({ settings: s }).settings;
+  if (JSON.stringify(next) === JSON.stringify(db().settings)) return false;
+  db().settings = next;
+  remoteChanged();
+  return true;
+}
+/** Replace the cached list of workspaces (from the cloud). */
+export function setWorkspaceList(list, preferActive) {
+  const ix = readIndex();
+  const active = list.some((w) => w.id === preferActive) ? preferActive
+    : list.some((w) => w.id === ix.active) ? ix.active : (list[0] || {}).id;
+  writeIndex({ active: active || 'main', list: list.length ? list : [{ id: 'main', name: '' }] });
+}
+/** Store one workspace's full data in the local cache. */
+export function cacheWorkspace(id, data) {
+  try { localStorage.setItem(NS.key(id), JSON.stringify(migrate(data))); } catch (e) { console.warn('cache failed', e); }
+}
+export const snapshot = () => db();
 
 export function peekNumber(type) {
   const rule = settings().numbering[type];
@@ -367,12 +439,14 @@ export function importJSON(text) {
   state = migrate(data);
   flush();
   persist();
+  if (hooks.replaced) hooks.replaced();
 }
 
 export function resetAll() {
   state = blank();
   flush();
   persist();
+  if (hooks.replaced) hooks.replaced();
 }
 
 /** Demo data so the app can be explored before entering real details. */
