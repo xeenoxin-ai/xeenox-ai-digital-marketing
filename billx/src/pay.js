@@ -1,9 +1,10 @@
-// Public payment page: pick a plan, pay BillX Corp by UPI or bank transfer,
+// Public payment page: pick a plan, pay BillX Solutions by UPI or bank transfer,
 // then send the payment reference on WhatsApp.
 import './app.css';
 import './landing.css';
 import { PLANS } from './plans.js';
 import { SITE } from './site.js';
+import { cloudEnabled } from './cloud/config.js';
 import { esc, icon, options, field } from './ui.js';
 import {
   payDetailsHTML, bindCopy, whatsappLink, confirmationText, payAmount, rupees,
@@ -35,7 +36,7 @@ function render() {
         ${field('Email for your BillX login', '<input name="email" type="email" autocomplete="email">')}
       </div>
       <button class="btn primary big">${icon('whatsapp')} Send on WhatsApp</button>
-      <p class="muted small">Already signed up? You can also submit the reference inside BillX → Subscription & team, and it activates as soon as we confirm the money arrived.</p>
+      ${cloudEnabled() ? '<p class="muted small">Already signed up? You can also submit the reference inside BillX → Subscription & team, and it activates as soon as we confirm the money arrived.</p>' : ''}
     </form>
     <p class="muted small">Need a GST invoice or have a question? <a href="${esc(whatsappLink('Hi, I have a question about paying for BillX.'))}" target="_blank" rel="noopener">WhatsApp us</a>.</p>`;
   root.querySelector('#plan').onchange = (e) => { plan = e.target.value; render(); };

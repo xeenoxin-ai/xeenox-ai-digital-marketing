@@ -6,7 +6,7 @@ import { SITE } from './site.js';
 
 export const TRIAL_DAYS = 14;
 
-/** GST is added only when BillX Corp has a GSTIN. */
+/** GST is added only when BillX Solutions has a GSTIN. */
 export const GST_RATE = SITE.gstin ? 18 : 0;
 export const withTax = (amount) => Math.round(amount * (100 + GST_RATE)) / 100;
 export const TAX_NOTE = GST_RATE ? '+ 18% GST' : 'No hidden charges';

@@ -1,4 +1,4 @@
-// "Pay BillX Corp" box: UPI QR, GPay number and bank details with copy buttons.
+// "Pay BillX Solutions" box: UPI QR, GPay number and bank details with copy buttons.
 // Used by the public payment page and the in-app Subscription page.
 import { SITE } from './site.js';
 import { PLANS, withTax, priceOf, GST_RATE } from './plans.js';

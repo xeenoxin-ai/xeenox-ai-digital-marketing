@@ -40,9 +40,9 @@ test('sitemap lists every page; robots blocks the app and admin', () => {
   assert.ok(homeHead().includes('"@type":"FAQPage"'));
 });
 
-test('payment details show BillX Corp, GPay number and bank account', () => {
+test('payment details show BillX Solutions, GPay number and bank account', () => {
   const html = payDetailsHTML('pro', 'monthly');
-  for (const v of ['BillX Corp', SITE.pay.gpay, SITE.pay.bank.accountNo, SITE.pay.bank.accountName, '₹3,999']) assert.ok(html.includes(v), v);
+  for (const v of ['BillX Solutions', SITE.pay.gpay, SITE.pay.bank.accountNo, SITE.pay.bank.accountName, '₹3,999']) assert.ok(html.includes(v), v);
   assert.equal(payAmount('pro', 'yearly'), SITE.gstin ? 47188.2 : 39990);
   const msg = confirmationText({ plan: 'business', period: 'monthly', utr: '412345678901', name: 'Ravi' });
   assert.ok(msg.includes('UTR: 412345678901') && msg.includes('Business (monthly)'));

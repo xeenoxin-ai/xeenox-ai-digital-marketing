@@ -13,6 +13,14 @@ export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&a
 const rupees = (n) => formatMoney(n, 'INR').replace(/\.00$/, '');
 const minPrice = Math.min(...Object.values(PLANS).map((p) => p.monthly));
 
+// Accounts (Firebase) switched on? Without them BillX is the free on-device
+// version, so pages must not promise a trial, cloud backup or staff logins.
+let CLOUD = true;
+export const setCloudMode = (v) => { CLOUD = !!v; };
+const startCTA = () => (CLOUD ? `Start ${TRIAL_DAYS}-day free trial` : 'Start free');
+const startShort = () => (CLOUD ? 'Start free trial' : 'Start free');
+const trialNote = () => (CLOUD ? `${TRIAL_DAYS}-day free trial` : 'Free to start');
+
 /** URL slug and the audience phrase used in titles, per business type. */
 export const SECTORS = {
   retail: ['retail-shop', 'retail shops'], grocery: ['supermarket-grocery-store', 'supermarkets & grocery stores'],
@@ -41,13 +49,13 @@ export const SECTORS = {
 };
 export const sectorPath = (key) => `billing-software/${SECTORS[key][0]}/`;
 
-export const HOME_FAQ = [
-  ['Is BillX free to try?', `Yes. Every plan starts with a ${TRIAL_DAYS}-day free trial with all features, and no card is needed. You can also use the free invoice generator without creating an account.`],
+export const homeFaq = () => [
+  ['Is BillX free to try?', CLOUD ? `Yes. Every plan starts with a ${TRIAL_DAYS}-day free trial with all features, and no card is needed. You can also use the free invoice generator without creating an account.` : 'Yes. Start free on any phone or computer, no sign-up needed: make GST invoices, quotes and receipts, print or download them as PDF.'],
   ['Do I need to install anything?', 'No. BillX runs in Chrome or Safari on any phone or computer. On a phone you can add it to the home screen like an app.'],
   ['Is BillX GST compliant?', 'Yes. It shows GSTIN, HSN/SAC codes, place of supply, CGST + SGST or IGST (picked automatically from the state), a GST summary and the amount in words, and gives you GST reports by rate for GSTR-1 and GSTR-3B.'],
   ['How do I pay for BillX?', `Pay ${SITE.company} by UPI, GPay, PhonePe, Paytm or bank transfer, then send the payment reference. Your plan is switched on after we confirm the payment. Prices start at ${rupees(minPrice)} a month.`],
-  ['What happens after the free trial?', 'Choose a plan to keep creating bills. If you don\'t, your account becomes read-only: nothing is deleted, and you can still view and download your bills.'],
-  ['Is my data safe?', 'Your data is stored in Google Cloud (Firebase), encrypted in transit and at rest, and only people you add can see it. You can download a full backup any time.'],
+  ...(CLOUD ? [['What happens after the free trial?', 'Choose a plan to keep creating bills. If you don\'t, your account becomes read-only: nothing is deleted, and you can still view and download your bills.']] : []),
+  ['Is my data safe?', CLOUD ? 'Your data is stored in Google Cloud (Firebase), encrypted in transit and at rest, and only people you add can see it. You can download a full backup any time.' : 'Your bills are saved on your own device and never uploaded. Download a full backup from Settings any time and restore it on another device.'],
   ['Can you set it up for us?', 'On the Pro plan we set up your logo, designs and item list, move data from your old software and train your staff.'],
   ['Does it work for hospitals and clinics?', 'Yes. It has patient fields (UHID, IP/OP no., consultant, ward, admission and discharge dates), services grouped by department, and an insurance / TPA share with the balance the patient pays.'],
 ];
@@ -106,7 +114,7 @@ export function headTags({ title, description, path = '', jsonLd = [], noindex =
 export const homeHead = () => headTags({
   title: 'BillX: GST billing & invoicing software for every business',
   description: 'GST billing and invoicing software for shops, hospitals, clinics, restaurants, hotels, schools, garages, salons, agencies and 45 business types.',
-  jsonLd: [orgJsonLd(), appJsonLd('BillX', 'GST billing and invoicing software for 45 business types: invoices, quotes, receipts, UPI QR, client portal and reports.'), faqJsonLd(HOME_FAQ)],
+  jsonLd: [orgJsonLd(), appJsonLd('BillX', 'GST billing and invoicing software for 45 business types: invoices, quotes, receipts, UPI QR, client portal and reports.'), faqJsonLd(homeFaq())],
 });
 
 export function plansHTML(period = 'monthly') {
@@ -118,7 +126,7 @@ export function plansHTML(period = 'monthly') {
       <div class="l-price">${rupees(period === 'yearly' ? p.yearly : p.monthly)}<small>/${period === 'yearly' ? 'year' : 'month'}</small></div>
       ${period === 'yearly' ? `<p class="l-save">${rupees(Math.round(p.yearly / 12))}/month, billed yearly</p>` : '<p class="l-save">&nbsp;</p>'}
       <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-      <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">Start ${TRIAL_DAYS}-day free trial</a>
+      <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">${startCTA()}</a>
       <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay / bank transfer</a>
     </div>`).join('');
 }
@@ -128,7 +136,7 @@ export function sectorsHTML(linkBase = '') {
     <span>${list.filter(([k]) => SECTORS[k]).map(([k, v]) => `<a href="${linkBase}${sectorPath(k)}">${esc(v.name)}</a>`).join(' · ')}</span></div>`).join('');
 }
 
-export const faqHTML = (faq = HOME_FAQ) => faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
+export const faqHTML = (faq = homeFaq()) => faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
 
 export function footLinksHTML(linkBase = '') {
   const top = ['retail', 'hospital', 'clinic', 'pharmacy', 'restaurant', 'hotel', 'automobile', 'salon', 'education', 'jewellery', 'wholesale', 'professional'];
@@ -158,11 +166,11 @@ function page({ title, description, path, jsonLd, body, crumbs }) {
   <body class="landing">
     <header class="l-nav"><a class="l-brand" href="/"><img src="/logo.svg" alt="BillX" width="32" height="32" /><span>Bill<b>X</b></span></a>
       <nav><a href="/#features">Features</a><a href="/billing-software/">Businesses</a><a href="/#pricing">Pricing</a></nav>
-      <a class="btn" href="/app/">Sign in</a><a class="btn primary" href="/app/#/signup">Start free trial</a></header>
+      <a class="btn" href="/app/">Sign in</a><a class="btn primary" href="/app/#/signup">${startShort()}</a></header>
     <nav class="crumbs" aria-label="Breadcrumb">${crumbs.map(([n, p], i) => (i < crumbs.length - 1 ? `<a href="/${p}">${esc(n)}</a> › ` : `<span>${esc(n)}</span>`)).join('')}</nav>
     <main class="seo">${body}</main>
     <section class="l-final"><h2>Start billing in under a minute</h2>
-      <a class="btn primary big" href="/app/#/signup">Start ${TRIAL_DAYS}-day free trial</a>
+      <a class="btn primary big" href="/app/#/signup">${startCTA()}</a>
       <p class="l-small">Or <a href="/app/?guest=1#/">try the free invoice generator</a> without an account.</p></section>
     <footer class="l-foot"><span>© ${new Date().getFullYear()} ${esc(SITE.company)}, ${esc(SITE.city)}</span>
       ${footLinksHTML('/')}
@@ -205,13 +213,13 @@ function sectorPage(key) {
   const cols = p.itemCols.filter((c) => !c.hidden).map((c) => c.label);
   const long = `Billing Software for ${Aud} | GST ${p.docTitle} App · BillX`;
   const title = long.length <= 65 ? long : `Billing Software for ${Aud} · BillX`;
-  const description = `GST billing software for ${audience}: ${p.docTitle.toLowerCase()}s with ${[...fields.slice(0, 3), ...cols.slice(0, 2)].join(', ') || 'your own fields'}, UPI QR and 10 designs. ${TRIAL_DAYS}-day free trial, from ${rupees(minPrice)}/month.`.slice(0, 300);
+  const description = `GST billing software for ${audience}: ${p.docTitle.toLowerCase()}s with ${[...fields.slice(0, 3), ...cols.slice(0, 2)].join(', ') || 'your own fields'}, UPI QR and 10 designs. ${trialNote()}, from ${rupees(minPrice)}/month.`.slice(0, 300);
   const faq = [
     [`Is BillX GST compliant for ${audience}?`, `Yes. Every ${p.docTitle.toLowerCase()} shows your GSTIN, HSN/SAC codes, place of supply and CGST + SGST or IGST, with a GST summary and amount in words. The default GST rate for this business type is ${p.tax}%, and you can set any rate per item.`],
     [`What details can I add to a ${p.docTitle.toLowerCase()}?`, `${fields.length ? `${fields.join(', ')} on every bill` : 'Any details you need'}${cfields.length ? `; ${cfields.join(', ')} saved for each ${p.clientLabel.toLowerCase()}` : ''}${cols.length ? `; and item columns for ${cols.join(', ')}` : ''}. You can rename, add or remove any field in Settings.`],
-    ['Can my staff use it too?', 'Yes. Add staff by email and they sign in with their own login. Everyone sees the same bills, updated live, on phone or computer.'],
+    ...(CLOUD ? [['Can my staff use it too?', 'Yes. Add staff by email and they sign in with their own login. Everyone sees the same bills, updated live, on phone or computer.']] : []),
     [`How do my ${p.clientLabel.toLowerCase()}s pay?`, 'Every bill carries a UPI QR code and a pay button. You can also share a private link where they see all their bills and their balance, download PDFs and confirm payment on WhatsApp.'],
-    ['How much does it cost?', `${Object.values(PLANS).map((x) => `${x.name} ${rupees(x.monthly)}/month`).join(', ')}${GST_RATE ? ' plus GST' : ''}. Every plan starts with a ${TRIAL_DAYS}-day free trial.`],
+    ['How much does it cost?', `${Object.values(PLANS).map((x) => `${x.name} ${rupees(x.monthly)}/month`).join(', ')}${GST_RATE ? ' plus GST' : ''}. ${CLOUD ? `Every plan starts with a ${TRIAL_DAYS}-day free trial.` : 'You can start free and upgrade any time.'}`],
   ];
   const items = starterItems(key);
   const related = Object.entries(INDUSTRIES).filter(([k, v]) => v.group === p.group && k !== key && SECTORS[k]);
@@ -221,7 +229,7 @@ function sectorPage(key) {
         <p class="l-eyebrow">${esc(p.group)}</p>
         <h1>GST billing software for ${esc(audience)}</h1>
         <p class="l-lead">Make ${esc(p.docTitle.toLowerCase())}s for your ${esc(p.clientLabel.toLowerCase())}s in seconds${fields.length ? `, with ${esc(fields.slice(0, 4).join(', '))} on every bill` : ''}. Customers pay by scanning the UPI QR, and BillX tracks who still owes you.</p>
-        <div class="l-cta"><a class="btn primary big" href="/app/#/signup">Start ${TRIAL_DAYS}-day free trial</a><a class="btn big" href="/app/?guest=1#/">Try free, no sign-up</a></div>
+        <div class="l-cta"><a class="btn primary big" href="/app/#/signup">${startCTA()}</a><a class="btn big" href="/app/?guest=1#/">Try free, no sign-up</a></div>
         <p class="l-small">From ${rupees(minPrice)}/month · Works on phone & computer · Pay by UPI, GPay or bank transfer</p>
       </div>
       <figure class="seo-inv" aria-label="Sample ${esc(p.docTitle)} for ${esc(audience)}"><div class="seo-inv-zoom">${sampleInvoiceHTML(key)}</div><figcaption>A sample ${esc(p.docTitle.toLowerCase())} in the ${esc(p.template)} design</figcaption></figure>
@@ -273,7 +281,7 @@ function hubPage() {
 function generatorPage() {
   const path = 'free-gst-invoice-generator/';
   const faq = [
-    ['Is this GST invoice generator really free?', 'Yes. Use it without an account: create, print and download GST invoices as PDF. Your bills stay on your device. Create an account when you want cloud backup, staff logins and reports.'],
+    ['Is this GST invoice generator really free?', `Yes. Use it without an account: create, print and download GST invoices as PDF. Your bills stay on your device. ${CLOUD ? 'Create an account when you want cloud backup, staff logins and reports.' : 'Download a backup from Settings any time.'}`],
     ['What must a GST invoice contain?', 'Supplier name, address and GSTIN; a unique invoice number and date; customer name and address (and GSTIN if registered); HSN/SAC codes; quantity and value of goods or services; taxable value; GST rate and amount (CGST + SGST, or IGST for inter-state); place of supply; total in figures and words; and the signature of the supplier.'],
     ['When do I charge CGST + SGST or IGST?', 'CGST + SGST when the supplier and the place of supply are in the same state; IGST when they are in different states. BillX picks this automatically from the place of supply.'],
     ['Can I add my logo and UPI QR code?', 'Yes. Upload your logo and signature, choose one of 10 designs, and add your UPI ID to print a scan-to-pay QR on every invoice.'],
@@ -283,7 +291,7 @@ function generatorPage() {
       <p class="l-eyebrow">Free tool</p>
       <h1>Free GST invoice generator</h1>
       <p class="l-lead">Create a professional GST invoice in under a minute: CGST/SGST/IGST worked out for you, amount in words, UPI QR, your logo. Print it or save it as a PDF. No sign-up needed.</p>
-      <div class="l-cta"><a class="btn primary big" href="/app/?guest=1#/new/invoice">Create a free invoice</a><a class="btn big" href="/app/#/signup">Start free trial</a></div>
+      <div class="l-cta"><a class="btn primary big" href="/app/?guest=1#/new/invoice">Create a free invoice</a><a class="btn big" href="/app/#/signup">${startShort()}</a></div>
     </div><figure class="seo-inv"><div class="seo-inv-zoom">${sampleInvoiceHTML('retail')}</div><figcaption>An invoice made with the free generator</figcaption></figure></section>
     <section class="seo-sec"><h2>How to make a GST invoice</h2><ol class="seo-steps">
       <li><b>Add your business:</b> name, address, GSTIN, state, logo and UPI ID (once).</li>
@@ -319,7 +327,7 @@ function keralaPage() {
   const body = `
     <section class="seo-sec"><p class="l-eyebrow">Made in Palakkad</p><h1>Billing software in Kerala</h1>
       <p class="l-lead">GST billing and invoicing for shops, hospitals, clinics, restaurants, hotels, schools and service businesses across Kerala, with support from ${esc(SITE.city)}.</p>
-      <div class="l-cta"><a class="btn primary big" href="/app/#/signup">Start ${TRIAL_DAYS}-day free trial</a>${SITE.whatsapp ? `<a class="btn big" href="https://wa.me/${esc(SITE.whatsapp)}?text=${encodeURIComponent('Hi, I want a BillX demo.')}">Book a demo on WhatsApp</a>` : ''}</div></section>
+      <div class="l-cta"><a class="btn primary big" href="/app/#/signup">${startCTA()}</a>${SITE.whatsapp ? `<a class="btn big" href="https://wa.me/${esc(SITE.whatsapp)}?text=${encodeURIComponent('Hi, I want a BillX demo.')}">Book a demo on WhatsApp</a>` : ''}</div></section>
     <section class="seo-sec"><h2>Serving businesses across Kerala</h2><p class="seo-links">${cities.map((c) => `<span>${c}</span>`).join('')}</p></section>
     <section class="seo-sec"><h2>Popular in Kerala</h2><p class="seo-links">${['hospital', 'clinic', 'pharmacy', 'retail', 'textile', 'jewellery', 'restaurant', 'bakery', 'hotel', 'automobile', 'education', 'construction'].map((k) => `<a href="/${sectorPath(k)}">${esc(INDUSTRIES[k].name)}</a>`).join('')}</p></section>
     <section class="seo-sec"><h2>Pricing</h2><div class="l-plans">${plansHTML().replaceAll('href="app/', 'href="/app/').replaceAll('href="pay.html', 'href="/pay.html')}</div></section>
@@ -327,7 +335,7 @@ function keralaPage() {
   return {
     path, html: page({
       title: 'Billing Software in Kerala | GST Billing App, Palakkad · BillX',
-      description: `GST billing software for Kerala businesses in Palakkad, Kochi, Thrissur, Kozhikode and more. Invoices, UPI QR, reports. ${TRIAL_DAYS}-day free trial.`,
+      description: `GST billing software for Kerala businesses in Palakkad, Kochi, Thrissur, Kozhikode and more. Invoices, UPI QR, reports. ${trialNote()}.`,
       path, body, jsonLd: [orgJsonLd(), faqJsonLd(faq)], crumbs: [['BillX', ''], ['Billing software in Kerala', path]],
     }),
   };

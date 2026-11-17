@@ -1,19 +1,19 @@
 // Who sells BillX: shown on the website, payment page, legal pages and in SEO data.
 export const SITE = {
   product: 'BillX',
-  company: 'BillX Corp',
+  company: 'BillX Solutions',
   owner: '[removed]',
   city: 'Palakkad, Kerala, India',
   // Full public address of the site, no trailing slash. Used for SEO (canonical
   // links, sitemap, social previews). Change it when you connect your own domain.
-  url: 'https://billx.pages.dev',
+  url: 'https://billxsolutions.pages.dev',
   // WhatsApp for support and payment confirmations: digits only, with 91.
   whatsapp: '919074580473',
   // Support email shown on the site. Empty hides it.
   email: '',
   // Registered address for invoices and legal pages (Razorpay checks this).
   address: '',
-  // GSTIN of BillX Corp. Empty = not GST-registered: prices are shown with no GST added.
+  // GSTIN of BillX Solutions. Empty = not GST-registered: prices are shown with no GST added.
   gstin: '',
   // Set true after you (or your lawyer/CA) have read and approved the legal pages.
   legalReviewed: false,
@@ -22,7 +22,7 @@ export const SITE = {
 
   // Where customers send money.
   pay: {
-    payee: 'BillX Corp',
+    payee: 'BillX Solutions',
     // GPay / PhonePe / Paytm number customers can pay to.
     gpay: '',
     // Exact UPI ID (VPA), e.g. name@okaxis, shown in GPay → Profile. Enables the scan-to-pay QR.

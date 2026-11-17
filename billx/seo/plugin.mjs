@@ -5,9 +5,23 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { transform } from 'esbuild';
+import { firebaseConfig } from '../src/cloud/config.js';
 import {
-  homeHead, plansHTML, sectorsHTML, faqHTML, footLinksHTML, seoPages, sitemapXML, robotsTXT,
+  setCloudMode, homeHead, plansHTML, sectorsHTML, faqHTML, footLinksHTML, seoPages, sitemapXML, robotsTXT,
 } from './content.mjs';
+
+// Home page wording that only holds once accounts (Firebase) are switched on.
+const FREE_MODE_TEXT = [
+  ['Start 14-day free trial', 'Start free'],
+  ['>Start free trial<', '>Start free<'],
+  ['No card needed for the trial', 'Free to start, no sign-up'],
+  ['client portal, reports. 14-day free trial.', 'client portal, reports. Start free.'],
+  ['Every plan starts with a 14-day free trial.', 'Start free and upgrade any time. Pay by UPI, GPay or bank transfer.'],
+  ['<div><b>Your staff, your branches</b><p>Give staff their own login and run several businesses or branches from one account.</p></div>',
+    '<div><b>Many businesses, one app</b><p>Run several businesses or branches from one BillX, each with its own customers, numbering, design and reports.</p></div>'],
+  ['<div><b>Safe in the cloud</b><p>Bills sync across your phone and computer and are backed up automatically. Download your data any time.</p></div>',
+    '<div><b>Your data stays yours</b><p>Bills are saved on your own device. Download a full backup any time and restore it on another phone or computer.</p></div>'],
+];
 
 const EXTRA_CSS = `
 .crumbs { max-width: 1160px; margin: 14px auto 0; padding: 0 16px; font-size: 13px; color: var(--ink-3); }
@@ -35,12 +49,18 @@ const EXTRA_CSS = `
  */
 export function billxSeo({ linkBase = '', emitPages = true } = {}) {
   const dir = fileURLToPath(new URL('..', import.meta.url));
+  let cloud = true;
   return {
     name: 'billx-seo',
+    configResolved(config) {
+      cloud = !!((config.env && config.env.VITE_BILLX_FIREBASE) || firebaseConfig);
+      setCloudMode(cloud);
+    },
     transformIndexHtml: {
       order: 'pre',
       handler(html, ctx) {
         if (!ctx.filename.replaceAll('\\', '/').endsWith('/billx/index.html')) return html;
+        if (!cloud) for (const [a, b] of FREE_MODE_TEXT) html = html.replaceAll(a, b);
         return html
           .replace('<!--SEO:HEAD-->', homeHead())
           .replace('<!--SEO:SECTORS-->', sectorsHTML(linkBase))
