@@ -135,6 +135,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // BillX Solutions' own UPI / bank details: shown only to signed-in users with a
+    // verified email, edited only by an admin. Never stored in the public code.
+    match /private/payment {
+      allow get: if verifiedEmail();
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['payee', 'gpay', 'upiId', 'accountName', 'accountNo', 'ifsc', 'bankName', 'branch', 'updatedAt']);
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

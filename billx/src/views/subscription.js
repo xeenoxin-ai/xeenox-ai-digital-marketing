@@ -2,7 +2,7 @@
 // cancel, invite staff, sign out.
 import { PLANS, TAX_NOTE } from '../plans.js';
 import {
-  session, addMember, removeMember, signOut, submitPayment, myPayments,
+  session, addMember, removeMember, signOut, submitPayment, myPayments, paymentDetails,
 } from '../cloud/session.js';
 import {
   payDetailsHTML, bindCopy, payAmount, rupees, whatsappLink, confirmationText,
@@ -28,6 +28,7 @@ export function subscriptionView(main, params, query) {
   const wanted = query.get('plan') || '';
   let chosen = PLANS[wanted] ? wanted : (PLANS[acc.plan] ? acc.plan : 'business');
   let payments = [];
+  let details = null;
   setPage('Subscription & team', `<button class="btn" id="signOut">${icon('back')} Sign out</button>`);
 
   const statusLine = {
@@ -64,7 +65,7 @@ export function subscriptionView(main, params, query) {
 
     <section class="card" id="manualPay">
       <h3>Pay by UPI / GPay / bank transfer <small>${esc(PLANS[chosen].name)}, ${period}</small></h3>
-      ${payDetailsHTML(chosen, period)}
+      ${payDetailsHTML(chosen, period, details)}
       <form id="utrForm" class="row-gap wrap">
         <input name="utr" required minlength="6" placeholder="UTR / reference number after you pay" style="flex:1;min-width:220px">
         <select name="method" style="width:auto"><option>UPI</option><option>Bank transfer</option></select>
@@ -136,7 +137,10 @@ export function subscriptionView(main, params, query) {
     }));
   };
   render();
-  if (owner) myPayments().then((list) => { payments = list; render(); }).catch(() => {});
+  if (owner) {
+    myPayments().then((list) => { payments = list; render(); }).catch(() => {});
+    paymentDetails().then((d) => { details = d; render(); });
+  }
   $('#signOut').addEventListener('click', () => signOut());
   const rerender = () => { if (location.hash.startsWith('#/subscription')) subscriptionView(main, params, query); };
   window.addEventListener('billx:account', rerender, { once: true });

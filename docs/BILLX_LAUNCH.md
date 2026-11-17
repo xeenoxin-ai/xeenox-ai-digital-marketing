@@ -19,17 +19,17 @@ Expect about 2 hours, plus Razorpay's KYC approval time (often 1–3 working day
 
 ## Fastest start: publish now, take payments by UPI / bank transfer
 
-You don't have to wait for Razorpay. BillX already shows **BillX Solutions**, your GPay number and your
-bank account on the pricing and payment pages (`/pay.html`), and inside the app under
-**Subscription & team → Pay by UPI / GPay / bank transfer**:
+You don't have to wait for Razorpay. Customers buy from the pricing and payment pages (`/pay.html`)
+or inside the app under **Subscription & team → Pay by UPI / GPay / bank transfer**:
 
 1. The customer pays you by UPI or bank transfer and submits the UTR / reference (or sends it on WhatsApp).
 2. You check your bank or GPay, then open **`/admin.html` → Payments to confirm → Approve**.
 3. Their plan switches on for 1 month or 1 year, extended from the current end date if they renew early.
 
-Payment details live in `billx/src/site.js → pay`. Add your **UPI ID** (shown in GPay → Profile, e.g.
-`name@okaxis`) to get a scan-to-pay QR with the amount filled in, and your **IFSC code** and **bank name**
-for bank transfers.
+Your UPI and bank details are **private**: they are never in the code or on the public website.
+The public payment page has a **"Get payment details on WhatsApp"** button, so you send them personally.
+Once accounts (Firebase) are on, save them in **`/admin.html` → Payment details (private)**. Signed-in
+customers then see them, with a scan-to-pay QR, on their Subscription page.
 
 You still need Firebase (step 1, free) so customers have accounts that you can activate.
 Razorpay (step 2) is optional: add it later for automatic monthly autopay.
