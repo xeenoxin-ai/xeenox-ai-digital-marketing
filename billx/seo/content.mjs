@@ -138,13 +138,48 @@ export function sectorsHTML(linkBase = '') {
 
 export const faqHTML = (faq = homeFaq()) => faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
 
-export function footLinksHTML(linkBase = '') {
-  const top = ['retail', 'hospital', 'clinic', 'pharmacy', 'restaurant', 'hotel', 'automobile', 'salon', 'education', 'jewellery', 'wholesale', 'professional'];
-  return `<div class="l-footlinks">
-    <div><b>Billing software for</b>${top.map((k) => `<a href="${linkBase}${sectorPath(k)}">${esc(INDUSTRIES[k].name)}</a>`).join('')}<a href="${linkBase}billing-software/">All 44 business types →</a></div>
-    <div><b>Free tools</b><a href="${linkBase}free-gst-invoice-generator/">Free GST invoice generator</a><a href="${linkBase}billing-software-kerala/">Billing software in Kerala</a><a href="${linkBase}pay.html">Buy BillX</a></div>
-  </div>`;
+export const isCloud = () => CLOUD;
+
+/** Brand lock-up used in every header. */
+export const brandHTML = (href) => `<a class="l-brand" href="${href}" aria-label="BillX by BillX Solutions, home"><img src="${href === '/' ? '/logo.svg' : 'logo.svg'}" alt="" width="34" height="34" /><span class="l-brand-text"><span class="l-brand-name">Bill<b>X</b></span><small>by ${esc(SITE.company)}</small></span></a>`;
+
+/** Site header for the standalone SEO pages. */
+export function navHTML() {
+  return `<header class="l-nav"><div class="l-nav-in">${brandHTML('/')}
+    <nav class="l-menu"><a href="/#features">Features</a><a href="/billing-software/">Industries</a><a href="/#pricing">Pricing</a><a href="/free-gst-invoice-generator/">Free invoice tool</a></nav>
+    <div class="l-nav-cta">${CLOUD ? '<a class="btn ghost" href="/app/">Sign in</a>' : ''}<a class="btn primary" href="/app/#/signup">${startShort()}</a></div></div></header>`;
 }
+
+const STRIP = [['hospital', 'heart', 'Hospitals'], ['clinic', 'heart', 'Clinics'], ['pharmacy', 'pill', 'Pharmacies'], ['retail', 'bag', 'Retail shops'],
+  ['restaurant', 'utensils', 'Restaurants'], ['hotel', 'bed', 'Hotels'], ['automobile', 'wrench', 'Garages'], ['salon', 'scissors', 'Salons'],
+  ['education', 'cap', 'Schools'], ['services', 'briefcase', 'Agencies'], ['construction', 'hardhat', 'Builders'], ['transport', 'truck', 'Transport']];
+
+/** "Built for" strip of key industries, linking to their pages. */
+export function industryStripHTML(linkBase = '') {
+  return STRIP.map(([k, ic, label]) => `<a class="l-ind" href="${linkBase}${sectorPath(k)}"><i data-li="${ic}" data-size="20"></i><span>${label}</span></a>`).join('');
+}
+
+/** Company footer, shared by the home page and the SEO pages. */
+export function footerHTML(linkBase = '') {
+  const top = ['retail', 'hospital', 'clinic', 'pharmacy', 'restaurant', 'hotel', 'automobile', 'salon', 'education', 'jewellery'];
+  const home = linkBase || './';
+  const wa = SITE.whatsapp ? `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent('Hi, I want to know more about BillX.')}` : '';
+  return `<footer class="l-footer"><div class="l-footer-in">
+    <div class="l-footer-brand">${brandHTML(home)}
+      <p>GST billing &amp; invoicing software for every kind of business: invoices, quotes, receipts, UPI payments and reports in one place.</p>
+      <p class="l-footer-contact"><i data-li="pin" data-size="16"></i> ${esc(SITE.city)}</p>
+      ${wa ? `<p class="l-footer-contact"><i data-li="chat" data-size="16"></i> <a href="${wa}" target="_blank" rel="noopener">WhatsApp +${esc(SITE.whatsapp.replace(/^91/, '91 '))}</a></p>` : ''}
+      ${SITE.email ? `<p class="l-footer-contact"><a href="mailto:${esc(SITE.email)}">${esc(SITE.email)}</a></p>` : ''}
+    </div>
+    <div><h4>Product</h4><a href="${home}#features">Features</a><a href="${home}#pricing">Pricing</a><a href="${linkBase}free-gst-invoice-generator/">Free GST invoice generator</a><a href="${linkBase}pay.html">Buy BillX</a><a href="${linkBase}app/">Open the app</a></div>
+    <div><h4>Industries</h4>${top.map((k) => `<a href="${linkBase}${sectorPath(k)}">${esc(INDUSTRIES[k].name)}</a>`).join('')}<a href="${linkBase}billing-software/">All 44 business types →</a></div>
+    <div><h4>Company</h4><a href="${linkBase}billing-software-kerala/">Billing software in Kerala</a><a href="${linkBase}legal/contact.html">Contact us</a><a href="${linkBase}legal/terms.html">Terms of service</a><a href="${linkBase}legal/privacy.html">Privacy policy</a><a href="${linkBase}legal/refund.html">Refunds &amp; cancellation</a></div>
+  </div>
+  <div class="l-footer-bar"><span>© ${new Date().getFullYear()} ${esc(SITE.company)}. All rights reserved.</span><span>Made in ${esc(SITE.city.split(',')[0])}, Kerala</span></div></footer>`;
+}
+
+/** Kept for older templates: the footer's link columns. */
+export const footLinksHTML = (linkBase = '') => footerHTML(linkBase);
 
 /* ---------------- standalone landing pages ---------------- */
 
@@ -164,17 +199,13 @@ function page({ title, description, path, jsonLd, body, crumbs }) {
     ${SEO_CSS_LINKS}
   </head>
   <body class="landing">
-    <header class="l-nav"><a class="l-brand" href="/"><img src="/logo.svg" alt="BillX" width="32" height="32" /><span>Bill<b>X</b></span></a>
-      <nav><a href="/#features">Features</a><a href="/billing-software/">Businesses</a><a href="/#pricing">Pricing</a></nav>
-      <a class="btn" href="/app/">Sign in</a><a class="btn primary" href="/app/#/signup">${startShort()}</a></header>
+    ${navHTML()}
     <nav class="crumbs" aria-label="Breadcrumb">${crumbs.map(([n, p], i) => (i < crumbs.length - 1 ? `<a href="/${p}">${esc(n)}</a> › ` : `<span>${esc(n)}</span>`)).join('')}</nav>
     <main class="seo">${body}</main>
-    <section class="l-final"><h2>Start billing in under a minute</h2>
-      <a class="btn primary big" href="/app/#/signup">${startCTA()}</a>
-      <p class="l-small">Or <a href="/app/?guest=1#/">try the free invoice generator</a> without an account.</p></section>
-    <footer class="l-foot"><span>© ${new Date().getFullYear()} ${esc(SITE.company)}, ${esc(SITE.city)}</span>
-      ${footLinksHTML('/')}
-      <nav><a href="/legal/terms.html">Terms</a><a href="/legal/privacy.html">Privacy</a><a href="/legal/refund.html">Refunds</a><a href="/legal/contact.html">Contact</a></nav></footer>
+    <section class="l-cta-band"><div class="l-cta-in"><h2>Start billing like a professional today</h2>
+      <p>Set up in a minute. Your logo, GST details and UPI QR on every bill.</p>
+      <div class="l-cta"><a class="btn white big" href="/app/#/signup">${startCTA()}</a><a class="btn outline-white big" href="/app/?guest=1#/new/invoice">Try the free invoice generator</a></div></div></section>
+    ${footerHTML('/')}
     ${SITE.whatsapp ? `<a class="l-wa" href="https://wa.me/${esc(SITE.whatsapp)}?text=${encodeURIComponent('Hi, I want to know more about BillX.')}" target="_blank" rel="noopener">WhatsApp us</a>` : ''}
   </body>
 </html>`;
