@@ -260,3 +260,24 @@ export async function removeMember(email) {
 }
 
 export const idToken = () => session.user.getIdToken();
+
+/* ---- pay by UPI / bank transfer: the owner submits the reference, an admin approves ---- */
+
+export async function submitPayment({ plan, period, amount, utr, method }) {
+  const ref = String(utr || '').trim();
+  if (ref.length < 6) throw new Error('Enter the UTR / reference number from your payment app or bank');
+  await setDoc(doc(collection(firebase().db, 'paymentRequests')), {
+    uid: session.user.uid,
+    accountId: session.accountId,
+    email: (session.user.email || '').toLowerCase(),
+    plan, period, amount, utr: ref.slice(0, 40), method: method || 'UPI',
+    status: 'pending',
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function myPayments() {
+  const q = query(collection(firebase().db, 'paymentRequests'), where('uid', '==', session.user.uid));
+  return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+}

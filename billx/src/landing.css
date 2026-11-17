@@ -70,3 +70,4 @@ body.landing { background: var(--panel); }
 .legal h2 { font-size: 18px; margin: 26px 0 8px; }
 .legal p, .legal li { color: var(--ink-2); }
 .legal .draft { background: var(--warn-soft); color: var(--warn); padding: 10px 14px; border-radius: 10px; font-size: 14px; }
+.l-paynow { display: block; text-align: center; margin-top: 10px; font-size: 13px; font-weight: 600; }

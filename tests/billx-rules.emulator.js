@@ -117,3 +117,17 @@ test('only the owner deletes a business', async () => {
   await assertFails(deleteDoc(doc(staff(), 'accounts', 'owner', 'workspaces', 'w2')));
   await assertSucceeds(deleteDoc(doc(owner(), 'accounts', 'owner', 'workspaces', 'w2')));
 });
+
+test('UPI / bank payments: owner submits, only admin approves', async () => {
+  await seedAccount({ memberEmails: [] });
+  const req = { uid: 'owner', accountId: 'owner', email: 'owner@shop.in', plan: 'pro', period: 'monthly', amount: 3999, utr: '412345678901', method: 'UPI', status: 'pending', createdAt: serverTimestamp() };
+  await assertSucceeds(setDoc(doc(owner(), 'paymentRequests', 'p1'), req));
+  await assertFails(setDoc(doc(owner(), 'paymentRequests', 'p2'), { ...req, status: 'approved' }), 'cannot self-approve');
+  await assertFails(setDoc(doc(owner(), 'paymentRequests', 'p3'), { ...req, utr: '12' }), 'reference too short');
+  await assertFails(setDoc(doc(stranger(), 'paymentRequests', 'p4'), { ...req, uid: 'eve', accountId: 'owner' }), 'not their account');
+  await assertSucceeds(getDocs(query(collection(owner(), 'paymentRequests'), where('uid', '==', 'owner'))));
+  await assertFails(getDoc(doc(stranger(), 'paymentRequests', 'p1')));
+  await assertFails(updateDoc(doc(owner(), 'paymentRequests', 'p1'), { status: 'approved' }));
+  await assertSucceeds(updateDoc(doc(admin(), 'paymentRequests', 'p1'), { status: 'approved', reviewedAt: serverTimestamp() }));
+  await assertSucceeds(getDocs(collection(admin(), 'paymentRequests')));
+});

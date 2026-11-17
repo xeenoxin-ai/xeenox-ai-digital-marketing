@@ -19,6 +19,14 @@ import { settingsView } from './views/settings.js';
 
 let cloud = null; // { session, access } in cloud mode
 
+// Guest = try BillX without an account (data stays in this browser), even on the paid site.
+const GUEST_KEY = 'billx-guest';
+const storeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const storeSet = (k, v) => { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* ignore */ } };
+if (new URLSearchParams(location.search).get('guest') === '1') storeSet(GUEST_KEY, '1');
+const guest = cloudEnabled() && storeGet(GUEST_KEY) === '1';
+const leaveGuest = () => { storeSet(GUEST_KEY, null); location.hash = '#/signup'; location.reload(); };
+
 document.querySelectorAll('[data-ic]').forEach((el) => { el.innerHTML = icon(el.dataset.ic, 20); });
 
 function updateShell() {
@@ -91,12 +99,19 @@ function registerRoutes() {
   if (cloud) {
     route('/subscription', (main, p, q) => import('./views/subscription.js').then((m) => m.subscriptionView(main, p, q)));
   }
-  route('/signup', () => { location.hash = '#/'; });
+  route('/signup', () => { if (guest) leaveGuest(); else location.hash = '#/'; });
   route('/login', () => { location.hash = '#/'; });
 }
 
 function updateBanner() {
   const el = document.getElementById('acctBanner');
+  if (guest) {
+    el.className = 'acct-banner';
+    el.innerHTML = 'You are using BillX free on this device, without an account. <button class="btn" id="bannerSignup">Create free account</button> <span class="muted small">to save in the cloud, add staff and use it on every device.</span>';
+    el.hidden = false;
+    document.getElementById('bannerSignup').onclick = leaveGuest;
+    return;
+  }
   if (!cloud) { el.hidden = true; return; }
   const { session, access } = cloud;
   if (session.error === 'permission') {
@@ -136,6 +151,7 @@ function boot() {
     if (!/^#\/(new|edit|settings|design)/.test(location.hash) && !document.querySelector('dialog[open]')) resolve();
   });
   registerRoutes();
+  updateBanner();
   if (cloud) {
     document.getElementById('navSub').hidden = false;
     document.getElementById('sideNote').textContent = `Signed in as ${cloud.session.user.email}. Saved to the cloud.`;
@@ -146,7 +162,7 @@ function boot() {
 }
 
 async function main() {
-  if (!cloudEnabled()) {
+  if (!cloudEnabled() || guest) {
     load();
     boot();
     return;

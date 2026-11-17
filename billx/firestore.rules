@@ -112,6 +112,29 @@ service cloud.firestore {
       }
     }
 
+    // "I've paid by UPI / bank transfer": the owner submits the reference,
+    // a BillX admin checks the bank and approves (which activates the plan).
+    match /paymentRequests/{id} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'accountId', 'email', 'plan', 'period', 'amount', 'utr', 'method', 'status', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.accountId == request.auth.uid
+        && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.plan in ['starter', 'business', 'pro']
+        && request.resource.data.period in ['monthly', 'yearly']
+        && request.resource.data.amount is number && request.resource.data.amount > 0
+        && str(request.resource.data.utr, 40) && request.resource.data.utr.size() >= 6
+        && str(request.resource.data.method, 30)
+        && str(request.resource.data.email, 200);
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedAt', 'reviewNote'])
+        && request.resource.data.status in ['approved', 'rejected'];
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
