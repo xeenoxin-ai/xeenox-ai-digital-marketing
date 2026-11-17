@@ -2,7 +2,10 @@
 
 import {
   settings, flush, persist, setIndustry, exportJSON, importJSON, resetAll, loadSample, DOC_TYPES, peekNumber,
+  workspaces, removeWorkspace, activeWorkspace,
 } from '../store.js';
+import { sectorOf } from '../industries.js';
+import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { icon, esc, $, toast, confirmBox, options, field, readImage, download } from '../ui.js';
@@ -50,10 +53,15 @@ export function settingsView(main) {
     </section>
 
     <section class="card">
-      <h3>Business type</h3>
-      <p class="muted">Sets the fields on each bill (for hospitals: UHID, IP/OP no., consultant, ward, admission/discharge, insurance share), labels, starter items, default tax and design.</p>
-      <div class="ind-grid">${Object.entries(INDUSTRIES).map(([k, v]) => `<label class="ind${k === s.industry ? ' on' : ''}"><input type="radio" name="industry" value="${k}" ${k === s.industry ? 'checked' : ''}><b>${esc(v.name)}</b><small>${esc(v.clientLabel)} · ${esc(v.docTitle)}</small></label>`).join('')}</div>
-      ${field('What do you call your customers?', `<input name="clientLabel" value="${esc(s.clientLabel)}">`)}
+      <h3>Business type <small>now: ${esc(INDUSTRIES[s.industry] ? INDUSTRIES[s.industry].name : 'General')}</small></h3>
+      <p class="muted">Switching sets the labels, bill fields, starter items, default tax and design for that kind of business. Existing documents are kept.</p>
+      <details class="sp-details"><summary class="btn">Change business type</summary>${sectorPickerHTML(s.industry)}</details>
+      ${field('What do you call your customers?', `<input name="clientLabel" value="${esc(s.clientLabel)}" placeholder="Customer, Client, Patient, Student, Guest, Member, Tenant…">`)}
+    </section>
+
+    <section class="card" id="fieldsCard">
+      <h3>Fields on your bills <small>add, rename or remove anything</small></h3>
+      <div id="fieldEditor"></div>
     </section>
 
     <section class="card">
@@ -95,11 +103,74 @@ export function settingsView(main) {
       <button class="btn" id="exp">${icon('download')} Download backup</button>
       <label class="btn">${icon('upload')} Restore backup<input type="file" id="imp" accept="application/json,.json" hidden></label>
       <button class="btn" id="sample">${icon('refresh')} Add sample data</button>
-      <button class="btn danger-text" id="reset">${icon('trash')} Erase everything</button>
+      <button class="btn danger-text" id="reset">${icon('trash')} Erase this business's data</button>
+      ${workspaces().length > 1 ? `<button class="btn danger-text" id="delWs">${icon('trash')} Remove this business from BillX</button>` : ''}
     </div>
+    <p class="muted small">Backups cover the business you have open (${esc(b.name)}). Switch business from the sidebar to back up the others.</p>
   </section>`;
 
   const form = $('#setForm', main);
+  bindSectorPicker(form, (key) => { form.elements.clientLabel.value = INDUSTRIES[key].clientLabel; });
+
+  // Editable copy of this business's fields.
+  const sec = sectorOf(s);
+  const ed = {
+    fields: sec.fields.map((f) => ({ ...f })),
+    clientFields: sec.clientFields.map((f) => ({ ...f })),
+    itemCols: sec.itemCols.filter((c) => !c.hidden).map((f) => ({ ...f })),
+    hiddenCols: sec.itemCols.filter((c) => c.hidden),
+    insurance: sec.insurance,
+  };
+  const LISTS = [
+    ['fields', 'Bill details', 'Shown with the number and date on every bill: e.g. Vehicle No., Room No., Project, Table, Event date.', true],
+    ['clientFields', `${s.clientLabel} fields`, `Saved on each ${s.clientLabel.toLowerCase()} and printed under their name: e.g. Member ID, Age, PAN.`, false],
+    ['itemCols', 'Extra item columns', 'Extra columns in the items table: e.g. Batch, Expiry, Size, Colour, Serial / IMEI, Weight.', false],
+  ];
+  const renderEditor = () => {
+    $('#fieldEditor', main).innerHTML = `${LISTS.map(([k, title, help, typed]) => `<div class="fe-block" data-list="${k}">
+      <div class="fe-head"><b>${esc(title)}</b><span class="muted small">${esc(help)}</span></div>
+      ${ed[k].map((f, i) => `<div class="fe-row" data-i="${i}">
+        <input data-fe="label" value="${esc(f.label)}" placeholder="Field name" aria-label="Field name">
+        ${typed ? `<select data-fe="type" aria-label="Type">${options([['', 'Text'], ['date', 'Date']], f.type || '')}</select>` : ''}
+        <button type="button" class="icon-btn" data-fe-move="-1" aria-label="Move up">${icon('up', 16)}</button>
+        <button type="button" class="icon-btn danger" data-fe-del aria-label="Remove">${icon('trash', 16)}</button>
+      </div>`).join('') || '<p class="muted small">None.</p>'}
+      <button type="button" class="btn ghost" data-fe-add>${icon('plus')} Add</button>
+    </div>`).join('')}
+    <label class="check"><input type="checkbox" data-fe-ins ${ed.insurance ? 'checked' : ''}> Third-party share on bills (insurance / TPA / sponsor / subsidy pays part, the rest is payable)</label>`;
+  };
+  renderEditor();
+  const feCard = $('#fieldEditor', main);
+  feCard.addEventListener('input', (e) => {
+    const row = e.target.closest('.fe-row');
+    if (!row) return;
+    const list = ed[row.closest('[data-list]').dataset.list];
+    list[+row.dataset.i][e.target.dataset.fe] = e.target.value;
+    setDirty(true);
+  });
+  feCard.addEventListener('change', (e) => {
+    if (e.target.matches('[data-fe-ins]')) { ed.insurance = e.target.checked; setDirty(true); }
+  });
+  feCard.addEventListener('click', (e) => {
+    const block = e.target.closest('[data-list]');
+    if (!block) return;
+    const isAdd = !!e.target.closest('[data-fe-add]');
+    const list = ed[block.dataset.list];
+    const row = e.target.closest('.fe-row');
+    if (isAdd) list.push({ key: `f${Date.now().toString(36)}`, label: '' });
+    else if (row && e.target.closest('[data-fe-del]')) list.splice(+row.dataset.i, 1);
+    else if (row && e.target.closest('[data-fe-move]')) {
+      const i = +row.dataset.i;
+      if (i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    } else return;
+    setDirty(true);
+    renderEditor();
+    if (isAdd) {
+      const inputs = feCard.querySelectorAll(`[data-list="${block.dataset.list}"] [data-fe="label"]`);
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }
+  });
+
   form.addEventListener('input', () => setDirty(true));
   form.addEventListener('change', async (e) => {
     const el = e.target;
@@ -111,10 +182,6 @@ export function settingsView(main) {
         setDirty(false);
         settingsView(main);
       } catch (err) { toast(err.message, 'err'); }
-    }
-    if (el.name === 'industry') {
-      main.querySelectorAll('.ind').forEach((l) => l.classList.toggle('on', l.contains(el)));
-      form.elements.clientLabel.value = INDUSTRIES[el.value].clientLabel;
     }
   });
   form.addEventListener('click', (e) => {
@@ -128,9 +195,19 @@ export function settingsView(main) {
     e.preventDefault();
     const fd = new FormData(form);
     const newInd = fd.get('industry');
+    let switched = false;
     if (newInd && newInd !== s.industry) {
       const ok = await confirmBox(`Switch to ${INDUSTRIES[newInd].name}?`, 'Labels, fields, default tax and the default design change to suit it, and its starter items are added. Your existing documents are kept.', 'Switch');
-      if (ok) setIndustry(newInd);
+      if (ok) { setIndustry(newInd); switched = true; }
+    }
+    if (!switched) {
+      const clean = (list) => list.filter((f) => f.label && f.label.trim()).map((f) => ({ ...f, label: f.label.trim() }));
+      s.sector = {
+        fields: clean(ed.fields),
+        clientFields: clean(ed.clientFields),
+        itemCols: [...ed.hiddenCols, ...clean(ed.itemCols)],
+        insurance: ed.insurance,
+      };
     }
     for (const [k, v] of fd.entries()) {
       if (k.startsWith('b.')) b[k.slice(2)] = String(v).trim();
@@ -143,7 +220,7 @@ export function settingsView(main) {
     b.pan = b.pan.toUpperCase();
     b.ifsc = b.ifsc.toUpperCase();
     Object.assign(s, {
-      clientLabel: fd.get('clientLabel') || s.clientLabel,
+      clientLabel: switched ? s.clientLabel : (fd.get('clientLabel') || s.clientLabel),
       currency: fd.get('currency'),
       taxMode: fd.get('taxMode'),
       defaultTax: parseFloat(fd.get('defaultTax')) || 0,
@@ -177,6 +254,14 @@ export function settingsView(main) {
       flush();
       toast('Sample data added');
       navigate('#/');
+    }
+  });
+  const delWs = $('#delWs', main);
+  if (delWs) delWs.addEventListener('click', async () => {
+    if (await confirmBox(`Remove ${b.name}?`, 'This business and all its documents, customers and items are deleted from this browser. Download a backup first if you need it.', 'Remove business')) {
+      removeWorkspace(activeWorkspace());
+      location.hash = '#/';
+      location.reload();
     }
   });
   $('#reset', main).addEventListener('click', async () => {

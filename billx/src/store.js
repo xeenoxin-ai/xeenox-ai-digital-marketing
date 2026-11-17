@@ -2,9 +2,10 @@
 // with JSON backup/restore. No account or server needed.
 
 import { formatNumber, addDays } from './calc.js';
-import { industry, starterItems } from './industries.js';
+import { industry, starterItems, sectorOf, sampleValue } from './industries.js';
 
-const KEY = 'billx-v1';
+const INDEX_KEY = 'billx-workspaces';
+const keyFor = (id) => (id === 'main' ? 'billx-v1' : `billx-v1:${id}`);
 
 export const DOC_TYPES = {
   invoice: { name: 'Invoice', plural: 'Invoices', title: 'Tax Invoice', prefix: 'INV-' },
@@ -79,6 +80,7 @@ function defaultSettings(ind = 'general') {
     notes: 'Thank you for your business.',
     terms: '1. Payment due by the due date.\n2. Goods once sold will not be taken back.\n3. Subject to local jurisdiction.',
     footer: '',
+    sector: null,
     design: {
       template: p.template,
       accent: p.accent,
@@ -87,7 +89,7 @@ function defaultSettings(ind = 'general') {
       align: 'left',
       density: 'normal',
       groupByCategory: !!p.groupByCategory,
-      show: { ...DEFAULT_SHOW, discountCol: ind !== 'restaurant', hsn: ind !== 'restaurant' && ind !== 'education' },
+      show: industryShow(ind),
       labels: industryLabels(ind),
       customFields: [],
     },
@@ -96,12 +98,13 @@ function defaultSettings(ind = 'general') {
 
 function industryLabels(ind) {
   const p = industry(ind);
-  const labels = { billTo: p.clientLabel === 'Client' ? 'Bill To' : `${p.clientLabel} Details` };
-  if (ind === 'hospital') Object.assign(labels, { item: 'Service / Particulars', payable: 'Patient Payable', tax: 'Tax %' });
-  if (ind === 'education') Object.assign(labels, { item: 'Fee head' });
-  if (ind === 'restaurant') Object.assign(labels, { item: 'Item', thanks: 'Thank you! Visit again.' });
-  if (ind === 'hotel') Object.assign(labels, { item: 'Particulars' });
-  return labels;
+  return { billTo: p.clientLabel === 'Client' ? 'Bill To' : `${p.clientLabel} Details`, ...(p.labels || {}) };
+}
+
+function industryShow(ind) {
+  const show = { ...DEFAULT_SHOW };
+  for (const k of industry(ind).hide || []) show[k] = false;
+  return show;
 }
 
 let state = null;
@@ -129,9 +132,70 @@ function migrate(s) {
   return out;
 }
 
+/* ---- several businesses in one app: each is a workspace with its own data ---- */
+
+function readIndex() {
+  try {
+    const ix = JSON.parse(localStorage.getItem(INDEX_KEY));
+    if (ix && Array.isArray(ix.list) && ix.list.length) return ix;
+  } catch { /* fall through */ }
+  return { active: 'main', list: [{ id: 'main', name: '' }] };
+}
+function writeIndex(ix) {
+  try { localStorage.setItem(INDEX_KEY, JSON.stringify(ix)); } catch { /* storage unavailable */ }
+}
+
+export function workspaces() {
+  const ix = readIndex();
+  return ix.list.map((w) => ({ ...w, active: w.id === ix.active }));
+}
+export const activeWorkspace = () => readIndex().active;
+
+/** Short summary of a stored workspace (name and sector) without loading it. */
+export function workspaceInfo(id) {
+  if (state && id === activeWorkspace()) return { name: state.settings.business.name, industry: state.settings.industry, onboarded: state.settings.onboarded };
+  try {
+    const d = JSON.parse(localStorage.getItem(keyFor(id)));
+    return { name: d.settings.business.name, industry: d.settings.industry, onboarded: d.settings.onboarded };
+  } catch {
+    return { name: 'New business', industry: '', onboarded: false };
+  }
+}
+
+export function switchWorkspace(id) {
+  flush();
+  const ix = readIndex();
+  if (!ix.list.some((w) => w.id === id)) return;
+  ix.active = id;
+  writeIndex(ix);
+  load();
+}
+
+export function createWorkspace() {
+  flush();
+  const ix = readIndex();
+  const id = uid();
+  ix.list.push({ id, name: 'New business' });
+  ix.active = id;
+  writeIndex(ix);
+  load();
+  return id;
+}
+
+export function removeWorkspace(id) {
+  const ix = readIndex();
+  if (ix.list.length < 2) return false;
+  ix.list = ix.list.filter((w) => w.id !== id);
+  try { localStorage.removeItem(keyFor(id)); } catch { /* ignore */ }
+  if (ix.active === id) ix.active = ix.list[0].id;
+  writeIndex(ix);
+  load();
+  return true;
+}
+
 export function load() {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(keyFor(activeWorkspace()));
     state = raw ? migrate(JSON.parse(raw)) : blank();
   } catch {
     state = blank();
@@ -148,7 +212,10 @@ export function persist() {
 export function flush() {
   clearTimeout(saveTimer);
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    const ix = readIndex();
+    localStorage.setItem(keyFor(ix.active), JSON.stringify(state));
+    const w = ix.list.find((x) => x.id === ix.active);
+    if (w && w.name !== state.settings.business.name) { w.name = state.settings.business.name; writeIndex(ix); }
     return true;
   } catch (e) {
     console.warn('Could not save', e);
@@ -272,14 +339,14 @@ export function setIndustry(ind, { resetDesign = true, addItems = true } = {}) {
   s.clientLabel = p.clientLabel;
   s.defaultTax = p.tax;
   s.docTitles.invoice = p.docTitle;
+  s.sector = null;
   if (resetDesign) {
     s.design.template = p.template;
     s.design.accent = p.accent;
     s.design.paper = p.template === 'thermal' ? '80mm' : 'A4';
     s.design.groupByCategory = !!p.groupByCategory;
     s.design.labels = industryLabels(ind);
-    s.design.show.discountCol = ind !== 'restaurant';
-    s.design.show.hsn = ind !== 'restaurant' && ind !== 'education';
+    s.design.show = industryShow(ind);
   }
   if (addItems) {
     const have = new Set(db().items.map((i) => i.name.toLowerCase()));
@@ -314,47 +381,47 @@ export function loadSample(ind = settings().industry || 'general') {
   setIndustry(ind);
   s.onboarded = true;
   const p = industry(ind);
+  const sec = sectorOf(s);
+  const short = p.name.split(/ [/(]/)[0];
   Object.assign(s.business, {
-    name: ind === 'hospital' ? 'Sunrise Multispeciality Hospital' : ind === 'services' ? 'Xeenox AI Digital Marketing' : `Sample ${p.name.split(' /')[0]}`,
-    tagline: ind === 'hospital' ? 'Caring beyond cure' : 'Quality you can trust',
+    name: p.sampleName || `Sample ${short}`,
+    tagline: 'Quality you can trust',
     address: '2nd Floor, Market Road', city: 'Palakkad', state: '32', pincode: '678001',
     phone: '+91 98470 00000', email: 'billing@example.com', website: 'www.example.com',
-    gstin: ind === 'education' ? '' : '32ABCDE1234F1Z5', pan: 'ABCDE1234F',
-    bankName: 'State Bank of India', accountName: 'Sample Business', accountNo: '00000012345678', ifsc: 'SBIN0000001', branch: 'Palakkad Town',
+    gstin: p.tax ? '32ABCDE1234F1Z5' : '', pan: 'ABCDE1234F',
+    bankName: 'State Bank of India', accountName: p.sampleName || `Sample ${short}`, accountNo: '00000012345678', ifsc: 'SBIN0000001', branch: 'Palakkad Town',
     upiId: 'samplebusiness@upi',
   });
-  const people = ind === 'hospital'
-    ? [['Anil Kumar', '', { uhid: 'UH-10231', age: '54', gender: 'Male', blood: 'B+' }], ['Fathima Rahman', '', { uhid: 'UH-10232', age: '31', gender: 'Female' }], ['Joseph Mathew', '', { uhid: 'UH-10233', age: '67', gender: 'Male' }]]
-    : [['Ravi Menon', 'Menon Traders', {}], ['Priya Nair', 'Nair & Co', {}], ['Global Tech Pvt Ltd', 'Global Tech Pvt Ltd', {}]];
-  const clients = people.map(([name, company, extra], i) => upsert('clients', {
+  const people = [['Anil Kumar', ''], ['Fathima Rahman', 'Rahman Stores'], ['Joseph Mathew', 'Global Tech Pvt Ltd']];
+  const clients = people.map(([name, company], i) => upsert('clients', {
     name, company, email: `${name.split(' ')[0].toLowerCase()}@example.com`, phone: `+91 9${i}000 1234${i}`,
-    gstin: i === 2 && ind !== 'hospital' ? '33AAACG1234K1Z2' : '', address: ['Fort Road', 'Stadium Bypass', 'Avinashi Road'][i],
-    city: ['Palakkad', 'Thrissur', 'Coimbatore'][i], state: i === 2 ? '33' : '32', pincode: ['678001', '680001', '641018'][i], extra,
+    gstin: i === 2 && p.tax ? '33AAACG1234K1Z2' : '', address: ['Fort Road', 'Stadium Bypass', 'Avinashi Road'][i],
+    city: ['Palakkad', 'Thrissur', 'Coimbatore'][i], state: i === 2 ? '33' : '32', pincode: ['678001', '680001', '641018'][i],
+    extra: Object.fromEntries(sec.clientFields.map((f) => [f.key, sampleValue(f, i)])),
   }));
-  const catalogue = db().items;
-  const pick = (n) => catalogue.filter((it) => starterItems(ind).some((x) => x.name === it.name)).slice(0, n);
+  const names = new Set(starterItems(ind).map((x) => x.name));
+  const catalogue = db().items.filter((it) => names.has(it.name));
   const t = today();
   const plans = [
     { c: 0, type: 'invoice', days: -40, due: -25, pay: 'full' },
     { c: 1, type: 'invoice', days: -20, due: -5, pay: 'part' },
-    { c: 2, type: 'invoice', days: -3, due: 12, pay: 'none', status: 'sent' },
+    { c: 2, type: 'invoice', days: -3, due: 12, pay: 'none' },
     { c: 0, type: 'quote', days: -1, due: 14, pay: 'none' },
   ];
   for (const plan of plans) {
     const doc = newDoc(plan.type, clients[plan.c].id);
     doc.date = addDays(t, plan.days);
     doc.dueDate = addDays(t, plan.due);
-    doc.items = pick(plan.c + 3).map((it, k) => ({
+    doc.items = catalogue.slice(plan.c, plan.c + 3).map((it, k) => ({
       name: it.name, description: '', hsn: it.hsn, qty: k === 1 ? 2 : 1, unit: it.unit, rate: it.rate || 500,
       discount: k === 0 && plan.c === 1 ? 10 : 0, tax: it.tax, category: it.category,
-      batch: ind === 'pharmacy' ? `B${2400 + k}` : '', expiry: ind === 'pharmacy' ? '12/27' : '',
+      ...Object.fromEntries(sec.itemCols.filter((c) => !c.hidden).map((c) => [c.key, sampleValue(c, k)])),
     }));
-    if (ind === 'hospital') {
-      doc.fields = { ipNo: `IP-24${plan.c}1`, doctor: 'Dr. Suresh Babu (MD)', department: 'General Medicine', ward: 'Ward 3 / Bed 12', admission: addDays(t, plan.days - 3), discharge: addDays(t, plan.days), tpa: plan.c === 1 ? 'Star Health' : '' };
-      if (plan.c === 1) doc.insurance = 2000;
-    }
-    doc.status = plan.status || (plan.type === 'quote' ? 'sent' : 'sent');
-    const total = doc.items.reduce((s, i) => s + i.qty * i.rate * (1 + i.tax / 100), 0);
+    if (!doc.items.length) doc.items = [{ name: 'Product or service', qty: 1, rate: 1000, tax: p.tax, discount: 0 }];
+    doc.fields = Object.fromEntries(sec.fields.map((f, k) => [f.key, sampleValue(f, k, addDays(t, plan.days - (f.key.match(/admission|checkin|from/i) ? 3 : 0)))]));
+    if (sec.insurance && plan.c === 1) doc.insurance = 2000;
+    doc.status = 'sent';
+    const total = doc.items.reduce((sum, i) => sum + i.qty * i.rate * (1 - (i.discount || 0) / 100) * (1 + (i.tax || 0) / 100), 0);
     if (plan.pay === 'full') doc.payments = [{ id: uid(), date: addDays(t, plan.days + 5), amount: Math.round(total), method: 'UPI', ref: 'UTR4021' }];
     if (plan.pay === 'part') doc.payments = [{ id: uid(), date: addDays(t, plan.days + 2), amount: Math.round(total / 3), method: 'Cash', ref: '' }];
     saveDoc(doc);

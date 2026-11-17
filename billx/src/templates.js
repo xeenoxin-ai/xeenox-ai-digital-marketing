@@ -3,7 +3,7 @@
 // summary, payment, signature) and differ in layout and styling.
 
 import { computeTotals, docStatus, amountInWords, formatMoney, stateName, upiLink, lineValues } from './calc.js';
-import { industry } from './industries.js';
+import { sectorOf } from './industries.js';
 import { DEFAULT_LABELS, DEFAULT_SHOW, DOC_TYPES } from './store.js';
 import { qrSvg } from './qr.js';
 
@@ -14,7 +14,7 @@ export const TEMPLATES = [
   { id: 'bold', name: 'Bold', note: 'Full colour header, big total' },
   { id: 'elegant', name: 'Elegant', note: 'Serif, centred, double rules' },
   { id: 'corporate', name: 'Corporate', note: 'Colour sidebar with details' },
-  { id: 'medical', name: 'Medical', note: 'Patient box, grouped services' },
+  { id: 'medical', name: 'Details box', note: 'All details boxed, grouped lines' },
   { id: 'gst', name: 'GST Boxed', note: 'Bordered grid, Indian GST format' },
   { id: 'compact', name: 'Compact', note: 'Dense, fits long bills' },
   { id: 'thermal', name: 'Thermal 80mm', note: 'POS receipt printer' },
@@ -50,7 +50,7 @@ export function fmtDate(iso) {
 /** Everything a template needs, computed once. */
 export function buildContext(doc, settings) {
   const s = settings;
-  const ind = industry(s.industry);
+  const ind = sectorOf(s);
   const base = s.design || {};
   const design = {
     ...base,
@@ -389,7 +389,7 @@ const LAYOUTS = {
       <div class="inv-head-right"><div class="inv-title">${title(c)}</div><div class="inv-number">${esc(c.doc.number)}</div></div>
     </header>
     <section class="inv-patient">
-      <div class="inv-patient-name"><span>${esc(c.s.clientLabel || 'Patient')}</span><b>${esc(cl.name || '—')}</b>
+      <div class="inv-patient-name"><span>${esc(c.s.clientLabel || 'Customer')}</span><b>${esc(cl.name || '—')}</b>
         <small>${[cl.phone, addressLines(cl).replace(/<br>/g, ', ')].filter(Boolean).join(' · ')}</small></div>
       <div class="inv-patient-grid">${pairs.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
     </section>

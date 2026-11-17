@@ -47,7 +47,7 @@ export function portalPayload(settings, client, docs, { includeLogo = true } = {
     s: {
       business: b, currency: settings.currency, taxMode: settings.taxMode, roundOff: settings.roundOff,
       taxInclusive: settings.taxInclusive, industry: settings.industry, clientLabel: settings.clientLabel,
-      docTitles: settings.docTitles, footer: settings.footer, design,
+      docTitles: settings.docTitles, footer: settings.footer, design, sector: settings.sector || null,
     },
     c: { name: client.name, company: client.company },
     d: docs.filter((d) => d.status !== 'draft').map((d) => {

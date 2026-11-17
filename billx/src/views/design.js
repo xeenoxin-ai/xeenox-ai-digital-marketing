@@ -2,7 +2,7 @@
 // and rename every label. Live preview on a real (or sample) document.
 
 import { settings, persist, flush, all, newDoc, DEFAULT_LABELS, DEFAULT_SHOW, DOC_TYPES } from '../store.js';
-import { starterItems, industry } from '../industries.js';
+import { starterItems, sectorOf, sampleValue } from '../industries.js';
 import { TEMPLATES, FONTS, PAPERS } from '../templates.js';
 import { icon, esc, $, $$, toast, mountPreview, options, field, readImage, printDocs } from '../ui.js';
 import { setPage } from '../router.js';
@@ -23,7 +23,9 @@ function sampleDoc() {
   if (recent) return JSON.parse(JSON.stringify(recent));
   const d = newDoc('invoice');
   d.number = d.number || 'INV-0001';
-  d.client = { name: industry(s.industry).clientLabel === 'Patient' ? 'Sample Patient' : 'Sample Client', company: '', phone: '+91 90000 00000', address: 'MG Road', city: 'Kochi', state: '32', pincode: '682001', extra: { uhid: 'UH-0001', age: '40', gender: 'Female' } };
+  const sec = sectorOf(s);
+  d.client = { name: `Sample ${s.clientLabel || 'Customer'}`, company: '', phone: '+91 90000 00000', address: 'MG Road', city: 'Kochi', state: '32', pincode: '682001', extra: Object.fromEntries(sec.clientFields.map((f) => [f.key, sampleValue(f)])) };
+  d.fields = Object.fromEntries(sec.fields.map((f) => [f.key, sampleValue(f, 0, d.date)]));
   d.items = starterItems(s.industry).slice(0, 4).map((it, i) => ({ ...it, qty: i + 1, rate: it.rate || 400, discount: 0 }));
   d.status = 'sent';
   return d;
