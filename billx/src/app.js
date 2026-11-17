@@ -13,6 +13,7 @@ import { dashboardView } from './views/dashboard.js';
 import { listView, editorView, docView } from './views/documents.js';
 import { listView as clientsView, detailView as clientView } from './views/clients.js';
 import { itemsView } from './views/items.js';
+import { quickBillView } from './views/quickbill.js';
 import { designView } from './views/design.js';
 import { reportsView } from './views/reports.js';
 import { settingsView } from './views/settings.js';
@@ -86,6 +87,7 @@ const writable = (view) => (main, params, query) => {
 
 function registerRoutes() {
   route('/', dashboardView);
+  route('/pos', writable(quickBillView));
   route('/docs/:type?', listView);
   route('/new/:type', writable(editorView));
   route('/edit/:id', writable(editorView));

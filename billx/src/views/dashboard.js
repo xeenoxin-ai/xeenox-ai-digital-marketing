@@ -15,7 +15,8 @@ import logoUrl from '../../logo.svg';
 export function dashboardView(main) {
   const s = settings();
   if (!s.onboarded) return onboarding(main);
-  setPage('Dashboard', `<a class="btn" href="#/new/quote">${icon('plus')}<span class="hide-sm"> Quote</span></a>
+  setPage('Dashboard', `<a class="btn qb-cta" href="#/pos">${icon('zap')} Quick Bill</a>
+    <a class="btn" href="#/new/quote">${icon('plus')}<span class="hide-sm"> Quote</span></a>
     <a class="btn primary" href="#/new/invoice">${icon('plus')} New ${esc((s.docTitles.invoice || 'Invoice').toLowerCase())}</a>`);
 
   const t0 = today();

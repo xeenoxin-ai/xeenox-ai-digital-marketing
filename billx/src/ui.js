@@ -33,6 +33,10 @@ const P = {
   star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z',
   menu: 'M3 12h18M3 6h18M3 18h18',
   hospital: 'M3 21h18M5 21V7l7-4 7 4v14M10 9h4M12 7v4M9 21v-4h6v4',
+  zap: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z',
+  minus: 'M5 12h14',
+  pause: 'M6 4h4v16H6zM14 4h4v16h-4z',
+  chef: 'M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6ZM6 17h12',
   refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15',
 };
 
@@ -130,14 +134,21 @@ export function mountPreview(host, doc, settings, { maxScale = 1 } = {}) {
 
 /** Print one or more documents (the browser's "Save as PDF" gives a PDF). */
 export function printDocs(docs, settings) {
+  let pageCss = '';
+  const html = docs.map((d) => {
+    const { html: h, paper } = renderInvoice(d, settings);
+    pageCss = paper.h ? `@page { size: ${paper.w}mm ${paper.h}mm; margin: 0; }` : `@page { size: ${paper.w}mm auto; margin: 0; }`;
+    return `<div class="print-page">${h}</div>`;
+  }).join('');
+  printHTML(html, pageCss);
+}
+
+/** Print any HTML (e.g. a kitchen ticket) on its own page size. */
+export function printHTML(html, pageCss = '@page { size: 80mm auto; margin: 0; }') {
+  document.getElementById('print-root')?.remove();
   const root = document.createElement('div');
   root.id = 'print-root';
-  let pageCss = '';
-  root.innerHTML = docs.map((d) => {
-    const { html, paper } = renderInvoice(d, settings);
-    pageCss = paper.h ? `@page { size: ${paper.w}mm ${paper.h}mm; margin: 0; }` : `@page { size: ${paper.w}mm auto; margin: 0; }`;
-    return `<div class="print-page">${html}</div>`;
-  }).join('');
+  root.innerHTML = html;
   const style = document.createElement('style');
   style.id = 'print-page-style';
   style.textContent = pageCss;
