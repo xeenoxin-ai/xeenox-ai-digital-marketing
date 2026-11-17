@@ -22,12 +22,12 @@ Change the site address in **`billx/src/site.js` → `url`** when you connect yo
    `/free-gst-invoice-generator/` and your 5 most important business-type pages.
 2. **Bing Webmaster Tools**: import from Search Console (one click). Bing also feeds ChatGPT and Copilot search.
 3. **Cloudflare Web Analytics** (free, no cookie banner needed): Cloudflare → Analytics → Web Analytics → add site.
-4. **Google Business Profile** for *BillX Corp*, category "Software company", service area Kerala. Add the
+4. **Google Business Profile** for *BillX Solutions*, category "Software company", service area Kerala. Add the
    website, WhatsApp number, photos of the app and an opening post. Ask your first 10 customers for reviews.
 
 ## Local & listings (weeks 2–4)
 
-List BillX Corp with the **same name, phone and website everywhere**:
+List BillX Solutions with the **same name, phone and website everywhere**:
 - Indian business directories: JustDial, IndiaMART, Sulekha, TradeIndia
 - Software review sites: SoftwareSuggest, Techjockey, Capterra / GetApp, G2
 - Product Hunt (launch post), your Xeenox agency website (link "Billing software by BillX")

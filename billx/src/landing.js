@@ -9,6 +9,7 @@ import { starterItems } from './industries.js';
 import { DEFAULT_SHOW } from './store.js';
 import { esc, mountPreview } from './ui.js';
 import { formatMoney } from './calc.js';
+import { cloudEnabled } from './cloud/config.js';
 
 const money = (n) => formatMoney(n, 'INR').replace('.00', '');
 
@@ -46,12 +47,12 @@ function renderPlans(period) {
       <div class="l-price">${money(period === 'yearly' ? p.yearly : p.monthly)}<small>/${period === 'yearly' ? 'year' : 'month'}</small></div>
       ${period === 'yearly' ? `<p class="l-save">${money(p.yearly / 12)}/month, billed yearly</p>` : '<p class="l-save">&nbsp;</p>'}
       <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-      <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">Start ${TRIAL_DAYS}-day free trial</a>
+      <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">${cloudEnabled() ? `Start ${TRIAL_DAYS}-day free trial` : 'Start free'}</a>
       <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay / bank transfer</a>
     </div>`).join('');
 }
 renderPlans('monthly');
-document.getElementById('priceNote').textContent = `Every plan starts with a ${TRIAL_DAYS}-day free trial. ${GST_RATE ? 'Prices exclude 18% GST.' : 'Pay by UPI, GPay, bank transfer or card.'}`;
+document.getElementById('priceNote').textContent = `${cloudEnabled() ? `Every plan starts with a ${TRIAL_DAYS}-day free trial.` : 'Start free and upgrade any time.'} ${GST_RATE ? 'Prices exclude 18% GST.' : 'Pay by UPI, GPay, bank transfer or card.'}`;
 document.querySelectorAll('.l-toggle button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.l-toggle button').forEach((x) => x.classList.toggle('on', x === b));
   renderPlans(b.dataset.period);

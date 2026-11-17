@@ -5,6 +5,7 @@ import './landing.css';
 import { SITE } from './site.js';
 import { PLANS, TRIAL_DAYS, GST_RATE } from './plans.js';
 import { esc } from './ui.js';
+import { cloudEnabled } from './cloud/config.js';
 
 const S = Object.fromEntries(Object.entries(SITE).map(([k, v]) => [k, typeof v === 'string' ? esc(v) : v]));
 const where = [S.address, S.city].filter(Boolean).join(', ');
@@ -29,7 +30,7 @@ const PAGES = {
     <p>This policy explains how ${S.company} handles personal data in ${S.product}, in line with India's Digital Personal Data Protection Act, 2023.</p>
     <h2>What we collect</h2><ul><li>Your account details: name, email, business details.</li><li>Data you enter: customers, items, invoices and payments. For hospitals and clinics this can include patient details; you are the data fiduciary for your customers' data and we process it on your behalf.</li><li>Payment status from Razorpay. We never see or store full card or bank details.</li></ul>
     <h2>How we use it</h2><p>Only to run ${S.product}: storing and syncing your documents, billing your subscription, support, and service emails. We do not sell your data or use it for advertising.</p>
-    <h2>Where it is stored</h2><p>In Google Cloud (Firebase), encrypted in transit and at rest. Access is limited to you, the staff you invite, and us when needed for support or security.</p>
+    <h2>Where it is stored</h2><p>${cloudEnabled() ? 'In Google Cloud (Firebase), encrypted in transit and at rest. Access is limited to you, the staff you invite, and us when needed for support or security.' : 'In the free version, your bills are stored only in your own browser on your device and are not uploaded to us. Paid accounts store data in Google Cloud (Firebase), encrypted in transit and at rest.'}</p>
     <h2>Sharing</h2><p>With service providers who help run ${S.product} (Google Cloud, Cloudflare, Razorpay), and when the law requires it.</p>
     <h2>Retention</h2><p>We keep your data while your account exists and for up to 90 days after you close it, unless the law requires longer (for example tax records).</p>
     <h2>Your rights</h2><p>You can access, correct, export or delete your data. Write to us and we will respond within 30 days.</p>

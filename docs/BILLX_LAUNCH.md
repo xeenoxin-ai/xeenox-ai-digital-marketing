@@ -9,7 +9,7 @@ Expect about 2 hours, plus Razorpay's KYC approval time (often 1–3 working day
 | Website + payment server | Cloudflare Pages (commercial use allowed on the free plan) | ₹0 |
 | Logins + database | Firebase (Spark plan): 50k reads and 20k writes per day free | ₹0 to start |
 | Card / UPI Autopay collection | Razorpay Subscriptions | About 2% per payment plus a small subscription fee, plus GST on fees. Check razorpay.com/pricing |
-| Web address | `billx.pages.dev` (free) or your own `.in` domain | Free subdomain, or a yearly fee for `.in` (step 7) |
+| Web address | `billxsolutions.pages.dev` (free) or your own `.in` domain | Free subdomain, or a yearly fee for `.in` (step 7) |
 
 > **Before you start:** Razorpay checks your website during KYC. The site must
 > show your business name, address, contact, and the Terms, Privacy, Refund and
@@ -19,7 +19,7 @@ Expect about 2 hours, plus Razorpay's KYC approval time (often 1–3 working day
 
 ## Fastest start: publish now, take payments by UPI / bank transfer
 
-You don't have to wait for Razorpay. BillX already shows **BillX Corp**, your GPay number and your
+You don't have to wait for Razorpay. BillX already shows **BillX Solutions**, your GPay number and your
 bank account on the pricing and payment pages (`/pay.html`), and inside the app under
 **Subscription & team → Pay by UPI / GPay / bank transfer**:
 
@@ -93,13 +93,28 @@ Change them there and they update on the website, in the app and on the server.
 4. **Account & Settings → API keys → Generate key**: copy the **Key ID** (`rzp_test_…`) and
    **Key Secret** (secret).
 5. **Account & Settings → Webhooks → Add new webhook**
-   - URL: `https://YOUR-SITE/api/razorpay-webhook` (e.g. `https://billx.pages.dev/api/razorpay-webhook`)
+   - URL: `https://YOUR-SITE/api/razorpay-webhook` (e.g. `https://billxsolutions.pages.dev/api/razorpay-webhook`)
    - Secret: make up a long random password and keep it for step 3
    - Events: `subscription.activated`, `subscription.charged`, `subscription.pending`,
      `subscription.halted`, `subscription.cancelled`, `subscription.completed`,
      `subscription.paused`, `subscription.resumed`
 
-## 3. Cloudflare Pages: put it online (20 minutes)
+## 3. Cloudflare Pages: put it online
+
+**Already set up:** the Cloudflare Pages project `billxsolutions` exists, and
+`.github/workflows/billx-cloudflare.yml` builds and publishes BillX to
+**https://billxsolutions.pages.dev** on every push to `main`. It needs one GitHub secret:
+GitHub → repository → **Settings → Secrets and variables → Actions → New repository secret** →
+Name `CLOUDFLARE_API_TOKEN`, Secret = your Cloudflare API token (Account → Cloudflare Pages → Edit).
+
+To switch on the paid service later, add **repository variables** (same page, *Variables* tab):
+`VITE_BILLX_FIREBASE` (the Firebase config JSON) and, if you use Razorpay, `VITE_RAZORPAY_KEY_ID`.
+The payment server's secrets (step 2) go in Cloudflare → Workers & Pages → billxsolutions →
+Settings → Variables and Secrets.
+
+The manual dashboard set-up below is only needed if you move to a different Cloudflare account.
+
+### Manual set-up (alternative)
 
 1. Sign up at <https://dash.cloudflare.com> (free).
 2. **Workers & Pages → Create → Pages → Connect to Git** → pick
@@ -108,7 +123,7 @@ Change them there and they update on the website, in the app and on the server.
    - Framework preset: **None**
    - Build command: `npm run build:billx`
    - Build output directory: `dist-billx`
-   - Project name: `billx` (gives `https://billx.pages.dev`; pick another name if taken and update `url` in `billx/src/site.js`)
+   - Project name: `billx` (gives `https://billxsolutions.pages.dev`; pick another name if taken and update `url` in `billx/src/site.js`)
    - Node version: the repo's `.node-version` file asks for Node 22
 4. **Environment variables** (Settings → Variables and Secrets), for *Production*:
 
@@ -127,17 +142,17 @@ Change them there and they update on the website, in the app and on the server.
    `RZP_PLAN_BUSINESS_MONTHLY`, `RZP_PLAN_BUSINESS_YEARLY`, `RZP_PLAN_PRO_MONTHLY`, `RZP_PLAN_PRO_YEARLY`.
 5. **Deployments → Retry deployment** so the build picks up the variables.
 6. Firebase console → **Authentication → Settings → Authorized domains → Add domain**:
-   `billx.pages.dev` (and your own domain later).
+   `billxsolutions.pages.dev` (and your own domain later).
 
 Every push to `main` now redeploys automatically. The payment API is in `/functions/api`.
 
 ## 4. Make yourself the admin (5 minutes)
 
-1. Open `https://billx.pages.dev/app/` and sign up with your own email.
+1. Open `https://billxsolutions.pages.dev/app/` and sign up with your own email.
 2. Firebase console → **Authentication → Users** → copy your **User UID**.
 3. **Firestore → Start collection** `admins` → Document ID = your UID → add any field
    (e.g. `name` = `Owner`) → Save.
-4. Open `https://billx.pages.dev/admin.html`. You see every account, trials, paying
+4. Open `https://billxsolutions.pages.dev/admin.html`. You see every account, trials, paying
    customers, monthly revenue, and an **Activate / extend** button for customers who pay
    you by cash, cheque or bank transfer.
 
@@ -159,7 +174,7 @@ differ), replace the Razorpay variables in Cloudflare with the live ones, redepl
 **A `.in` domain is not free.** The `.in` registry (NIXI) charges every registrar, so
 every `.in` has a yearly fee, even if the first year is on offer. Free choices:
 
-- **`billx.pages.dev`**: free forever and already secure (https). Fine to start selling.
+- **`billxsolutions.pages.dev`**: free forever and already secure (https). Fine to start selling.
 - If you already pay for a **web hosting plan** (e.g. Hostinger), many include one free
   domain for the first year; check whether `.in` is included in yours.
 
