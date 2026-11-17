@@ -115,3 +115,21 @@ the assistant falls back to the built-in engine automatically.
 - Learn real congestion from users' trip speeds (crowd-sourced traffic)
 - Workshop ratings, verified partner garages, live mechanic booking
 - Android app (Capacitor) with offline maps
+
+## BillX – billing & invoicing (v0.1)
+
+Open **`/billx/`** on the same site (e.g. https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/billx/ once merged to `main`).
+Free, works offline in the browser, no sign-up. Code is in [`billx/`](billx/).
+
+| Feature | What you get |
+| --- | --- |
+| **Business types** | Hospital / clinic, pharmacy, retail, restaurant, hotel, agency, auto workshop, school, contractor, freelancer, general. Each sets its own labels (Client → Patient), bill fields (UHID, IP/OP no., consultant, ward, admission/discharge, insurance/TPA; vehicle no.; room & check-in…), starter items, tax rate and design. |
+| **Documents** | Invoices, quotations, proformas, receipts, credit notes. Convert quote → invoice, invoice → credit note / receipt, duplicate, cancel. Auto numbering with `{FY}` / `{YYYY}`. |
+| **GST** | CGST+SGST or IGST from place of supply, line & bill discounts, tax-inclusive rates, round-off, GST summary table, amount in words (lakh/crore). Simple-tax / no-tax modes and 12 currencies. |
+| **10 designs** | Modern, Classic, Minimal, Bold, Elegant, Corporate, Medical, GST Boxed, Compact, Thermal 80/58 mm. Colour, font, paper (A4/Letter/A5/roll), alignment, spacing, logo, signature, show/hide 19 parts, rename every label, extra custom fields. Live preview everywhere. |
+| **Getting paid** | UPI QR + pay button on every bill, bank details, partial payments, PAID / OVERDUE stamps. |
+| **Client portal** | One private link per bill or per client: statement, balance, view & download bills, pay by UPI, send payment confirmation / accept a quote by WhatsApp or email. The data travels inside the link (#fragment), nothing is uploaded. |
+| **Reports** | Month-by-month sales & collections, GST by rate (for GSTR-1/3B), receivables ageing, top clients, CSV export. |
+| **Your data** | Saved in the browser; JSON backup/restore from Settings. |
+
+Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm test` (`tests/billx.test.js`).

@@ -1,0 +1,363 @@
+// Local-first data store: everything lives in this browser (localStorage),
+// with JSON backup/restore. No account or server needed.
+
+import { formatNumber, addDays } from './calc.js';
+import { industry, starterItems } from './industries.js';
+
+const KEY = 'billx-v1';
+
+export const DOC_TYPES = {
+  invoice: { name: 'Invoice', plural: 'Invoices', title: 'Tax Invoice', prefix: 'INV-' },
+  quote: { name: 'Quotation', plural: 'Quotations', title: 'Quotation', prefix: 'QT-' },
+  proforma: { name: 'Proforma', plural: 'Proformas', title: 'Proforma Invoice', prefix: 'PF-' },
+  receipt: { name: 'Receipt', plural: 'Receipts', title: 'Payment Receipt', prefix: 'RCT-' },
+  credit: { name: 'Credit note', plural: 'Credit notes', title: 'Credit Note', prefix: 'CN-' },
+};
+
+export const DEFAULT_LABELS = {
+  billTo: 'Bill To',
+  shipTo: 'Ship To',
+  number: 'No.',
+  date: 'Date',
+  dueDate: 'Due Date',
+  validTill: 'Valid Till',
+  placeOfSupply: 'Place of Supply',
+  item: 'Item & Description',
+  hsn: 'HSN/SAC',
+  qty: 'Qty',
+  unit: 'Unit',
+  rate: 'Rate',
+  discount: 'Disc %',
+  tax: 'GST %',
+  amount: 'Amount',
+  subtotal: 'Sub Total',
+  discountTotal: 'Discount',
+  taxable: 'Taxable Value',
+  shipping: 'Shipping / Other charges',
+  adjustment: 'Adjustment',
+  roundOff: 'Round Off',
+  total: 'Total',
+  insurance: 'Covered by Insurance / TPA',
+  payable: 'Net Payable',
+  paid: 'Amount Paid',
+  balance: 'Balance Due',
+  words: 'Amount in words',
+  notes: 'Notes',
+  terms: 'Terms & Conditions',
+  bank: 'Bank Details',
+  scanToPay: 'Scan to pay (UPI)',
+  signature: 'Authorised Signatory',
+  thanks: 'Thank you for your business!',
+};
+
+export const DEFAULT_SHOW = {
+  logo: true, signature: true, qr: true, bank: true, hsn: true, unit: true, discountCol: true,
+  taxCol: true, words: true, taxSummary: true, shipTo: false, notes: true, terms: true, footer: true,
+  stamp: true, business: true, contact: true, placeOfSupply: true, dueDate: true,
+};
+
+function defaultSettings(ind = 'general') {
+  const p = industry(ind);
+  return {
+    onboarded: false,
+    industry: ind,
+    business: {
+      name: 'Your Business Name', tagline: '', address: '', city: '', state: '32', pincode: '',
+      phone: '', email: '', website: '', gstin: '', pan: '', regNo: '',
+      logo: '', signature: '',
+      bankName: '', accountName: '', accountNo: '', ifsc: '', branch: '', upiId: '',
+    },
+    currency: 'INR',
+    taxMode: 'gst',
+    taxInclusive: false,
+    roundOff: true,
+    defaultTax: p.tax,
+    dueDays: 15,
+    clientLabel: p.clientLabel,
+    numbering: Object.fromEntries(Object.entries(DOC_TYPES).map(([k, t]) => [k, { prefix: t.prefix, suffix: '', pad: 4, next: 1 }])),
+    docTitles: { ...Object.fromEntries(Object.entries(DOC_TYPES).map(([k, t]) => [k, t.title])), invoice: p.docTitle },
+    notes: 'Thank you for your business.',
+    terms: '1. Payment due by the due date.\n2. Goods once sold will not be taken back.\n3. Subject to local jurisdiction.',
+    footer: '',
+    design: {
+      template: p.template,
+      accent: p.accent,
+      font: 'inter',
+      paper: p.template === 'thermal' ? '80mm' : 'A4',
+      align: 'left',
+      density: 'normal',
+      groupByCategory: !!p.groupByCategory,
+      show: { ...DEFAULT_SHOW, discountCol: ind !== 'restaurant', hsn: ind !== 'restaurant' && ind !== 'education' },
+      labels: industryLabels(ind),
+      customFields: [],
+    },
+  };
+}
+
+function industryLabels(ind) {
+  const p = industry(ind);
+  const labels = { billTo: p.clientLabel === 'Client' ? 'Bill To' : `${p.clientLabel} Details` };
+  if (ind === 'hospital') Object.assign(labels, { item: 'Service / Particulars', payable: 'Patient Payable', tax: 'Tax %' });
+  if (ind === 'education') Object.assign(labels, { item: 'Fee head' });
+  if (ind === 'restaurant') Object.assign(labels, { item: 'Item', thanks: 'Thank you! Visit again.' });
+  if (ind === 'hotel') Object.assign(labels, { item: 'Particulars' });
+  return labels;
+}
+
+let state = null;
+const listeners = new Set();
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+export const today = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+
+function blank() {
+  return { settings: defaultSettings(), clients: [], items: [], docs: [] };
+}
+
+function migrate(s) {
+  const base = blank();
+  const out = { ...base, ...s };
+  out.settings = { ...base.settings, ...s.settings };
+  out.settings.business = { ...base.settings.business, ...(s.settings || {}).business };
+  const d = (s.settings || {}).design || {};
+  out.settings.design = { ...base.settings.design, ...d, show: { ...DEFAULT_SHOW, ...d.show }, labels: { ...d.labels } };
+  out.settings.numbering = { ...base.settings.numbering, ...(s.settings || {}).numbering };
+  out.settings.docTitles = { ...base.settings.docTitles, ...(s.settings || {}).docTitles };
+  return out;
+}
+
+export function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    state = raw ? migrate(JSON.parse(raw)) : blank();
+  } catch {
+    state = blank();
+  }
+  return state;
+}
+
+let saveTimer = null;
+export function persist() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 150);
+  listeners.forEach((fn) => fn(state));
+}
+export function flush() {
+  clearTimeout(saveTimer);
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
+  } catch (e) {
+    console.warn('Could not save', e);
+    window.dispatchEvent(new CustomEvent('billing:save-failed'));
+    return false;
+  }
+}
+export const onChange = (fn) => (listeners.add(fn), () => listeners.delete(fn));
+
+export const db = () => state || load();
+export const settings = () => db().settings;
+
+export function updateSettings(patch) {
+  Object.assign(db().settings, patch);
+  persist();
+}
+
+export const all = (col) => db()[col];
+export const get = (col, id) => db()[col].find((x) => x.id === id);
+
+export function upsert(col, obj) {
+  const list = db()[col];
+  const now = new Date().toISOString();
+  if (!obj.id) {
+    obj.id = uid();
+    obj.createdAt = now;
+    list.unshift(obj);
+  } else {
+    const i = list.findIndex((x) => x.id === obj.id);
+    if (i === -1) list.unshift(obj);
+    else list[i] = obj;
+  }
+  obj.updatedAt = now;
+  persist();
+  return obj;
+}
+
+export function remove(col, id) {
+  const list = db()[col];
+  const i = list.findIndex((x) => x.id === id);
+  if (i >= 0) list.splice(i, 1);
+  persist();
+}
+
+export function peekNumber(type) {
+  const rule = settings().numbering[type];
+  return formatNumber(rule, rule.next);
+}
+
+/** Take the next number for a type and advance the sequence. */
+export function takeNumber(type) {
+  const rule = settings().numbering[type];
+  const n = formatNumber(rule, rule.next);
+  rule.next += 1;
+  persist();
+  return n;
+}
+
+export function clientSnapshot(c) {
+  if (!c) return null;
+  const { id, name, company, email, phone, gstin, address, city, state: st, pincode, shipAddress, extra } = c;
+  return { id, name, company, email, phone, gstin, address, city, state: st, pincode, shipAddress, extra: { ...extra } };
+}
+
+export function newDoc(type = 'invoice', clientId = '') {
+  const s = settings();
+  const c = clientId ? get('clients', clientId) : null;
+  const d = today();
+  return {
+    id: '',
+    type,
+    number: peekNumber(type),
+    status: type === 'receipt' ? 'issued' : 'draft',
+    title: s.docTitles[type] || DOC_TYPES[type].title,
+    clientId: c ? c.id : '',
+    client: clientSnapshot(c),
+    date: d,
+    dueDate: type === 'receipt' || type === 'credit' ? '' : addDays(d, s.dueDays),
+    placeOfSupply: (c && c.state) || s.business.state,
+    items: [{ name: '', description: '', hsn: '', qty: 1, unit: '', rate: 0, discount: 0, tax: s.defaultTax, category: '' }],
+    discount: { type: '%', value: 0 },
+    shipping: 0,
+    adjustment: 0,
+    insurance: 0,
+    advance: 0,
+    payments: [],
+    fields: {},
+    customFields: (s.design.customFields || []).map((f) => ({ label: f.label, value: f.value || '' })),
+    notes: s.notes,
+    terms: type === 'receipt' ? '' : s.terms,
+    template: '',
+    accent: '',
+    reference: '',
+  };
+}
+
+/** Save a document; new documents take their number now. */
+export function saveDoc(doc) {
+  if (!doc.id) {
+    const rule = settings().numbering[doc.type];
+    if (doc.number === formatNumber(rule, rule.next)) rule.next += 1;
+  }
+  return upsert('docs', doc);
+}
+
+export function duplicateDoc(doc, asType = doc.type) {
+  const copy = JSON.parse(JSON.stringify(doc));
+  Object.assign(copy, {
+    id: '', type: asType, number: peekNumber(asType), status: 'draft', payments: [], advance: 0,
+    date: today(), dueDate: addDays(today(), settings().dueDays), convertedTo: undefined, sentAt: undefined,
+    title: settings().docTitles[asType] || DOC_TYPES[asType].title,
+  });
+  if (asType !== doc.type) copy.convertedFrom = doc.id;
+  return copy;
+}
+
+export function setIndustry(ind, { resetDesign = true, addItems = true } = {}) {
+  const s = settings();
+  const p = industry(ind);
+  s.industry = ind;
+  s.clientLabel = p.clientLabel;
+  s.defaultTax = p.tax;
+  s.docTitles.invoice = p.docTitle;
+  if (resetDesign) {
+    s.design.template = p.template;
+    s.design.accent = p.accent;
+    s.design.paper = p.template === 'thermal' ? '80mm' : 'A4';
+    s.design.groupByCategory = !!p.groupByCategory;
+    s.design.labels = industryLabels(ind);
+    s.design.show.discountCol = ind !== 'restaurant';
+    s.design.show.hsn = ind !== 'restaurant' && ind !== 'education';
+  }
+  if (addItems) {
+    const have = new Set(db().items.map((i) => i.name.toLowerCase()));
+    for (const it of starterItems(ind)) if (!have.has(it.name.toLowerCase())) upsert('items', it);
+  }
+  persist();
+}
+
+export function exportJSON() {
+  flush();
+  return JSON.stringify({ app: 'billx', version: 1, exportedAt: new Date().toISOString(), data: db() }, null, 2);
+}
+
+export function importJSON(text) {
+  const parsed = JSON.parse(text);
+  const data = parsed && parsed.data ? parsed.data : parsed;
+  if (!data || !data.settings || !Array.isArray(data.docs)) throw new Error('This is not a billing backup file.');
+  state = migrate(data);
+  flush();
+  persist();
+}
+
+export function resetAll() {
+  state = blank();
+  flush();
+  persist();
+}
+
+/** Demo data so the app can be explored before entering real details. */
+export function loadSample(ind = settings().industry || 'general') {
+  const s = settings();
+  setIndustry(ind);
+  s.onboarded = true;
+  const p = industry(ind);
+  Object.assign(s.business, {
+    name: ind === 'hospital' ? 'Sunrise Multispeciality Hospital' : ind === 'services' ? 'Xeenox AI Digital Marketing' : `Sample ${p.name.split(' /')[0]}`,
+    tagline: ind === 'hospital' ? 'Caring beyond cure' : 'Quality you can trust',
+    address: '2nd Floor, Market Road', city: 'Palakkad', state: '32', pincode: '678001',
+    phone: '+91 98470 00000', email: 'billing@example.com', website: 'www.example.com',
+    gstin: ind === 'education' ? '' : '32ABCDE1234F1Z5', pan: 'ABCDE1234F',
+    bankName: 'State Bank of India', accountName: 'Sample Business', accountNo: '00000012345678', ifsc: 'SBIN0000001', branch: 'Palakkad Town',
+    upiId: 'samplebusiness@upi',
+  });
+  const people = ind === 'hospital'
+    ? [['Anil Kumar', '', { uhid: 'UH-10231', age: '54', gender: 'Male', blood: 'B+' }], ['Fathima Rahman', '', { uhid: 'UH-10232', age: '31', gender: 'Female' }], ['Joseph Mathew', '', { uhid: 'UH-10233', age: '67', gender: 'Male' }]]
+    : [['Ravi Menon', 'Menon Traders', {}], ['Priya Nair', 'Nair & Co', {}], ['Global Tech Pvt Ltd', 'Global Tech Pvt Ltd', {}]];
+  const clients = people.map(([name, company, extra], i) => upsert('clients', {
+    name, company, email: `${name.split(' ')[0].toLowerCase()}@example.com`, phone: `+91 9${i}000 1234${i}`,
+    gstin: i === 2 && ind !== 'hospital' ? '33AAACG1234K1Z2' : '', address: ['Fort Road', 'Stadium Bypass', 'Avinashi Road'][i],
+    city: ['Palakkad', 'Thrissur', 'Coimbatore'][i], state: i === 2 ? '33' : '32', pincode: ['678001', '680001', '641018'][i], extra,
+  }));
+  const catalogue = db().items;
+  const pick = (n) => catalogue.filter((it) => starterItems(ind).some((x) => x.name === it.name)).slice(0, n);
+  const t = today();
+  const plans = [
+    { c: 0, type: 'invoice', days: -40, due: -25, pay: 'full' },
+    { c: 1, type: 'invoice', days: -20, due: -5, pay: 'part' },
+    { c: 2, type: 'invoice', days: -3, due: 12, pay: 'none', status: 'sent' },
+    { c: 0, type: 'quote', days: -1, due: 14, pay: 'none' },
+  ];
+  for (const plan of plans) {
+    const doc = newDoc(plan.type, clients[plan.c].id);
+    doc.date = addDays(t, plan.days);
+    doc.dueDate = addDays(t, plan.due);
+    doc.items = pick(plan.c + 3).map((it, k) => ({
+      name: it.name, description: '', hsn: it.hsn, qty: k === 1 ? 2 : 1, unit: it.unit, rate: it.rate || 500,
+      discount: k === 0 && plan.c === 1 ? 10 : 0, tax: it.tax, category: it.category,
+      batch: ind === 'pharmacy' ? `B${2400 + k}` : '', expiry: ind === 'pharmacy' ? '12/27' : '',
+    }));
+    if (ind === 'hospital') {
+      doc.fields = { ipNo: `IP-24${plan.c}1`, doctor: 'Dr. Suresh Babu (MD)', department: 'General Medicine', ward: 'Ward 3 / Bed 12', admission: addDays(t, plan.days - 3), discharge: addDays(t, plan.days), tpa: plan.c === 1 ? 'Star Health' : '' };
+      if (plan.c === 1) doc.insurance = 2000;
+    }
+    doc.status = plan.status || (plan.type === 'quote' ? 'sent' : 'sent');
+    const total = doc.items.reduce((s, i) => s + i.qty * i.rate * (1 + i.tax / 100), 0);
+    if (plan.pay === 'full') doc.payments = [{ id: uid(), date: addDays(t, plan.days + 5), amount: Math.round(total), method: 'UPI', ref: 'UTR4021' }];
+    if (plan.pay === 'part') doc.payments = [{ id: uid(), date: addDays(t, plan.days + 2), amount: Math.round(total / 3), method: 'Cash', ref: '' }];
+    saveDoc(doc);
+  }
+  persist();
+}
