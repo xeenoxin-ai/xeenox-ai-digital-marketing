@@ -276,6 +276,16 @@ export async function submitPayment({ plan, period, amount, utr, method }) {
   });
 }
 
+/** Private UPI / bank details for paying BillX (signed-in users only; set by an admin). */
+export async function paymentDetails() {
+  try {
+    const snap = await getDoc(doc(firebase().db, 'private', 'payment'));
+    return snap.exists() ? snap.data() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function myPayments() {
   const q = query(collection(firebase().db, 'paymentRequests'), where('uid', '==', session.user.uid));
   return (await getDocs(q)).docs.map((d) => ({ id: d.id, ...d.data() }))

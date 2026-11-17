@@ -23,7 +23,7 @@ async function main() {
   ]);
   const { auth, db } = firebase();
   const {
-    doc, getDoc, getDocs, collection, updateDoc, Timestamp, serverTimestamp,
+    doc, getDoc, getDocs, collection, updateDoc, setDoc, Timestamp, serverTimestamp,
   } = fsMod;
 
   authMod.onAuthStateChanged(auth, async (user) => {
@@ -47,6 +47,37 @@ async function main() {
       }).sort((x, y) => ms(y.a.createdAt) - ms(x.a.createdAt));
       render(rows);
     };
+
+    /** Your UPI / bank details: stored in Firestore, shown only to signed-in customers. */
+    async function editPaymentDetails() {
+      const snap = await getDoc(doc(db, 'private', 'payment')).catch(() => null);
+      const d = (snap && snap.exists() && snap.data()) || {};
+      const f = (name, label, ph = '') => field(label, `<input name="${name}" value="${esc(d[name] || '')}" placeholder="${esc(ph)}">`);
+      modal({
+        title: 'Payment details (private)',
+        body: `<p class="muted">Shown only to signed-in BillX customers on their Subscription page. Never stored in the website code.</p>
+          <div class="grid g2">
+            ${f('payee', 'Pay to name', 'BillX Solutions')}
+            ${f('gpay', 'GPay / UPI number')}
+            ${f('upiId', 'UPI ID (for the QR code)', 'name@okaxis')}
+            ${f('accountName', 'Account holder name')}
+            ${f('accountNo', 'Account number')}
+            ${f('ifsc', 'IFSC', 'SBIN0014966')}
+            ${f('bankName', 'Bank', 'State Bank of India')}
+            ${f('branch', 'Branch')}
+          </div>`,
+        submit: 'Save',
+        onSubmit: async (fd) => {
+          const data = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v).trim()]));
+          data.ifsc = (data.ifsc || '').toUpperCase();
+          try {
+            await setDoc(doc(db, 'private', 'payment'), { ...data, updatedAt: serverTimestamp() });
+            toast('Payment details saved');
+          } catch (e) { toast(e.message, 'err'); return false; }
+          return true;
+        },
+      });
+    }
 
     /** Approve a UPI / bank payment: extend the plan from today or from the current end date. */
     async function approve(r, rows) {
@@ -87,7 +118,7 @@ async function main() {
         </div>
         ${pendingHTML()}
         <div class="toolbar"><div class="search">${icon('search', 16)}<input id="q" type="search" placeholder="Search email, plan, status" value="${esc(q)}"></div>
-          <button class="btn" id="csv">${icon('download')} Export CSV</button><button class="btn" id="reload">${icon('refresh')} Refresh</button></div>
+          <button class="btn" id="payDetails">${icon('cash')} Payment details (private)</button><button class="btn" id="csv">${icon('download')} Export CSV</button><button class="btn" id="reload">${icon('refresh')} Refresh</button></div>
         <div class="table-wrap"><table class="table"><thead><tr><th>Owner</th><th>Signed up</th><th>Plan</th><th>Status</th><th>Access until</th><th class="num">Staff</th><th></th></tr></thead>
         <tbody>${shown.map(({ a, info }) => `<tr>
           <td><b>${esc(a.ownerName || '—')}</b><div class="sub">${esc(a.ownerEmail)}</div></td>
@@ -100,6 +131,7 @@ async function main() {
       const qEl = document.getElementById('q');
       qEl.oninput = () => { render(rows, qEl.value.toLowerCase()); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
       document.getElementById('reload').onclick = load;
+      document.getElementById('payDetails').onclick = editPaymentDetails;
       document.getElementById('csv').onclick = () => download(`billx-accounts-${new Date().toISOString().slice(0, 10)}.csv`, toCSV([
         ['Owner', 'Email', 'Signed up', 'Plan', 'Period', 'Status', 'State', 'Access until', 'Staff', 'Subscription'],
         ...rows.map(({ a, info }) => [a.ownerName, a.ownerEmail, day(ms(a.createdAt)), a.plan, a.period, a.status, info.state, day(info.until), (a.memberEmails || []).length, a.subscriptionId]),

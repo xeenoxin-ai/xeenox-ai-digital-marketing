@@ -2,7 +2,6 @@
 export const SITE = {
   product: 'BillX',
   company: 'BillX Solutions',
-  owner: 'Sudarshan M P',
   city: 'Palakkad, Kerala, India',
   // Full public address of the site, no trailing slash. Used for SEO (canonical
   // links, sitemap, social previews). Change it when you connect your own domain.
@@ -20,19 +19,11 @@ export const SITE = {
   // Google Search Console "HTML tag" verification code (content="…" value only).
   googleVerification: '',
 
-  // Where customers send money.
+  // Name customers pay to. The bank account, UPI ID and GPay number are PRIVATE:
+  // they are never stored in this code or shown on the public website. Customers
+  // get them on WhatsApp, or (with accounts switched on) inside the app after
+  // signing in, from the details you save in the admin page (Firestore).
   pay: {
     payee: 'BillX Solutions',
-    // GPay / PhonePe / Paytm number customers can pay to.
-    gpay: '9074580473',
-    // Exact UPI ID (VPA), e.g. name@okaxis, shown in GPay → Profile. Enables the scan-to-pay QR.
-    upiId: '',
-    bank: {
-      accountName: 'Sudarshan M P',
-      accountNo: '38623416046',
-      bankName: '',
-      branch: 'Kongad',
-      ifsc: '',
-    },
   },
 };

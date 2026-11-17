@@ -40,9 +40,14 @@ test('sitemap lists every page; robots blocks the app and admin', () => {
   assert.ok(homeHead().includes('"@type":"FAQPage"'));
 });
 
-test('payment details show BillX Solutions, GPay number and bank account', () => {
-  const html = payDetailsHTML('pro', 'monthly');
-  for (const v of ['BillX Solutions', SITE.pay.gpay, SITE.pay.bank.accountNo, SITE.pay.bank.accountName, '₹3,999']) assert.ok(html.includes(v), v);
+test('bank and UPI details are never in the public code; shown only when passed in', () => {
+  assert.deepEqual(Object.keys(SITE.pay), ['payee'], 'site config holds no account, UPI or GPay details');
+  const pub = payDetailsHTML('pro', 'monthly');
+  assert.ok(pub.includes('Get payment details on WhatsApp'));
+  assert.ok(!/\d{9,}/.test(pub.replace(/wa\.me\/\d+/, '')), 'no long account-like numbers on the public box');
+  const sample = { payee: 'Test Co', gpay: '9000000001', accountNo: '00001112223', accountName: 'Test Owner', ifsc: 'TEST0000001' };
+  const priv = payDetailsHTML('pro', 'monthly', sample);
+  for (const v of ['Test Co', '9000000001', '00001112223', 'TEST0000001', '₹3,999']) assert.ok(priv.includes(v), v);
   assert.equal(payAmount('pro', 'yearly'), SITE.gstin ? 47188.2 : 39990);
   const msg = confirmationText({ plan: 'business', period: 'monthly', utr: '412345678901', name: 'Ravi' });
   assert.ok(msg.includes('UTR: 412345678901') && msg.includes('Business (monthly)'));
