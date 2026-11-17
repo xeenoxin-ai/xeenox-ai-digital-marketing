@@ -5,3 +5,4 @@ dist/
 .vercel
 .env*
 *-debug.log
+dist-billx/

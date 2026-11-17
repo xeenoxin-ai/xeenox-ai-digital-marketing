@@ -213,6 +213,7 @@ export function editorView(main, params, query) {
   const refresh = (now) => {
     clearTimeout(pvTimer);
     const run = () => {
+      if (!form.isConnected) return; // editor already closed (e.g. saved)
       mountPreview(pv, draft, s);
       renderSum();
     };
@@ -601,7 +602,7 @@ export function paymentDialog(doc, t, done) {
 /** Portal link for some of one client's documents. */
 export async function portalLink(client, docs) {
   const token = await encodePortal(portalPayload(settings(), client, docs));
-  return `${new URL('portal.html', location.href.split('#')[0]).href}#${token}`;
+  return `${new URL('../portal.html', location.href.split('#')[0]).href}#${token}`;
 }
 
 export function shareDialog(doc, done) {

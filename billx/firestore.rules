@@ -1,0 +1,119 @@
+rules_version = '2';
+
+// BillX cloud data. The server (payment functions, using a service account)
+// bypasses these rules; everyone else is limited as follows:
+//  - An account belongs to its owner plus the staff emails the owner added.
+//    Staff must have a verified email.
+//  - Members can always READ their data. They can WRITE only during the
+//    14-day trial or while a paid plan is active (+3 days grace).
+//  - Plan, status and payment fields are changed only by the payment server
+//    or a BillX admin (listed in /admins).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function verifiedEmail() {
+      return signedIn() && request.auth.token.email_verified == true && request.auth.token.email is string;
+    }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function account(a) { return get(/databases/$(database)/documents/accounts/$(a)).data; }
+
+    function isMember(acc) {
+      return signedIn() && (acc.ownerUid == request.auth.uid
+        || (verifiedEmail() && myEmail() in acc.memberEmails));
+    }
+
+    // Trial (14 days from sign-up) or paid until paidUntil (+3 days grace).
+    function canWrite(acc) {
+      return (acc.status == 'trial' && request.time < acc.createdAt + duration.value(14, 'd'))
+        || (acc.paidUntil is timestamp
+            && acc.status in ['active', 'cancelled', 'past_due', 'halted']
+            && request.time < acc.paidUntil + duration.value(3, 'd'));
+    }
+
+    function str(v, max) { return v is string && v.size() <= max; }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // Which account a signed-in person works in.
+    match /users/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['accountId', 'email', 'role', 'createdAt'])
+        && request.resource.data.createdAt == request.time
+        && str(request.resource.data.email, 200)
+        && (
+          (request.resource.data.role == 'owner' && request.resource.data.accountId == uid
+            && exists(/databases/$(database)/documents/accounts/$(uid)))
+          || (request.resource.data.role == 'staff'
+            && isMember(account(request.resource.data.accountId)))
+        );
+      allow list, update: if false;
+    }
+
+    match /accounts/{a} {
+      allow get: if isMember(resource.data) || isAdmin();
+      // Staff look up the account that added their email; admins list all.
+      allow list: if isAdmin() || (verifiedEmail() && myEmail() in resource.data.memberEmails);
+
+      // A new account always starts as a 14-day trial with Business-level limits.
+      allow create: if signedIn() && a == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'ownerEmail', 'ownerName', 'createdAt', 'status', 'plan',
+          'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'trial'
+        && request.resource.data.plan == null
+        && request.resource.data.period == null
+        && request.resource.data.paidUntil == null
+        && request.resource.data.subscriptionId == null
+        && request.resource.data.memberEmails == []
+        && request.resource.data.maxUsers == 3
+        && request.resource.data.maxBusinesses == 3
+        && str(request.resource.data.ownerEmail, 200)
+        && str(request.resource.data.ownerName, 120);
+
+      // Owner manages the team (within the plan's user limit; the owner is user 1).
+      // Admins can activate or extend accounts (cash / bank transfer customers).
+      allow update: if (
+          resource.data.ownerUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberEmails', 'ownerName'])
+          && request.resource.data.memberEmails is list
+          && request.resource.data.memberEmails.size() < resource.data.maxUsers
+          && str(request.resource.data.ownerName, 120)
+        ) || (
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'plan', 'period', 'paidUntil', 'maxUsers', 'maxBusinesses', 'manual'])
+        );
+      allow delete: if false;
+
+      match /workspaces/{w} {
+        allow read: if isMember(account(a));
+        allow create, update: if isMember(account(a)) && canWrite(account(a))
+          && request.resource.data.keys().hasOnly(['settings', 'name', 'industry', 'updatedAt'])
+          && request.resource.data.settings is map;
+        allow delete: if account(a).ownerUid == request.auth.uid;
+
+        match /{col}/{id} {
+          allow read: if isMember(account(a));
+          allow create, update: if col in ['clients', 'items', 'docs']
+            && isMember(account(a)) && canWrite(account(a))
+            && request.resource.data.id == id;
+          allow delete: if col in ['clients', 'items', 'docs']
+            && isMember(account(a))
+            && (canWrite(account(a)) || account(a).ownerUid == request.auth.uid);
+        }
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

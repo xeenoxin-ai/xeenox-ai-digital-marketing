@@ -7,9 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:billx": "vite build --config billx/vite.config.js",
+    "dev:billx": "vite --config billx/vite.config.js",
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
     "test:rules": "firebase emulators:exec --only firestore --project demo-easyway \"node --test tests/rules.emulator.js\"",
+    "test:billx-rules": "firebase emulators:exec --config billx/firebase.json --only firestore --project demo-billx \"node --test tests/billx-rules.emulator.js\"",
+    "emulators:billx": "firebase emulators:start --config billx/firebase.json --only firestore,auth --project demo-billx",
     "emulators": "firebase emulators:start --only firestore,auth --project demo-easyway"
   },
   "dependencies": {
