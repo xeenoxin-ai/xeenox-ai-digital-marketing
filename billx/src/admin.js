@@ -62,7 +62,7 @@ async function main() {
             ${f('upiId', 'UPI ID (for the QR code)', 'name@okaxis')}
             ${f('accountName', 'Account holder name')}
             ${f('accountNo', 'Account number')}
-            ${f('ifsc', 'IFSC', 'SBIN0014966')}
+            ${f('ifsc', 'IFSC', 'SBIN0001234')}
             ${f('bankName', 'Bank', 'State Bank of India')}
             ${f('branch', 'Branch')}
           </div>`,
