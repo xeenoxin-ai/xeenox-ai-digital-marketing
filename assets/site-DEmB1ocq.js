@@ -1,0 +1,1 @@
+const l={product:"BillX",company:"BillX Solutions",city:"Palakkad, Kerala, India",url:"https://billxsolutions.pages.dev",whatsapp:"919074580473",email:"",address:"",gstin:"",legalReviewed:!1,googleVerification:"",pay:{payee:"BillX Solutions"}};export{l as S};
