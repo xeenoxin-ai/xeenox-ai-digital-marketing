@@ -131,3 +131,14 @@ test('UPI / bank payments: owner submits, only admin approves', async () => {
   await assertSucceeds(updateDoc(doc(admin(), 'paymentRequests', 'p1'), { status: 'approved', reviewedAt: serverTimestamp() }));
   await assertSucceeds(getDocs(collection(admin(), 'paymentRequests')));
 });
+
+test('private payment details: verified signed-in users read, only admin writes', async () => {
+  await seedAccount({});
+  const details = { payee: 'Test Co', gpay: '9000000001', accountNo: '00001112223', ifsc: 'TEST0000001', updatedAt: serverTimestamp() };
+  await assertFails(setDoc(doc(owner(), 'private', 'payment'), details));
+  await assertSucceeds(setDoc(doc(admin(), 'private', 'payment'), details));
+  await assertSucceeds(getDoc(doc(owner(), 'private', 'payment')));
+  await assertFails(getDoc(doc(staff(false), 'private', 'payment')), 'unverified');
+  await assertFails(getDoc(doc(guest(), 'private', 'payment')), 'not signed in');
+  await assertFails(getDocs(collection(owner(), 'private')), 'cannot list');
+});
