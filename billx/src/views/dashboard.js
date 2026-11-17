@@ -1,6 +1,9 @@
 // Dashboard and first-run setup.
 
-import { settings, setIndustry, loadSample, flush, persist, DOC_TYPES, all, today } from '../store.js';
+import {
+  settings, setIndustry, loadSample, flush, persist, DOC_TYPES, all, today, workspaces, removeWorkspace, activeWorkspace,
+} from '../store.js';
+import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { fmtDate } from '../templates.js';
@@ -88,33 +91,55 @@ export function dashboardView(main) {
   $$('tr.link', main).forEach((tr) => tr.addEventListener('click', () => navigate(`#/doc/${tr.dataset.id}`)));
 }
 
+function sectorSummary(key) {
+  const p = INDUSTRIES[key];
+  if (!p) return '';
+  if (p.custom) return 'Start blank: add your own bill fields, customer fields and item columns in Settings → Fields on your bills.';
+  const bits = [
+    `${p.clientLabel}s`, p.docTitle,
+    p.fields.length ? `bill fields: ${p.fields.map((f) => f.label).join(', ')}` : '',
+    p.clientFields.length ? `${p.clientLabel.toLowerCase()} fields: ${p.clientFields.map((f) => f.label).join(', ')}` : '',
+    p.itemCols.filter((c) => !c.hidden).length ? `item columns: ${p.itemCols.filter((c) => !c.hidden).map((c) => c.label).join(', ')}` : '',
+    `${p.items.length} starter items`, `${p.tax}% tax`,
+  ].filter(Boolean);
+  return `<b>${esc(p.name)}</b> · ${esc(bits.join(' · '))}. You can change all of it later.`;
+}
+
 function onboarding(main) {
   const s = settings();
-  setPage('Set up billing', '');
+  const others = workspaces().filter((w) => !w.active);
+  setPage('Set up BillX', '');
   document.body.classList.add('onboarding');
   main.innerHTML = `
   <form class="onboard" id="ob">
-    <div class="onboard-head"><img src="${logoUrl}" alt="" width="48" height="48"><div><h1>Welcome to BillX</h1>
-    <p>Billing &amp; invoicing set up in a minute. Pick your business type: fields, labels, tax, items and the invoice design are prepared for you, and you can change any of it later.</p></div></div>
-    <div class="ind-grid big">${Object.entries(INDUSTRIES).map(([k, v], i) => `<label class="ind${i === 0 ? ' on' : ''}"><input type="radio" name="industry" value="${k}" ${i === 0 ? 'checked' : ''}><b>${esc(v.name)}</b><small>${esc(v.clientLabel)}s · ${esc(v.docTitle)}</small></label>`).join('')}</div>
+    <div class="onboard-head"><img src="${logoUrl}" alt="" width="48" height="48"><div><h1>${others.length ? 'Add a business to BillX' : 'Welcome to BillX'}</h1>
+    <p>Billing &amp; invoicing for every kind of business. Pick your type and BillX prepares the fields, labels, tax, starter items and invoice design. Not listed? Choose <b>Custom</b> and build your own.</p></div></div>
+    ${sectorPickerHTML(s.industry || 'general')}
+    <p class="sp-info" id="spInfo">${sectorSummary(s.industry || 'general')}</p>
     <div class="grid g3">
-      ${field('Business name', `<input name="name" placeholder="e.g. Sunrise Hospital" value="${s.business.name === 'Your Business Name' ? '' : esc(s.business.name)}">`)}
+      ${field('Business name', `<input name="name" placeholder="e.g. Sunrise Traders" value="${s.business.name === 'Your Business Name' ? '' : esc(s.business.name)}">`)}
       ${field('State', `<select name="state">${options(STATES.map(([c, n]) => [c, n]), s.business.state)}</select>`)}
       ${field('Currency', `<select name="currency">${options(Object.keys(CURRENCIES).map((c) => [c, `${c} (${CURRENCIES[c].symbol})`]), s.currency)}</select>`)}
     </div>
     <div class="row-gap wrap end">
+      ${others.length ? `<button type="button" class="btn ghost" id="obCancel">Cancel</button>` : ''}
       <button class="btn" value="sample">${icon('eye')} Explore with sample data</button>
       <button class="btn primary" value="start">${icon('check')} Start billing</button>
     </div>
   </form>`;
   const form = $('#ob', main);
-  form.addEventListener('change', (e) => {
-    if (e.target.name === 'industry') $$('.ind', form).forEach((l) => l.classList.toggle('on', l.contains(e.target)));
+  bindSectorPicker(form, (key) => { $('#spInfo', form).innerHTML = sectorSummary(key); });
+  const cancel = $('#obCancel', form);
+  if (cancel) cancel.addEventListener('click', () => {
+    removeWorkspace(activeWorkspace());
+    document.body.classList.remove('onboarding');
+    location.hash = '#/';
+    location.reload();
   });
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const fd = new FormData(form);
-    const ind = fd.get('industry');
+    const ind = fd.get('industry') || 'general';
     const sample = e.submitter && e.submitter.value === 'sample';
     if (sample) loadSample(ind);
     else setIndustry(ind);
@@ -126,6 +151,7 @@ function onboarding(main) {
     persist();
     flush();
     document.body.classList.remove('onboarding');
-    navigate('#/', { replace: true });
+    location.hash = '#/';
+    location.reload();
   });
 }

@@ -156,3 +156,41 @@ test('portal link round-trips the client documents', async () => {
   assert.equal(back.d[0].number, 'INV-0001');
   assert.equal(back.s.business.signature, undefined, 'signature never leaves the device');
 });
+
+import { GROUPS, sectorOf, starterItems, sampleValue } from '../billx/src/industries.js';
+
+test('every sector is complete and renders with its own design', () => {
+  const ids = new Set(TEMPLATES.map((t) => t.id));
+  const keys = Object.keys(INDUSTRIES);
+  assert.ok(keys.length >= 40, `expected 40+ sectors, got ${keys.length}`);
+  for (const k of keys) {
+    const p = INDUSTRIES[k];
+    assert.ok(GROUPS.includes(p.group), `${k} group`);
+    assert.ok(ids.has(p.template), `${k} template`);
+    assert.ok(p.clientLabel && p.docTitle && Array.isArray(p.fields), k);
+    const s = settingsFor(k);
+    const sec = sectorOf(s);
+    const doc = {
+      ...sampleDoc, client: { name: 'Test', extra: Object.fromEntries(sec.clientFields.map((f) => [f.key, sampleValue(f) || 'X'])) },
+      fields: Object.fromEntries(sec.fields.map((f) => [f.key, sampleValue(f, 0, '2026-11-01') || 'V'])),
+      items: starterItems(k).map((it) => ({ ...it, qty: 1, rate: it.rate || 100 })),
+    };
+    const { html } = renderInvoice(doc, s);
+    assert.ok(html.includes(p.docTitle.replace('&', '&amp;')), `${k} title`);
+    for (const f of sec.fields) assert.ok(html.includes(f.label.replace('&', '&amp;')) || f.type === 'date', `${k} shows ${f.label}`);
+  }
+});
+
+test('a business can replace its sector fields', () => {
+  const s = settingsFor('retail');
+  s.sector = { fields: [{ key: 'tbl', label: 'Locker No.' }], clientFields: [{ key: 'cid', label: 'Card ID' }], itemCols: [{ key: 'sz', label: 'Size' }], insurance: true };
+  const sec = sectorOf(s);
+  assert.equal(sec.fields[0].label, 'Locker No.');
+  assert.equal(sec.insurance, true);
+  const { html } = renderInvoice({
+    ...sampleDoc, template: 'modern', fields: { tbl: 'L-7' }, client: { name: 'A', extra: { cid: 'C-9' } },
+    items: [{ name: 'Shoe', qty: 1, rate: 100, tax: 0, sz: '42' }],
+  }, s);
+  for (const v of ['Locker No.', 'L-7', 'Card ID', 'C-9', '>Size<', '>42<']) assert.ok(html.includes(v), v);
+  assert.equal(sectorOf({ industry: 'retail' }).fields[0].label, 'Salesperson', 'presets stay untouched');
+});

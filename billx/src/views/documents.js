@@ -5,7 +5,7 @@ import {
   DOC_TYPES, all, get, settings, newDoc, saveDoc, upsert, remove, duplicateDoc, clientSnapshot, today, flush,
 } from '../store.js';
 import { STATES, lineValues, upiLink } from '../calc.js';
-import { industry } from '../industries.js';
+import { sectorOf } from '../industries.js';
 import { TEMPLATES, fmtDate } from '../templates.js';
 import { encodePortal, portalPayload } from '../portal-codec.js';
 import {
@@ -98,7 +98,7 @@ const STATUS_EDIT_LABEL = { ...STATUS_LABEL, sent: 'Sent / issued' };
 
 export function editorView(main, params, query) {
   const s = settings();
-  const ind = industry(s.industry);
+  const ind = sectorOf(s);
   let draft;
   if (params.id) {
     const found = get('docs', params.id);
@@ -117,6 +117,7 @@ export function editorView(main, params, query) {
     <button class="btn" id="printBtn" title="Print or save as PDF">${icon('print')}<span class="hide-sm"> Print</span></button>
     <button class="btn primary" id="saveBtn">${icon('check')} Save</button>`);
 
+  const idOf = (c) => (ind.clientFields[0] && c.extra ? c.extra[ind.clientFields[0].key] : '');
   const catalogue = all('items');
   const cats = [...new Set(catalogue.map((i) => i.category).filter(Boolean))];
   const showCategory = s.design.groupByCategory || ind.itemCols.some((c) => c.key === 'category');
@@ -144,14 +145,14 @@ export function editorView(main, params, query) {
         <div class="row-gap">
           <select id="clientSel" class="grow">
             <option value="">— Select ${esc(clientLabel().toLowerCase())} —</option>
-            ${options(all('clients').slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => [c.id, `${c.name}${c.company && c.company !== c.name ? ` · ${c.company}` : ''}${c.extra && c.extra.uhid ? ` · ${c.extra.uhid}` : ''}`]), draft.clientId)}
+            ${options(all('clients').slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => [c.id, `${c.name}${c.company && c.company !== c.name ? ` · ${c.company}` : ''}${idOf(c) ? ` · ${idOf(c)}` : ''}`]), draft.clientId)}
           </select>
           <button type="button" class="btn" id="newClientBtn">${icon('plus')} New</button>
         </div>
         <div id="clientCard" class="client-card"></div>
       </section>
 
-      ${ind.fields.length ? `<section class="card"><h3>${esc(ind.name)} details</h3><div class="grid g3">
+      ${ind.fields.length ? `<section class="card"><h3>Bill details</h3><div class="grid g3">
         ${ind.fields.map((f) => field(f.label, `<input ${f.type === 'date' ? 'type="date"' : ''} data-ff="${f.key}" value="${esc((draft.fields || {})[f.key] || '')}">`)).join('')}
       </div></section>` : ''}
 
@@ -173,7 +174,7 @@ export function editorView(main, params, query) {
           ${field('Shipping / other charges', `<input type="number" step="any" data-f="shipping" data-num value="${esc(draft.shipping)}">`)}
           ${field('Adjustment (+/−)', `<input type="number" step="any" data-f="adjustment" data-num value="${esc(draft.adjustment)}">`)}
           ${field('Advance received', `<input type="number" step="any" min="0" data-f="advance" data-num value="${esc(draft.advance)}">`)}
-          ${ind.insurance || draft.insurance ? field('Insurance / TPA covers', `<input type="number" step="any" min="0" data-f="insurance" data-num value="${esc(draft.insurance)}">`) : ''}
+          ${ind.insurance || draft.insurance ? field(`${s.design.labels.insurance || 'Insurance / third-party share'}`, `<input type="number" step="any" min="0" data-f="insurance" data-num value="${esc(draft.insurance)}">`) : ''}
         </div>
         <div id="sumBox" class="sumbox"></div>
       </section>

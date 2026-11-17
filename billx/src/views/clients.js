@@ -2,7 +2,7 @@
 
 import { all, get, upsert, remove, settings, flush, DOC_TYPES } from '../store.js';
 import { STATES } from '../calc.js';
-import { industry } from '../industries.js';
+import { sectorOf } from '../industries.js';
 import { fmtDate } from '../templates.js';
 import { icon, esc, $, $$, toast, confirmBox, badge, options, field, copyText, printDocs, modal } from '../ui.js';
 import { portalLink } from './documents.js';
@@ -11,7 +11,7 @@ import { navigate, setPage, setDirty } from '../router.js';
 
 export function clientFormHTML(c) {
   const s = settings();
-  const ind = industry(s.industry);
+  const ind = sectorOf(s);
   const ex = c.extra || {};
   return `<div class="grid g2">
     ${field('Name *', `<input name="name" required value="${esc(c.name || '')}">`)}
@@ -44,17 +44,18 @@ export function readClientForm(fd, base) {
 export function listView(main, params, query) {
   const label = clientLabel();
   const q = (query.get('q') || '').toLowerCase();
+  const firstF = sectorOf(settings()).clientFields[0];
   setPage(`${label}s`, `<a class="btn primary" href="#/client/new">${icon('plus')} New ${esc(label.toLowerCase())}</a>`);
   const list = all('clients')
     .filter((c) => !q || [c.name, c.company, c.phone, c.email, c.gstin, ...(Object.values(c.extra || {}))].some((v) => String(v || '').toLowerCase().includes(q)))
     .map((c) => ({ c, b: clientBalance(c.id) }))
     .sort((a, b) => b.b.outstanding - a.b.outstanding || a.c.name.localeCompare(b.c.name));
   main.innerHTML = `
-    <div class="toolbar"><div class="search">${icon('search', 16)}<input id="q" type="search" placeholder="Search name, phone, ${industry(settings().industry).clientFields[0] ? esc(industry(settings().industry).clientFields[0].label) : 'GSTIN'}" value="${esc(q)}"></div></div>
+    <div class="toolbar"><div class="search">${icon('search', 16)}<input id="q" type="search" placeholder="Search name, phone, ${firstF ? esc(firstF.label) : 'GSTIN'}" value="${esc(q)}"></div></div>
     ${list.length ? `<div class="table-wrap"><table class="table">
       <thead><tr><th>Name</th><th>Contact</th><th class="num">Billed</th><th class="num">Outstanding</th></tr></thead>
       <tbody>${list.map(({ c, b }) => `<tr class="link" data-id="${c.id}">
-        <td><b>${esc(c.name)}</b>${c.company && c.company !== c.name ? `<div class="sub">${esc(c.company)}</div>` : ''}${c.extra && c.extra.uhid ? `<div class="sub">${esc(c.extra.uhid)}</div>` : ''}</td>
+        <td><b>${esc(c.name)}</b>${c.company && c.company !== c.name ? `<div class="sub">${esc(c.company)}</div>` : ''}${firstF && c.extra && c.extra[firstF.key] ? `<div class="sub">${esc(firstF.label)}: ${esc(c.extra[firstF.key])}</div>` : ''}</td>
         <td>${esc(c.phone || '')}<div class="sub">${esc(c.email || '')}</div></td>
         <td class="num">${money(b.billed)}</td>
         <td class="num ${b.outstanding > 0.5 ? 'due' : ''}">${money(b.outstanding)}</td></tr>`).join('')}</tbody></table></div>`
