@@ -55,21 +55,16 @@ async function main() {
       const f = (name, label, ph = '') => field(label, `<input name="${name}" value="${esc(d[name] || '')}" placeholder="${esc(ph)}">`);
       modal({
         title: 'Payment details (private)',
-        body: `<p class="muted">Shown only to signed-in BillX customers on their Subscription page. Never stored in the website code.</p>
+        body: `<p class="muted">Customers pay you by UPI only. They see the UPI ID and a QR code with the exact amount on the checkout page, after signing in. Never stored in the website code. Bank account details are not shown to anyone.</p>
           <div class="grid g2">
-            ${f('payee', 'Pay to name', 'BillX Solutions')}
-            ${f('gpay', 'GPay / UPI number')}
-            ${f('upiId', 'UPI ID (for the QR code)', 'name@okaxis')}
-            ${f('accountName', 'Account holder name')}
-            ${f('accountNo', 'Account number')}
-            ${f('ifsc', 'IFSC', 'SBIN0001234')}
-            ${f('bankName', 'Bank', 'State Bank of India')}
-            ${f('branch', 'Branch')}
-          </div>`,
+            ${f('payee', 'Pay to name (shown on checkout)', 'BillX Solutions')}
+            ${f('upiId', 'UPI ID', 'yourname@okaxis')}
+          </div>
+          <p class="muted small">Saving replaces any older details, so bank account details saved earlier are deleted.</p>`,
         submit: 'Save',
         onSubmit: async (fd) => {
           const data = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v).trim()]));
-          data.ifsc = (data.ifsc || '').toUpperCase();
+          if (!/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(data.upiId || '')) { toast('Enter a valid UPI ID, like name@okaxis', 'err'); return false; }
           try {
             await setDoc(doc(db, 'private', 'payment'), { ...data, updatedAt: serverTimestamp() });
             toast('Payment details saved');

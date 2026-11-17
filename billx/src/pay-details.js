@@ -21,14 +21,13 @@ export function whatsappLink(text) {
 export const detailsRequestText = (plan, period) => `Hello ${SITE.company}, I want to buy BillX ${PLANS[plan].name} (${period}) for ${rupees(payAmount(plan, period))}. Please send the payment details.`;
 
 /**
- * details: { payee, gpay, upiId, accountName, accountNo, ifsc, bankName, branch } or null.
+ * details: { payee, upiId } or null. Only UPI is shown; bank details are never displayed.
  */
 export function payDetailsHTML(plan, period, details = null) {
   const amount = payAmount(plan, period);
   const head = `<div class="pd-amount"><span>Amount to pay</span><b>${rupees(amount)}</b><small>${esc(PLANS[plan].name)} plan, ${period === 'yearly' ? '1 year' : '1 month'}${GST_RATE ? ' incl. 18% GST' : ''}</small></div>`;
   const d = details || {};
-  const hasAny = d.gpay || d.upiId || d.accountNo;
-  if (!hasAny) {
+  if (!d.upiId) {
     const wa = whatsappLink(detailsRequestText(plan, period));
     return `<div class="pay-details">${head}
       <section class="pd-box pd-private">
@@ -42,25 +41,14 @@ export function payDetailsHTML(plan, period, details = null) {
   const note = `BillX ${PLANS[plan].name} ${period}`;
   const upi = d.upiId ? upiLink({ upiId: d.upiId, payee, amount, note }) : '';
   const row = (label, value, copy = true) => (value ? `<div class="pd-row"><span>${esc(label)}</span><b>${esc(value)}</b>${copy ? `<button type="button" class="icon-btn" data-copy="${esc(value)}" aria-label="Copy ${esc(label)}">${icon('copy', 16)}</button>` : ''}</div>` : '');
+  // UPI only: bank account details are never shown to customers.
   return `<div class="pay-details">${head}
-    <div class="pd-grid">
-      <section class="pd-box">
-        <h4>UPI · GPay · PhonePe · Paytm</h4>
-        ${upi ? `<div class="pd-qr">${qrSvg(upi, { size: 170 })}</div><a class="btn primary block" href="${esc(upi)}">${icon('cash')} Pay ${rupees(amount)} in UPI app</a>` : ''}
-        ${row('Pay to name', payee, false)}
-        ${row('GPay / UPI number', d.gpay)}
-        ${row('UPI ID', d.upiId)}
-        ${d.accountName ? `<p class="muted small">Your UPI app shows the account holder's name (${esc(d.accountName)}) when you pay.</p>` : ''}
-      </section>
-      ${d.accountNo ? `<section class="pd-box">
-        <h4>Bank transfer (NEFT / IMPS / RTGS)</h4>
-        ${row('Account name', d.accountName)}
-        ${row('Account number', d.accountNo)}
-        ${row('IFSC', d.ifsc)}
-        ${row('Bank', d.bankName, false)}
-        ${row('Branch', d.branch, false)}
-      </section>` : ''}
-    </div>
+    <section class="pd-box">
+      <h4>Pay by UPI · GPay · PhonePe · Paytm</h4>
+      ${upi ? `<div class="pd-qr">${qrSvg(upi, { size: 190 })}</div><a class="btn primary block" href="${esc(upi)}">${icon('cash')} Pay ${rupees(amount)} in UPI app</a>` : ''}
+      ${row('Pay to', payee, false)}
+      ${row('UPI ID', d.upiId)}
+    </section>
   </div>`;
 }
 

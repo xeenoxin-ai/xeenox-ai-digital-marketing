@@ -4,9 +4,8 @@ import { PLANS, TAX_NOTE } from '../plans.js';
 import {
   session, addMember, removeMember, signOut, submitPayment, myPayments, paymentDetails,
 } from '../cloud/session.js';
-import {
-  payDetailsHTML, bindCopy, payAmount, rupees, whatsappLink, confirmationText,
-} from '../pay-details.js';
+import { rupees } from '../pay-details.js';
+import { openCheckout } from './checkout.js';
 import { accessInfo, limitsOf } from '../cloud/access.js';
 import { subscribe, cancelSubscription } from '../cloud/billing.js';
 import { razorpayKeyId } from '../cloud/config.js';
@@ -38,42 +37,58 @@ export function subscriptionView(main, params, query) {
     expired: 'Your trial or plan has ended. Your data is safe and can be viewed, but not changed. Choose a plan to continue.',
   }[a.state];
 
+  const pending = () => payments.find((r) => r.status === 'pending');
+  const checkout = (plan) => {
+    chosen = plan;
+    openCheckout({
+      plan, period, details, email: session.user.email,
+      onSubmit: async (req) => {
+        await submitPayment(req);
+        payments = await myPayments().catch(() => payments);
+        render();
+      },
+    });
+  };
+
   const render = () => {
+    const stateName = { trial: 'Free trial', active: 'Active', grace: 'Payment due', expired: 'Expired' }[a.state];
+    const pct = a.state === 'trial' ? Math.max(4, Math.min(100, Math.round((a.daysLeft / 14) * 100))) : 0;
+    const pend = pending();
     main.innerHTML = `
-    <section class="card sub-status st-${a.state}">
-      <div class="row-between"><h3>Your plan</h3><span class="badge b-${a.state === 'expired' ? 'overdue' : a.state === 'grace' ? 'partial' : a.state === 'trial' ? 'sent' : 'paid'}">${{ trial: 'Trial', active: 'Active', grace: 'Payment due', expired: 'Expired' }[a.state]}</span></div>
-      <p>${statusLine}</p>
-      <p class="muted small">Signed in as ${esc(session.user.email)} · ${owner ? 'Account owner' : 'Staff member'} · Users ${(acc.memberEmails || []).length + 1}/${lim.users} · Businesses ${workspaces().length}/${lim.businesses}</p>
-      ${owner && acc.subscriptionId && a.state === 'active' && acc.status !== 'cancelled' && !acc.cancelAtPeriodEnd ? `<button class="btn danger-text" id="cancelSub">${icon('x')} Cancel subscription</button>` : ''}
+    <section class="sx-hero st-${a.state}">
+      <div class="sx-hero-top">
+        <div><p class="sx-eyebrow">Your plan</p><h2>${a.state === 'active' ? `${esc((PLANS[acc.plan] || {}).name || 'Paid')} plan` : stateName}</h2></div>
+        <span class="sx-chip">${icon(a.state === 'active' ? 'check' : 'clock', 14)} ${stateName}</span>
+      </div>
+      <p class="sx-line">${statusLine}</p>
+      ${a.state === 'trial' ? `<div class="sx-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>` : ''}
+      <p class="sx-meta">${esc(session.user.email)} · ${owner ? 'Account owner' : 'Staff member'} · ${(acc.memberEmails || []).length + 1}/${lim.users} users · ${workspaces().length}/${lim.businesses} businesses</p>
+      ${owner && acc.subscriptionId && a.state === 'active' && acc.status !== 'cancelled' && !acc.cancelAtPeriodEnd ? `<button class="btn" id="cancelSub">${icon('x')} Cancel subscription</button>` : ''}
     </section>
 
-    ${owner ? `<section class="card">
-      <div class="row-between"><h3>${a.state === 'active' ? 'Change plan' : 'Choose a plan'}</h3>
-        <div class="l-toggle small" role="group" aria-label="Billing period"><button type="button" data-period="monthly" class="${period === 'monthly' ? 'on' : ''}">Monthly</button><button type="button" data-period="yearly" class="${period === 'yearly' ? 'on' : ''}">Yearly · 2 months free</button></div></div>
-      <div class="sub-plans">${Object.entries(PLANS).map(([k, p]) => {
+    ${pend ? `<section class="sx-pending">${icon('clock', 20)}<div><b>Payment being verified</b><span>${rupees(pend.amount)} for ${esc((PLANS[pend.plan] || {}).name || pend.plan)} (${esc(pend.period)}) · ref. ${esc(pend.utr)}. Your plan switches on as soon as it's confirmed.</span></div></section>` : ''}
+
+    ${owner ? `<section class="sx-plans-wrap">
+      <div class="sx-plans-head">
+        <div><h2>${a.state === 'active' ? 'Change your plan' : 'Choose your plan'}</h2><p class="muted">Simple pricing. Pay by UPI in a minute. Cancel any time.</p></div>
+        <div class="co-seg" role="group" aria-label="Billing period"><button type="button" data-period="monthly" class="${period === 'monthly' ? 'on' : ''}">Monthly</button><button type="button" data-period="yearly" class="${period === 'yearly' ? 'on' : ''}">Yearly <em>2 months free</em></button></div>
+      </div>
+      <div class="sx-plans">${Object.entries(PLANS).map(([k, p]) => {
     const current = a.state === 'active' && acc.plan === k && acc.period === period;
-    return `<div class="sub-plan${p.popular ? ' popular' : ''}${wanted === k ? ' wanted' : ''}">
-          <b>${esc(p.name)}</b><small>${esc(p.for)}</small>
-          <div class="sub-price">${money(period === 'yearly' ? p.yearly : p.monthly)}<small>/${period === 'yearly' ? 'year' : 'month'} · ${TAX_NOTE}</small></div>
-          <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-          ${razorpayKeyId ? `<button class="btn ${p.popular || wanted === k ? 'primary' : ''} block" data-plan="${k}" ${current ? 'disabled' : ''}>${current ? 'Current plan' : `Autopay: ${esc(p.name)}`}</button>` : ''}
-          <button class="btn ${chosen === k ? 'primary' : ''} block" data-choose="${k}">${chosen === k ? `${icon('check')} Selected` : `Choose ${esc(p.name)}`}</button>
-        </div>`;
+    return `<article class="sx-plan${p.popular ? ' popular' : ''}${wanted === k ? ' wanted' : ''}">
+          ${p.popular ? '<span class="sx-ribbon">Most popular</span>' : ''}
+          <h3>${esc(p.name)}</h3><p class="sx-for">${esc(p.for)}</p>
+          <div class="sx-price"><b>${money(period === 'yearly' ? p.yearly : p.monthly)}</b><span>/${period === 'yearly' ? 'year' : 'month'}</span></div>
+          <p class="sx-note">${period === 'yearly' ? `Just ${money(Math.round(p.yearly / 12))}/month, billed yearly` : TAX_NOTE}</p>
+          ${current ? `<button class="btn block" disabled>${icon('check')} Current plan</button>` : `<button class="btn ${p.popular ? 'primary' : 'dark'} block sx-cta" data-checkout="${k}">${a.state === 'active' ? 'Switch to' : 'Choose'} ${esc(p.name)} ${icon('arrow', 16)}</button>`}
+          ${razorpayKeyId && !current ? `<button class="btn ghost block small" data-plan="${k}">Autopay with card / UPI Autopay</button>` : ''}
+          <ul>${p.features.map((f) => `<li>${icon('check', 16)}<span>${esc(f)}</span></li>`).join('')}</ul>
+        </article>`;
   }).join('')}</div>
-      ${razorpayKeyId ? '<p class="muted small">Autopay: secure payment by Razorpay (UPI Autopay, cards, net banking). Renews automatically; cancel any time.</p>' : ''}
+      <p class="sx-trust">${icon('shield', 16)} Pay by GPay, PhonePe, Paytm or any UPI app · Your bills stay safe even if a plan ends</p>
     </section>
 
-    <section class="card" id="manualPay">
-      <h3>Pay by UPI / GPay / bank transfer <small>${esc(PLANS[chosen].name)}, ${period}</small></h3>
-      ${payDetailsHTML(chosen, period, details)}
-      <form id="utrForm" class="row-gap wrap">
-        <input name="utr" required minlength="6" placeholder="UTR / reference number after you pay" style="flex:1;min-width:220px">
-        <select name="method" style="width:auto"><option>UPI</option><option>Bank transfer</option></select>
-        <button class="btn primary">${icon('send')} I've paid: submit</button>
-      </form>
-      <p class="muted small">We check the payment and switch on your plan for ${period === 'yearly' ? '1 year' : '1 month'}, usually within a few hours. For each renewal, pay again the same way.</p>
-      ${payments.length ? `<h4>Your payments</h4>${payments.map((r) => `<div class="req-row"><span>${esc(PLANS[r.plan] ? PLANS[r.plan].name : r.plan)} · ${esc(r.period)} · ${rupees(r.amount)} · UTR ${esc(r.utr)}</span><span class="badge b-${r.status === 'approved' ? 'paid' : r.status === 'rejected' ? 'overdue' : 'partial'}">${{ pending: 'Checking', approved: 'Approved', rejected: 'Not found' }[r.status] || esc(r.status)}</span></div>`).join('')}` : ''}
-    </section>` : ''}
+    ${payments.length ? `<section class="card"><h3>Payment history</h3>${payments.map((r) => `<div class="req-row"><span>${esc(PLANS[r.plan] ? PLANS[r.plan].name : r.plan)} · ${esc(r.period)} · ${rupees(r.amount)} · ref. ${esc(r.utr)}</span><span class="badge b-${r.status === 'approved' ? 'paid' : r.status === 'rejected' ? 'overdue' : 'partial'}">${{ pending: 'Verifying', approved: 'Paid', rejected: 'Not received' }[r.status] || esc(r.status)}</span></div>`).join('')}</section>` : ''}` : ''}
 
     <section class="card">
       <h3>Team <small>${lim.users} users on your plan</small></h3>
@@ -86,27 +101,7 @@ export function subscriptionView(main, params, query) {
     </section>`;
 
     $$('[data-period]', main).forEach((b) => b.addEventListener('click', () => { period = b.dataset.period; render(); }));
-    $$('[data-choose]', main).forEach((b) => b.addEventListener('click', () => {
-      chosen = b.dataset.choose;
-      render();
-      $('#manualPay', main).scrollIntoView({ behavior: 'smooth' });
-    }));
-    const payBox = $('#manualPay', main);
-    if (payBox) bindCopy(payBox);
-    const utrForm = $('#utrForm', main);
-    if (utrForm) utrForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fd = new FormData(utrForm);
-      const req = { plan: chosen, period, amount: payAmount(chosen, period), utr: fd.get('utr'), method: fd.get('method') };
-      try {
-        await submitPayment(req);
-        toast('Thank you! We will confirm your payment shortly.');
-        payments = await myPayments().catch(() => payments);
-        render();
-        const wa = whatsappLink(confirmationText({ ...req, email: session.user.email }));
-        if (wa && confirm('Also send the payment details to BillX on WhatsApp for faster activation?')) window.open(wa, '_blank', 'noopener');
-      } catch (ex) { toast(ex.message, 'err'); }
-    });
+    $$('[data-checkout]', main).forEach((b) => b.addEventListener('click', () => checkout(b.dataset.checkout)));
     $$('[data-plan]', main).forEach((b) => b.addEventListener('click', async () => {
       const plan = b.dataset.plan;
       b.disabled = true;
@@ -139,7 +134,11 @@ export function subscriptionView(main, params, query) {
   render();
   if (owner) {
     myPayments().then((list) => { payments = list; render(); }).catch(() => {});
-    paymentDetails().then((d) => { details = d; render(); });
+    paymentDetails().then((d) => {
+      details = d;
+      render();
+      if (PLANS[wanted] && !document.querySelector('dialog.co')) checkout(wanted);
+    });
   }
   $('#signOut').addEventListener('click', () => signOut());
   const rerender = () => { if (location.hash.startsWith('#/subscription')) subscriptionView(main, params, query); };
