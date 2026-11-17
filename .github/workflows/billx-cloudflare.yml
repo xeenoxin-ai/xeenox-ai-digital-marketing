@@ -1,0 +1,47 @@
+name: Publish BillX to Cloudflare Pages
+
+# Builds the BillX website and publishes it to https://billxsolutions.pages.dev
+# on every push to main. Needs one repository secret: CLOUDFLARE_API_TOKEN
+# (Cloudflare token with Account > Cloudflare Pages > Edit).
+# Optional repository variables for the paid service: VITE_BILLX_FIREBASE, VITE_RAZORPAY_KEY_ID.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: billx-cloudflare
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run build:billx
+        env:
+          VITE_BILLX_FIREBASE: ${{ vars.VITE_BILLX_FIREBASE }}
+          VITE_RAZORPAY_KEY_ID: ${{ vars.VITE_RAZORPAY_KEY_ID }}
+
+      - name: Publish to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 775c1e02700fc336b170f305a68dd33e
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::Add the CLOUDFLARE_API_TOKEN repository secret to publish BillX to Cloudflare Pages."
+            exit 0
+          fi
+          npx -y wrangler@3.112.0 pages deploy dist-billx --project-name=billxsolutions --branch=main --commit-dirty=true

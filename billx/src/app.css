@@ -363,3 +363,60 @@ pre.err { white-space: pre-wrap; color: var(--bad); }
 .fe-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .fe-row input { flex: 1; }
 .fe-row select { width: 110px; flex: none; }
+
+/* cloud: sign in, banner, subscription */
+.auth { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; gap: 18px; }
+.auth-brand { display: flex; align-items: center; gap: 10px; font-size: 24px; color: var(--ink); text-decoration: none !important; }
+.auth-brand b { color: var(--brand); }
+.auth-card { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 26px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.auth-card h1 { font-size: 22px; }
+.auth-card .btn.google { gap: 10px; }
+.auth-err { color: var(--bad); min-height: 1em; margin: 0; font-size: 13px; }
+.auth-switch { text-align: center; margin: 0; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 12px; }
+.or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--brand-2); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.auth-card:has(.spinner) { align-items: center; text-align: center; }
+
+.acct-banner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 24px; background: var(--brand-soft); color: var(--ink); font-size: 14px; border-bottom: 1px solid var(--line); }
+.acct-banner.warn { background: var(--warn-soft); }
+.acct-banner.bad { background: var(--bad-soft); }
+.acct-banner .btn { min-height: 32px; padding: 4px 12px; }
+@media (max-width: 900px) { .acct-banner { padding: 10px 16px; } }
+
+.l-toggle { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 99px; width: max-content; }
+.l-toggle button { border: 0; background: transparent; padding: 6px 14px; border-radius: 99px; font: inherit; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.l-toggle button.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+.sub-status.st-expired { border-color: var(--bad); }
+.sub-status.st-grace { border-color: var(--warn); }
+.sub-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+@media (max-width: 1000px) { .sub-plans { grid-template-columns: minmax(0, 1fr); } }
+.sub-plan { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.sub-plan.popular { border-color: var(--brand-2); }
+.sub-plan.wanted { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 25%, transparent); }
+.sub-plan small { color: var(--ink-3); }
+.sub-price { font-size: 26px; font-weight: 800; margin: 6px 0; font-variant-numeric: tabular-nums; }
+.sub-price small { font-size: 13px; font-weight: 500; }
+.sub-plan ul { padding-left: 18px; margin: 0 0 10px; flex: 1; color: var(--ink-2); font-size: 13px; }
+.team { display: flex; flex-direction: column; margin-bottom: 12px; }
+.team-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.team-row small { display: block; color: var(--ink-3); }
+
+/* pay BillX Corp */
+.pay-details { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 18px; }
+.pd-amount { display: flex; flex-direction: column; background: var(--brand-soft); border-radius: 12px; padding: 14px 16px; }
+.pd-amount span { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--ink-2); letter-spacing: 0.04em; }
+.pd-amount b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.pd-amount small { color: var(--ink-2); }
+.pd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .pd-grid { grid-template-columns: minmax(0, 1fr); } }
+.pd-box { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; background: var(--panel); }
+.pd-box h4 { margin: 0 0 4px; font-size: 14px; }
+.pd-qr { display: flex; justify-content: center; background: #fff; border-radius: 10px; padding: 8px; }
+.pd-row { display: grid; grid-template-columns: 1fr auto 34px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.pd-row span { color: var(--ink-2); font-size: 13px; }
+.pd-row b { font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.pay-page h2 { margin-top: 22px; }
+.pay-page form .btn.big { margin-top: 12px; }
+.req-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
