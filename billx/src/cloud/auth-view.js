@@ -50,6 +50,7 @@ export function showAuth(mode = location.hash.startsWith('#/signup') ? 'signup' 
       <p class="auth-switch">${signup ? 'Already have an account? <a href="#/login">Sign in</a>' : 'New to BillX? <a href="#/signup">Start free trial</a>'}</p>
       ${signup ? '<p class="muted small">By creating an account you agree to the <a href="../legal/terms.html" target="_blank">Terms</a> and <a href="../legal/privacy.html" target="_blank">Privacy Policy</a>.</p>' : ''}
       <p class="muted small">Staff member? Sign in with the email your employer added to BillX.</p>
+      <p class="auth-switch"><a href="./?guest=1#/" id="guestLink">Try it free without an account</a><br><span class="muted small">Bills stay on this device only.</span></p>
     </form>`);
   const { auth } = firebase();
   const err = (e) => { root.querySelector('#authErr').textContent = nice(e); };

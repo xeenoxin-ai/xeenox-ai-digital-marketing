@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 import { billxPages } from './pages.mjs';
+import { billxSeo } from './seo/plugin.mjs';
 
 // Standalone BillX site (for Cloudflare Pages / your own domain):
 //   npm run build:billx  ->  dist-billx/  (/, /app/, /portal.html, /admin.html, /legal/*)
@@ -8,6 +9,7 @@ export default defineConfig({
   root: __dirname,
   base: '/',
   envDir: resolve(__dirname, '..'),
+  plugins: [billxSeo({ linkBase: '', emitPages: true })],
   build: {
     // Firebase (cloud mode only) is one large lazy-loaded chunk.
     chunkSizeWarningLimit: 800,

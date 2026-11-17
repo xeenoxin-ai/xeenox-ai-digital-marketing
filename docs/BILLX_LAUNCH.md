@@ -17,6 +17,23 @@ Expect about 2 hours, plus Razorpay's KYC approval time (often 1–3 working day
 
 ---
 
+## Fastest start: publish now, take payments by UPI / bank transfer
+
+You don't have to wait for Razorpay. BillX already shows **BillX Corp**, your GPay number and your
+bank account on the pricing and payment pages (`/pay.html`), and inside the app under
+**Subscription & team → Pay by UPI / GPay / bank transfer**:
+
+1. The customer pays you by UPI or bank transfer and submits the UTR / reference (or sends it on WhatsApp).
+2. You check your bank or GPay, then open **`/admin.html` → Payments to confirm → Approve**.
+3. Their plan switches on for 1 month or 1 year, extended from the current end date if they renew early.
+
+Payment details live in `billx/src/site.js → pay`. Add your **UPI ID** (shown in GPay → Profile, e.g.
+`name@okaxis`) to get a scan-to-pay QR with the amount filled in, and your **IFSC code** and **bank name**
+for bank transfers.
+
+You still need Firebase (step 1, free) so customers have accounts that you can activate.
+Razorpay (step 2) is optional: add it later for automatic monthly autopay.
+
 ## 0. Your business details (5 minutes)
 
 Edit `billx/src/site.js`:
@@ -91,7 +108,8 @@ Change them there and they update on the website, in the app and on the server.
    - Framework preset: **None**
    - Build command: `npm run build:billx`
    - Build output directory: `dist-billx`
-   - Project name: `billx` (gives `https://billx.pages.dev`; pick another name if taken)
+   - Project name: `billx` (gives `https://billx.pages.dev`; pick another name if taken and update `url` in `billx/src/site.js`)
+   - Node version: the repo's `.node-version` file asks for Node 22
 4. **Environment variables** (Settings → Variables and Secrets), for *Production*:
 
    | Name | Value | Type |
@@ -155,6 +173,11 @@ first-year offer. Then connect it:
    minutes to a few hours, with https included.
 3. Firebase → Authentication → **Authorized domains** → add the domain.
 4. Razorpay → update the website URL and the webhook URL to the new domain.
+
+## SEO
+
+See **[BILLX_SEO.md](BILLX_SEO.md)**: what is built in (44 business-type landing pages, free GST invoice
+generator page, Kerala page, sitemap, structured data) and the Search Console / Google Business Profile steps.
 
 ## Day-to-day
 

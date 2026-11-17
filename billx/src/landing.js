@@ -3,9 +3,9 @@
 import './app.css';
 import './invoice.css';
 import './landing.css';
-import { PLANS, TRIAL_DAYS } from './plans.js';
+import { PLANS, TRIAL_DAYS, GST_RATE } from './plans.js';
 import { SITE } from './site.js';
-import { groupedIndustries, starterItems } from './industries.js';
+import { starterItems } from './industries.js';
 import { DEFAULT_SHOW } from './store.js';
 import { esc, mountPreview } from './ui.js';
 import { formatMoney } from './calc.js';
@@ -27,8 +27,10 @@ const doc = {
 
 mountPreview(document.getElementById('heroInvoice'), { ...doc, template: 'modern' }, settings('modern', '#2563eb'));
 
-document.getElementById('sectorList').innerHTML = groupedIndustries().map(([g, list]) => `<div class="l-sector-group"><b>${esc(g)}</b>
-  <span>${list.filter(([k]) => k !== 'custom').map(([, v]) => esc(v.name)).join(' · ')}</span></div>`).join('');
+// Links to the SEO pages: same site on the standalone build, the main site elsewhere.
+const seoBase = location.pathname.includes('/billx/') ? `${SITE.url}/` : '/';
+document.getElementById('allSectors').href = `${seoBase}billing-software/`;
+document.getElementById('freeGen').href = `${seoBase}free-gst-invoice-generator/`;
 
 const designs = [['classic', '#ea580c', 'Classic'], ['bold', '#db2777', 'Bold'], ['gst', '#1d4ed8', 'GST Boxed'], ['elegant', '#7c3aed', 'Elegant']];
 const dHost = document.getElementById('designs');
@@ -45,9 +47,11 @@ function renderPlans(period) {
       ${period === 'yearly' ? `<p class="l-save">${money(p.yearly / 12)}/month, billed yearly</p>` : '<p class="l-save">&nbsp;</p>'}
       <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
       <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">Start ${TRIAL_DAYS}-day free trial</a>
+      <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay / bank transfer</a>
     </div>`).join('');
 }
 renderPlans('monthly');
+document.getElementById('priceNote').textContent = `Every plan starts with a ${TRIAL_DAYS}-day free trial. ${GST_RATE ? 'Prices exclude 18% GST.' : 'Pay by UPI, GPay, bank transfer or card.'}`;
 document.querySelectorAll('.l-toggle button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.l-toggle button').forEach((x) => x.classList.toggle('on', x === b));
   renderPlans(b.dataset.period);

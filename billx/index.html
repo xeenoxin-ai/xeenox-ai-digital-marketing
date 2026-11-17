@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1e3a8a" />
     <title>BillX: GST billing & invoicing software for every business</title>
     <meta name="description" content="BillX is GST billing and invoicing software for shops, hospitals, clinics, restaurants, hotels, schools, garages, salons, agencies and 45 business types. 10 invoice designs, UPI QR, client portal, reports. 14-day free trial." />
-    <meta property="og:title" content="BillX: billing & invoicing for every business" />
-    <meta property="og:description" content="GST invoices, quotes, receipts, UPI QR and a client portal. Built for 45 business types. 14-day free trial." />
+    <!--SEO:HEAD-->
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +14,7 @@
   </head>
   <body class="landing">
     <header class="l-nav">
-      <a class="l-brand" href="./"><img src="logo.svg" alt="" width="32" height="32" /><span>Bill<b>X</b></span></a>
+      <a class="l-brand" href="./"><img src="logo.svg" alt="BillX" width="32" height="32" /><span>Bill<b>X</b></span></a>
       <nav>
         <a href="#features">Features</a>
         <a href="#sectors">Businesses</a>
@@ -29,11 +28,11 @@
     <section class="l-hero">
       <div class="l-hero-text">
         <p class="l-eyebrow">GST billing for every kind of business</p>
-        <h1>Bills that look professional and get paid faster.</h1>
+        <h1>GST billing software that gets you paid faster.</h1>
         <p class="l-lead">Make GST invoices, quotes and receipts in seconds. Customers pay by scanning the UPI QR on the bill, and BillX tracks who still owes you. Set up for hospitals, shops, restaurants, schools, garages, salons and 45 business types.</p>
         <div class="l-cta">
           <a class="btn primary big" href="app/#/signup">Start 14-day free trial</a>
-          <a class="btn big" href="#pricing">See pricing</a>
+          <a class="btn big" href="app/?guest=1#/new/invoice">Free invoice generator</a>
         </div>
         <p class="l-small">No card needed for the trial · Works on phone & computer · Support from Palakkad, Kerala</p>
       </div>
@@ -57,30 +56,24 @@
     <section class="l-section l-alt" id="sectors">
       <h2>Already set up for your kind of business</h2>
       <p class="l-sub">Pick your business type and BillX prepares the right fields, labels, items, tax and design. Not listed? Build your own.</p>
-      <div class="l-sectors" id="sectorList"></div>
+      <div class="l-sectors" id="sectorList"><!--SEO:SECTORS--></div>
+      <p class="l-sub"><a href="#" id="allSectors">See all business types →</a> · <a href="#" id="freeGen">Free GST invoice generator</a></p>
       <div class="l-designs" id="designs"></div>
     </section>
 
     <section class="l-section" id="pricing">
       <h2>Simple pricing</h2>
-      <p class="l-sub">Every plan starts with a 14-day free trial. Prices exclude 18% GST.</p>
+      <p class="l-sub" id="priceNote">Every plan starts with a 14-day free trial.</p>
       <div class="l-toggle" role="group" aria-label="Billing period">
         <button class="on" data-period="monthly">Monthly</button>
         <button data-period="yearly">Yearly <small>2 months free</small></button>
       </div>
-      <div class="l-plans" id="plans"></div>
+      <div class="l-plans" id="plans"><!--SEO:PLANS--></div>
     </section>
 
     <section class="l-section l-alt" id="faq">
-      <h2>Questions</h2>
-      <div class="l-faq">
-        <details><summary>Do I need to install anything?</summary><p>No. BillX runs in Chrome or Safari on any phone or computer. On a phone you can add it to the home screen like an app.</p></details>
-        <details><summary>Is my data safe?</summary><p>Your data is stored in Google Cloud (Firebase), encrypted in transit and at rest, and only people you add can see it. You can download a full backup any time.</p></details>
-        <details><summary>What happens after the free trial?</summary><p>Choose a plan and pay by UPI Autopay, card or net banking. If you don't subscribe, your account becomes read-only. Nothing is deleted, and you can still view and download your bills.</p></details>
-        <details><summary>Can I cancel any time?</summary><p>Yes. Cancel from Settings → Subscription. You keep access until the end of the period you paid for.</p></details>
-        <details><summary>Can you set it up for us?</summary><p>On the Pro plan we set up your logo, designs and item list, move data from your old software and train your staff.</p></details>
-        <details><summary>Does it work for hospitals and clinics?</summary><p>Yes. It has patient fields (UHID, IP/OP no., consultant, ward, admission and discharge dates), services grouped by department, and an insurance / TPA share with the balance the patient pays.</p></details>
-      </div>
+      <h2>Frequently asked questions</h2>
+      <div class="l-faq"><!--SEO:FAQ--></div>
     </section>
 
     <section class="l-final">
@@ -91,6 +84,7 @@
 
     <footer class="l-foot">
       <span id="footCompany"></span>
+      <!--SEO:FOOTLINKS-->
       <nav><a href="legal/terms.html">Terms</a><a href="legal/privacy.html">Privacy</a><a href="legal/refund.html">Refunds & cancellation</a><a href="legal/contact.html">Contact</a></nav>
     </footer>
     <a class="l-wa" id="waFloat" hidden target="_blank" rel="noopener" aria-label="Chat on WhatsApp">WhatsApp us</a>

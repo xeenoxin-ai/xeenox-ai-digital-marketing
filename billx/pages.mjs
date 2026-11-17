@@ -5,6 +5,7 @@ export const billxPages = (dir) => ({
   home: resolve(dir, 'index.html'),
   app: resolve(dir, 'app/index.html'),
   portal: resolve(dir, 'portal.html'),
+  pay: resolve(dir, 'pay.html'),
   admin: resolve(dir, 'admin.html'),
   terms: resolve(dir, 'legal/terms.html'),
   privacy: resolve(dir, 'legal/privacy.html'),
