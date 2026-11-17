@@ -230,3 +230,5 @@ body.landing {
 .landing .lic { border: 0; padding: 0; display: inline-block; }
 .landing .l-feature > .lic { display: block; padding: 11px; }
 .landing .l-chip .lic { padding: 7px; }
+.l-feature.l-feature-hi { grid-column: span 2; background: linear-gradient(135deg, var(--brand-soft), #fff 75%); border-color: color-mix(in srgb, var(--brand-2) 30%, transparent); }
+@media (max-width: 640px) { .l-feature.l-feature-hi { grid-column: auto; } }

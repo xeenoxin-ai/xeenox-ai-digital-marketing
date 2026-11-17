@@ -24,7 +24,7 @@ export const INDUSTRIES = {
   },
   grocery: {
     name: 'Supermarket / Grocery', group: 'Retail & trade', clientLabel: 'Customer', docTitle: 'Bill',
-    template: 'thermal', accent: '#16a34a', tax: 5, labels: { item: 'Item' },
+    template: 'thermal', accent: '#16a34a', tax: 5, labels: { item: 'Item' }, codes: true,
     fields: [F('counter', 'Counter', { sample: '2' }), F('cashier', 'Cashier', { sample: 'Meera' })], clientFields: [F('loyalty', 'Loyalty card No.')], itemCols: [F('mrp', 'MRP')],
     items: [['Rice (Matta) 5 kg', 'bag', 320, 5, '1006'], ['Sunflower oil 1 L', 'pcs', 145, 5, '1512'], ['Toor dal 1 kg', 'kg', 160, 0, '0713'], ['Bath soap', 'pcs', 38, 18, '3401']],
   },
@@ -70,13 +70,42 @@ export const INDUSTRIES = {
     name: 'Restaurant / Cafe', group: 'Food & hospitality', clientLabel: 'Guest', docTitle: 'Bill',
     template: 'thermal', accent: '#b91c1c', tax: 5, labels: { item: 'Item', thanks: 'Thank you! Visit again.' }, hide: ['discountCol', 'hsn'],
     fields: [F('table', 'Table', { sample: 'T4' }), F('covers', 'Covers', { sample: '3' }), F('steward', 'Steward', { sample: 'Rahul' }), F('kot', 'KOT No.', { sample: '118' })], clientFields: [], itemCols: [],
-    items: [['Masala dosa', 'plate', 90, 5, '996331'], ['Chicken biryani', 'plate', 220, 5, '996331'], ['Fresh lime soda', 'glass', 60, 5, '996331'], ['Filter coffee', 'cup', 35, 5, '996331']],
+    pos: { slot: 'Table', tables: 12 }, codes: true,
+    items: [
+      ['Masala Dosa', 'plate', 90, 5, '996331', 'Breakfast'], ['Plain Dosa', 'plate', 70, 5, '996331', 'Breakfast'],
+      ['Ghee Roast', 'plate', 120, 5, '996331', 'Breakfast'], ['Idli (2 pcs)', 'plate', 40, 5, '996331', 'Breakfast'],
+      ['Uzhunnu Vada', 'pcs', 20, 5, '996331', 'Breakfast'], ['Puttu & Kadala', 'plate', 70, 5, '996331', 'Breakfast'],
+      ['Appam & Stew', 'plate', 110, 5, '996331', 'Breakfast'], ['Poori Masala', 'plate', 80, 5, '996331', 'Breakfast'],
+      ['Veg Meals', 'plate', 120, 5, '996331', 'Meals'], ['Fish Curry Meals', 'plate', 180, 5, '996331', 'Meals'],
+      ['Chicken Curry Meals', 'plate', 190, 5, '996331', 'Meals'],
+      ['Chicken Biryani', 'plate', 220, 5, '996331', 'Biryani'], ['Mutton Biryani', 'plate', 320, 5, '996331', 'Biryani'],
+      ['Veg Biryani', 'plate', 160, 5, '996331', 'Biryani'], ['Egg Biryani', 'plate', 150, 5, '996331', 'Biryani'],
+      ['Chicken Fried Rice', 'plate', 180, 5, '996331', 'Chinese'], ['Veg Fried Rice', 'plate', 140, 5, '996331', 'Chinese'],
+      ['Chilli Chicken', 'plate', 200, 5, '996331', 'Chinese'], ['Gobi Manchurian', 'plate', 150, 5, '996331', 'Chinese'],
+      ['Chicken Noodles', 'plate', 170, 5, '996331', 'Chinese'],
+      ['Butter Chicken', 'plate', 240, 5, '996331', 'Curries'], ['Paneer Butter Masala', 'plate', 210, 5, '996331', 'Curries'],
+      ['Beef Fry', 'plate', 200, 5, '996331', 'Curries'], ['Dal Fry', 'plate', 120, 5, '996331', 'Curries'],
+      ['Kerala Parotta', 'pcs', 20, 5, '996331', 'Breads'], ['Chapati', 'pcs', 15, 5, '996331', 'Breads'],
+      ['Tea', 'cup', 15, 5, '996331', 'Beverages'], ['Filter Coffee', 'cup', 35, 5, '996331', 'Beverages'],
+      ['Fresh Lime Soda', 'glass', 60, 5, '996331', 'Beverages'], ['Mango Juice', 'glass', 80, 5, '996331', 'Beverages'],
+      ['Mineral Water 1L', 'bottle', 20, 18, '2201', 'Beverages'],
+      ['Payasam', 'cup', 60, 5, '996331', 'Desserts'], ['Ice Cream', 'cup', 70, 5, '996331', 'Desserts'],
+    ],
   },
   bakery: {
     name: 'Bakery & Sweets', group: 'Food & hospitality', clientLabel: 'Customer', docTitle: 'Bill',
     template: 'thermal', accent: '#db2777', tax: 5, labels: { item: 'Item' }, hide: ['hsn'],
     fields: [D('pickup', 'Pickup date'), F('message', 'Cake message')], clientFields: [], itemCols: [],
-    items: [['Black forest cake 1 kg', 'kg', 650, 5, '1905'], ['Puffs', 'pcs', 25, 5, '1905'], ['Sweets assorted', 'kg', 480, 5, '1704']],
+    pos: { slot: '', tables: 0 }, codes: true,
+    items: [
+      ['Black Forest Cake 1 kg', 'kg', 650, 5, '1905', 'Cakes'], ['White Forest Cake 1 kg', 'kg', 700, 5, '1905', 'Cakes'],
+      ['Red Velvet Cake 1 kg', 'kg', 900, 5, '1905', 'Cakes'], ['Plum Cake 500 g', 'pcs', 280, 5, '1905', 'Cakes'],
+      ['Egg Puffs', 'pcs', 25, 5, '1905', 'Snacks'], ['Veg Puffs', 'pcs', 20, 5, '1905', 'Snacks'], ['Chicken Puffs', 'pcs', 30, 5, '1905', 'Snacks'],
+      ['Samosa', 'pcs', 15, 5, '1905', 'Snacks'], ['Cutlet', 'pcs', 20, 5, '1905', 'Snacks'], ['Sandwich', 'pcs', 50, 5, '1905', 'Snacks'],
+      ['Halwa 250 g', 'pack', 120, 5, '1704', 'Sweets'], ['Laddu', 'pcs', 15, 5, '1704', 'Sweets'], ['Mixed Sweets 1 kg', 'kg', 480, 5, '1704', 'Sweets'],
+      ['Bread', 'pack', 45, 0, '1905', 'Bread'], ['Bun', 'pcs', 15, 0, '1905', 'Bread'],
+      ['Tea', 'cup', 15, 5, '996331', 'Beverages'], ['Coffee', 'cup', 20, 5, '996331', 'Beverages'], ['Juice', 'glass', 50, 5, '996331', 'Beverages'],
+    ],
   },
   catering: {
     name: 'Catering', group: 'Food & hospitality', clientLabel: 'Client', docTitle: 'Catering Invoice',
@@ -86,7 +115,7 @@ export const INDUSTRIES = {
   },
   hotel: {
     name: 'Hotel / Homestay / Resort', group: 'Food & hospitality', clientLabel: 'Guest', docTitle: 'Guest Folio',
-    template: 'elegant', accent: '#7c3aed', tax: 12, labels: { item: 'Particulars' },
+    template: 'elegant', accent: '#7c3aed', tax: 12, labels: { item: 'Particulars' }, pos: { slot: 'Room', tables: 20 },
     fields: [F('room', 'Room No.', { sample: '204' }), D('checkin', 'Check-in'), D('checkout', 'Check-out'), F('guests', 'Guests', { sample: '2' }), F('booking', 'Booking ID', { sample: 'BK-7781' })],
     clientFields: [F('idProof', 'ID proof'), F('nationality', 'Nationality', { sample: 'Indian' })], itemCols: [],
     items: [['Deluxe room', 'night', 3200, 12, '996311'], ['Extra bed', 'night', 800, 12, '996311'], ['Breakfast buffet', 'person', 350, 5, '996331'], ['Laundry', 'lot', 200, 18, '999712']],
@@ -198,7 +227,7 @@ export const INDUSTRIES = {
   /* ---------------- Beauty, fitness & wellness ---------------- */
   salon: {
     name: 'Salon / Spa / Beauty parlour', group: 'Beauty, fitness & wellness', clientLabel: 'Client', docTitle: 'Bill',
-    template: 'elegant', accent: '#c026d3', tax: 18, hide: ['hsn'],
+    template: 'elegant', accent: '#c026d3', tax: 18, hide: ['hsn'], pos: { slot: 'Chair', tables: 6 },
     fields: [F('stylist', 'Stylist', { sample: 'Neha' })], clientFields: [F('membership', 'Membership No.')], itemCols: [],
     items: [['Haircut & styling', 'service', 450, 18, '999721'], ['Facial', 'service', 1200, 18, '999722'], ['Bridal makeup', 'service', 15000, 18, '999722'], ['Body massage (60 min)', 'session', 1800, 18, '999723']],
   },
@@ -352,10 +381,15 @@ export function sectorOf(settings) {
 
 /** Starter catalogue for an industry in the item store's shape. */
 export function starterItems(key) {
-  return industry(key).items.map(([name, unit, rate, tax, hsn, category]) => ({
+  const p = industry(key);
+  return p.items.map(([name, unit, rate, tax, hsn, category], i) => ({
     name, unit, rate, tax, hsn: hsn || '', category: category || '', description: '',
+    ...(p.codes ? { code: String(i + 1) } : {}),
   }));
 }
+
+/** Quick Bill defaults for a business type: what a "table" is called and how many. */
+export const posDefaults = (key) => ({ slot: '', tables: 0, ...(industry(key).pos || {}) });
 
 /** A believable value for a field, used for sample data and previews. */
 export function sampleValue(f, i = 0, baseDate = '') {
