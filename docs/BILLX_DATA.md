@@ -45,6 +45,14 @@ use private/incognito mode, the bills are gone. They should use **Settings →
 Download backup** every week. The backup is a JSON file that **Settings →
 Restore backup** reads back. Cloud mode removes this risk.
 
+BillX helps with this in free mode:
+
+- It asks the browser to keep its storage permanently (`navigator.storage.persist()`),
+  so Chrome or Safari do not clear it when the phone is low on space.
+- Once a shop has bills and hasn't backed up for 7 days, a yellow banner offers
+  **Download backup** in one tap (or "Later" for a day). Settings shows the date of the
+  last backup. Keys: `billx-last-backup`, `billx-backup-snooze`.
+
 ## 2. Cloud mode: Google Firebase (Firestore)
 
 Turned on by adding a Firebase config (see `docs/BILLX_LAUNCH.md`). Database layout:

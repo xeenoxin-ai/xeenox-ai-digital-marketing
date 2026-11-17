@@ -9,6 +9,9 @@ import { INDUSTRIES } from './industries.js';
 import { route, startRouter, resolve } from './router.js';
 import { icon, toast, modal, esc } from './ui.js';
 import { cloudEnabled } from './cloud/config.js';
+import { download } from './ui.js';
+import { exportJSON, all } from './store.js';
+import { isBackupDue, markBackup, snoozeBackup, protectStorage, backupName } from './safety.js';
 import { dashboardView } from './views/dashboard.js';
 import { listView, editorView, docView } from './views/documents.js';
 import { listView as clientsView, detailView as clientView } from './views/clients.js';
@@ -105,8 +108,26 @@ function registerRoutes() {
   route('/login', () => { location.hash = '#/'; });
 }
 
+/** Free mode keeps bills only in this browser: remind to download a backup each week. */
+function backupBanner(el) {
+  if (!isBackupDue(all('docs').length)) return false;
+  el.className = 'acct-banner warn';
+  el.innerHTML = `<span>Your bills are saved only in this browser. <b>Download a backup</b> so nothing is lost if the phone or browser data is cleared.</span>
+    <button class="btn primary" id="bannerBackup">Download backup</button><button class="btn ghost" id="bannerLater">Later</button>`;
+  el.hidden = false;
+  document.getElementById('bannerBackup').onclick = () => {
+    download(backupName(settings().business.name), exportJSON());
+    markBackup();
+    toast('Backup saved to your Downloads. Keep a copy on Google Drive or WhatsApp to yourself.');
+    updateBanner();
+  };
+  document.getElementById('bannerLater').onclick = () => { snoozeBackup(1); updateBanner(); };
+  return true;
+}
+
 function updateBanner() {
   const el = document.getElementById('acctBanner');
+  if (!cloud && backupBanner(el)) return;
   if (guest) {
     el.className = 'acct-banner';
     el.innerHTML = 'You are using BillX free on this device, without an account. <button class="btn" id="bannerSignup">Create free account</button> <span class="muted small">to save in the cloud, add staff and use it on every device.</span>';
@@ -142,6 +163,7 @@ function boot() {
   window.onhashchange = null;
   updateShell();
   onChange(updateShell);
+  if (!cloud) { protectStorage(); onChange(() => updateBanner()); }
   document.getElementById('wsBtn').addEventListener('click', openSwitcher);
   document.getElementById('menuBtn').addEventListener('click', () => document.body.classList.toggle('nav-open'));
   document.getElementById('scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
