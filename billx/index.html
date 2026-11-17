@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#1e3a8a" />
+    <meta name="theme-color" content="#0b1b4d" />
     <title>BillX: GST billing & invoicing software for every business</title>
-    <meta name="description" content="BillX is GST billing and invoicing software for shops, hospitals, clinics, restaurants, hotels, schools, garages, salons, agencies and 45 business types. 10 invoice designs, UPI QR, client portal, reports. 14-day free trial." />
+    <meta name="description" content="BillX by BillX Solutions: GST billing and invoicing software for shops, hospitals, clinics, restaurants, hotels, schools, garages, salons, agencies and 45 business types. 10 invoice designs, UPI QR, client portal, reports. <!--CLOUD-->14-day free trial.<!--/CLOUD--><!--FREE-->Start free.<!--/FREE-->" />
     <!--SEO:HEAD-->
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,80 +14,176 @@
   </head>
   <body class="landing">
     <header class="l-nav">
-      <a class="l-brand" href="./"><img src="logo.svg" alt="BillX" width="32" height="32" /><span>Bill<b>X</b></span></a>
-      <nav>
-        <a href="#features">Features</a>
-        <a href="#sectors">Businesses</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
-      </nav>
-      <a class="btn" href="app/">Sign in</a>
-      <a class="btn primary" href="app/#/signup">Start free trial</a>
+      <div class="l-nav-in">
+        <a class="l-brand" href="./" aria-label="BillX by BillX Solutions, home"><img src="logo.svg" alt="" width="34" height="34" /><span class="l-brand-text"><span class="l-brand-name">Bill<b>X</b></span><small>by BillX Solutions</small></span></a>
+        <nav class="l-menu" aria-label="Main">
+          <a href="#features">Features</a>
+          <a href="#tour">Product tour</a>
+          <a href="#sectors">Industries</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+        <div class="l-nav-cta">
+          <!--CLOUD--><a class="btn ghost" href="app/">Sign in</a><a class="btn primary" href="app/#/signup">Start free trial</a><!--/CLOUD-->
+          <!--FREE--><a class="btn ghost" href="pay.html">Buy now</a><a class="btn primary" href="app/">Start free</a><!--/FREE-->
+        </div>
+      </div>
     </header>
 
-    <section class="l-hero">
-      <div class="l-hero-text">
-        <p class="l-eyebrow">GST billing for every kind of business</p>
-        <h1>GST billing software that gets you paid faster.</h1>
-        <p class="l-lead">Make GST invoices, quotes and receipts in seconds. Customers pay by scanning the UPI QR on the bill, and BillX tracks who still owes you. Set up for hospitals, shops, restaurants, schools, garages, salons and 45 business types.</p>
-        <div class="l-cta">
-          <a class="btn primary big" href="app/#/signup">Start 14-day free trial</a>
-          <a class="btn big" href="app/?guest=1#/new/invoice">Free invoice generator</a>
+    <main>
+      <section class="l-hero">
+        <div class="l-hero-in">
+          <div class="l-hero-text">
+            <p class="l-pill"><span class="dot"></span> GST-ready · UPI on every bill · Made in Kerala</p>
+            <h1>GST billing software that gets you <span class="grad">paid faster</span>.</h1>
+            <p class="l-lead">Create professional GST invoices, quotes and receipts in seconds. Customers pay by scanning the UPI QR on the bill, and BillX tracks every rupee you're owed. Ready-made for 45 types of business.</p>
+            <div class="l-cta">
+              <!--CLOUD--><a class="btn primary big" href="app/#/signup">Start 14-day free trial <i data-li="arrow" data-size="18"></i></a><!--/CLOUD-->
+              <!--FREE--><a class="btn primary big" href="app/">Start free <i data-li="arrow" data-size="18"></i></a><!--/FREE-->
+              <a class="btn big" href="#tour">See how it works</a>
+            </div>
+            <ul class="l-ticks">
+              <!--CLOUD--><li><i data-li="check" data-size="16"></i> No card needed</li><!--/CLOUD-->
+              <!--FREE--><li><i data-li="check" data-size="16"></i> Free to start, no sign-up</li><!--/FREE-->
+              <li><i data-li="check" data-size="16"></i> Works on phone &amp; computer</li>
+              <li><i data-li="check" data-size="16"></i> Local support from Palakkad</li>
+            </ul>
+          </div>
+          <div class="l-stage" aria-label="BillX dashboard and a sample invoice">
+            <div class="l-browser">
+              <div class="l-browser-bar"><span></span><span></span><span></span><em>billxsolutions.pages.dev/app</em></div>
+              <img src="img/dashboard.jpg" alt="BillX dashboard showing billed, received, outstanding and overdue amounts" width="1440" height="900" fetchpriority="high" />
+            </div>
+            <div class="l-float l-float-invoice"><div id="heroInvoice"></div></div>
+            <div class="l-float l-chip l-chip-paid"><i data-li="check" data-size="18"></i><div><b>Payment received</b><small>₹2,152 via UPI · INV-0042</small></div></div>
+            <div class="l-float l-chip l-chip-gst"><i data-li="percent" data-size="18"></i><div><b>GST calculated</b><small>CGST + SGST · IGST</small></div></div>
+          </div>
         </div>
-        <p class="l-small">No card needed for the trial · Works on phone & computer · Support from Palakkad, Kerala</p>
-      </div>
-      <div class="l-hero-art" id="heroInvoice" aria-label="Sample invoice made with BillX"></div>
-    </section>
+      </section>
 
-    <section class="l-section" id="features">
-      <h2>Everything a business needs to bill and collect</h2>
-      <div class="l-features">
-        <div><b>GST done right</b><p>CGST + SGST or IGST picked automatically from the state, HSN/SAC, GST summary, amount in words and reports ready for GSTR-1 and 3B.</p></div>
-        <div><b>10 invoice designs</b><p>Modern, Classic, Elegant, GST boxed, Thermal 80 mm and more. Your logo, colours, fonts and signature, with every label editable.</p></div>
-        <div><b>Get paid by UPI</b><p>A UPI QR and pay button on every bill. Record part payments, see what's overdue, and send reminders on WhatsApp.</p></div>
-        <div><b>Client portal</b><p>Send one link. Your customer sees their statement, downloads bills, pays and confirms, with no app to install.</p></div>
-        <div><b>Quotes to invoices</b><p>Quotations, proformas, receipts and credit notes. Convert a quote to an invoice in one click.</p></div>
-        <div><b>Your staff, your branches</b><p>Give staff their own login and run several businesses or branches from one account.</p></div>
-        <div><b>Safe in the cloud</b><p>Bills sync across your phone and computer and are backed up automatically. Download your data any time.</p></div>
-        <div><b>Reports that matter</b><p>Monthly sales and collections, GST by rate, money owed by age, top customers, all exportable to Excel.</p></div>
-      </div>
-    </section>
+      <section class="l-strip" aria-label="Industries">
+        <p>Built for every kind of business</p>
+        <div class="l-strip-row"><!--SEO:STRIP--></div>
+      </section>
 
-    <section class="l-section l-alt" id="sectors">
-      <h2>Already set up for your kind of business</h2>
-      <p class="l-sub">Pick your business type and BillX prepares the right fields, labels, items, tax and design. Not listed? Build your own.</p>
-      <div class="l-sectors" id="sectorList"><!--SEO:SECTORS--></div>
-      <p class="l-sub"><a href="#" id="allSectors">See all business types →</a> · <a href="#" id="freeGen">Free GST invoice generator</a></p>
-      <div class="l-designs" id="designs"></div>
-    </section>
+      <section class="l-stats">
+        <div><b>45</b><span>business types ready</span></div>
+        <div><b>10</b><span>professional invoice designs</span></div>
+        <div><b>5</b><span>document types: invoice, quote, proforma, receipt, credit note</span></div>
+        <!--CLOUD--><div><b>14 days</b><span>free trial, all features</span></div><!--/CLOUD-->
+        <!--FREE--><div><b>₹0</b><span>to start, no sign-up</span></div><!--/FREE-->
+      </section>
 
-    <section class="l-section" id="pricing">
-      <h2>Simple pricing</h2>
-      <p class="l-sub" id="priceNote">Every plan starts with a 14-day free trial.</p>
-      <div class="l-toggle" role="group" aria-label="Billing period">
-        <button class="on" data-period="monthly">Monthly</button>
-        <button data-period="yearly">Yearly <small>2 months free</small></button>
-      </div>
-      <div class="l-plans" id="plans"><!--SEO:PLANS--></div>
-    </section>
+      <section class="l-section" id="how">
+        <p class="l-eyebrow">How it works</p>
+        <h2>From sign-up to paid in three steps</h2>
+        <div class="l-steps">
+          <div class="l-step"><span class="l-step-n">1</span><h3>Pick your business</h3><p>Choose from 45 business types. BillX sets up the right fields, labels, GST rates, items and invoice design for you.</p></div>
+          <div class="l-step"><span class="l-step-n">2</span><h3>Create the bill</h3><p>Add your customer and items. Taxes, discounts, round-off and the amount in words are worked out as you type, with a live preview.</p></div>
+          <div class="l-step"><span class="l-step-n">3</span><h3>Share and get paid</h3><p>Send it on WhatsApp or print a PDF. Your customer scans the UPI QR to pay, and BillX tracks what's paid and what's due.</p></div>
+        </div>
+      </section>
 
-    <section class="l-section l-alt" id="faq">
-      <h2>Frequently asked questions</h2>
-      <div class="l-faq"><!--SEO:FAQ--></div>
-    </section>
+      <section class="l-section l-alt" id="features">
+        <p class="l-eyebrow">Features</p>
+        <h2>Everything you need to bill, collect and grow</h2>
+        <p class="l-sub">Powerful enough for a hospital, simple enough for a corner shop.</p>
+        <div class="l-features">
+          <div class="l-feature"><i data-li="percent"></i><h3>GST done right</h3><p>CGST + SGST or IGST chosen automatically from the state, HSN/SAC codes, GST summary and reports ready for GSTR-1 and 3B.</p></div>
+          <div class="l-feature"><i data-li="scan"></i><h3>Get paid by UPI</h3><p>A UPI QR code and pay button on every bill. Record part payments and see who's overdue at a glance.</p></div>
+          <div class="l-feature"><i data-li="palette"></i><h3>10 invoice designs</h3><p>Modern, Classic, Elegant, GST Boxed, Thermal 80 mm and more, with your logo, colours, signature and labels.</p></div>
+          <div class="l-feature"><i data-li="globe"></i><h3>Client portal</h3><p>Send one private link. Customers see their statement, download bills and pay, with no app to install.</p></div>
+          <div class="l-feature"><i data-li="layers"></i><h3>Quotes to invoices</h3><p>Quotations, proformas, receipts and credit notes. Turn an accepted quote into an invoice in one click.</p></div>
+          <div class="l-feature"><i data-li="chart"></i><h3>Reports that matter</h3><p>Sales and collections by month, GST by rate, money owed by age and top customers, exportable to Excel.</p></div>
+          <!--CLOUD--><div class="l-feature"><i data-li="users"></i><h3>Staff &amp; branches</h3><p>Give staff their own login and run several businesses or branches from one account, updated live.</p></div>
+          <div class="l-feature"><i data-li="cloud"></i><h3>Safe in the cloud</h3><p>Bills sync across your phone and computer and are backed up automatically. Download your data any time.</p></div><!--/CLOUD-->
+          <!--FREE--><div class="l-feature"><i data-li="building"></i><h3>Many businesses, one app</h3><p>Run several businesses or branches from one BillX, each with its own customers, numbering, design and reports.</p></div>
+          <div class="l-feature"><i data-li="lock"></i><h3>Your data stays yours</h3><p>Bills are saved on your own device. Download a full backup any time and restore it on another phone or computer.</p></div><!--/FREE-->
+        </div>
+      </section>
 
-    <section class="l-final">
-      <h2>Start billing in under a minute</h2>
-      <a class="btn primary big" href="app/#/signup">Start 14-day free trial</a>
-      <p id="contactLine" class="l-small"></p>
-    </section>
+      <section class="l-section" id="tour">
+        <p class="l-eyebrow">Product tour</p>
+        <h2>See BillX in action</h2>
+        <div class="l-tabs" role="tablist">
+          <button role="tab" class="on" data-tab="t1" aria-selected="true">Dashboard</button>
+          <button role="tab" data-tab="t2" aria-selected="false">Invoice editor</button>
+          <button role="tab" data-tab="t3" aria-selected="false">Reports</button>
+          <button role="tab" data-tab="t4" aria-selected="false">Customer view</button>
+        </div>
+        <div class="l-tour">
+          <div class="l-tour-pane on" id="t1">
+            <div class="l-tour-text"><h3>Know where your money is</h3><ul><li>Billed, received, outstanding and overdue at a glance</li><li>Six-month sales and collections chart</li><li>Who still has to pay, sorted by due date</li></ul></div>
+            <div class="l-browser"><div class="l-browser-bar"><span></span><span></span><span></span></div><img src="img/dashboard.jpg" alt="BillX dashboard" width="1440" height="900" loading="lazy" /></div>
+          </div>
+          <div class="l-tour-pane" id="t2" hidden>
+            <div class="l-tour-text"><h3>Bills with a live preview</h3><ul><li>Pick saved items: rate, GST and HSN fill in</li><li>Discounts, charges, round-off and amount in words</li><li>See exactly what your customer gets as you type</li></ul></div>
+            <div class="l-browser"><div class="l-browser-bar"><span></span><span></span><span></span></div><img src="img/editor.jpg" alt="BillX invoice editor with live preview" width="1440" height="900" loading="lazy" /></div>
+          </div>
+          <div class="l-tour-pane" id="t3" hidden>
+            <div class="l-tour-text"><h3>Reports for you and your CA</h3><ul><li>Month-by-month sales and collections</li><li>GST summary by rate for GSTR-1 / 3B</li><li>Receivables ageing and top customers, export to Excel</li></ul></div>
+            <div class="l-browser"><div class="l-browser-bar"><span></span><span></span><span></span></div><img src="img/reports.jpg" alt="BillX reports" width="1440" height="900" loading="lazy" /></div>
+          </div>
+          <div class="l-tour-pane" id="t4" hidden>
+            <div class="l-tour-text"><h3>A pay page for your customers</h3><ul><li>One private link on WhatsApp, no app to install</li><li>Download the bill or pay by UPI in one tap</li><li>Customers confirm payment or accept quotes from their phone</li></ul></div>
+            <div class="l-phone"><img src="img/portal-phone.jpg" alt="Customer view of a BillX invoice on a phone" width="780" height="1688" loading="lazy" /></div>
+          </div>
+        </div>
+      </section>
 
-    <footer class="l-foot">
-      <span id="footCompany"></span>
-      <!--SEO:FOOTLINKS-->
-      <nav><a href="legal/terms.html">Terms</a><a href="legal/privacy.html">Privacy</a><a href="legal/refund.html">Refunds & cancellation</a><a href="legal/contact.html">Contact</a></nav>
-    </footer>
-    <a class="l-wa" id="waFloat" hidden target="_blank" rel="noopener" aria-label="Chat on WhatsApp">WhatsApp us</a>
+      <section class="l-section l-alt" id="sectors">
+        <p class="l-eyebrow">Industries</p>
+        <h2>Already set up for your kind of business</h2>
+        <p class="l-sub">Pick your business type and BillX prepares the right fields, labels, items, tax and design. Not listed? Build your own.</p>
+        <div class="l-sectors" id="sectorList"><!--SEO:SECTORS--></div>
+        <p class="l-sub l-links"><a href="#" id="allSectors">See all 44 business types →</a> · <a href="#" id="freeGen">Free GST invoice generator →</a></p>
+        <h3 class="l-designs-title">Invoices that look professional</h3>
+        <div class="l-designs" id="designs"></div>
+      </section>
+
+      <section class="l-section" id="pricing">
+        <p class="l-eyebrow">Pricing</p>
+        <h2>Simple plans. No hidden charges.</h2>
+        <p class="l-sub" id="priceNote"><!--CLOUD-->Every plan starts with a 14-day free trial.<!--/CLOUD--><!--FREE-->Start free and upgrade any time. Pay by UPI, GPay or bank transfer.<!--/FREE--></p>
+        <div class="l-toggle" role="group" aria-label="Billing period">
+          <button class="on" data-period="monthly">Monthly</button>
+          <button data-period="yearly">Yearly <small>2 months free</small></button>
+        </div>
+        <div class="l-plans" id="plans"><!--SEO:PLANS--></div>
+        <div class="l-paybadges"><span>Pay with</span><b>UPI</b><b>GPay</b><b>PhonePe</b><b>Paytm</b><b>Bank transfer</b></div>
+      </section>
+
+      <section class="l-section l-alt l-trust">
+        <p class="l-eyebrow">Trust</p>
+        <h2>Safe, secure and built for India</h2>
+        <div class="l-features three">
+          <div class="l-feature"><i data-li="shield"></i><h3>Secure by design</h3><p>Every page runs over encrypted HTTPS.<!--CLOUD--> Your data is stored in Google Cloud and only people you add can see it.<!--/CLOUD--><!--FREE--> Your bills stay on your own device and are never uploaded.<!--/FREE--></p></div>
+          <div class="l-feature"><i data-li="download"></i><h3>Your data, always</h3><p>Download a full backup of your bills, customers and items whenever you want. No lock-in.</p></div>
+          <div class="l-feature"><i data-li="rupee"></i><h3>Made for Indian businesses</h3><p>GST with CGST/SGST/IGST, HSN/SAC, amounts in lakh and crore, UPI payments and support from Palakkad, Kerala.</p></div>
+        </div>
+      </section>
+
+      <section class="l-section" id="faq">
+        <p class="l-eyebrow">FAQ</p>
+        <h2>Frequently asked questions</h2>
+        <div class="l-faq"><!--SEO:FAQ--></div>
+      </section>
+
+      <section class="l-cta-band">
+        <div class="l-cta-in">
+          <h2>Start billing like a professional today</h2>
+          <p>Set up in a minute. Your logo, GST details and UPI QR on every bill.</p>
+          <div class="l-cta">
+            <!--CLOUD--><a class="btn white big" href="app/#/signup">Start 14-day free trial</a><!--/CLOUD-->
+            <!--FREE--><a class="btn white big" href="app/">Start free</a><!--/FREE-->
+            <a class="btn outline-white big" id="demoBtn" href="pay.html">Talk to us</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!--SEO:FOOTER-->
+    <a class="l-wa" id="waFloat" hidden target="_blank" rel="noopener" aria-label="Chat with BillX Solutions on WhatsApp"><i data-li="chat" data-size="20"></i> WhatsApp us</a>
     <script type="module" src="./src/landing.js"></script>
   </body>
 </html>
