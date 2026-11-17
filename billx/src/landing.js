@@ -51,18 +51,27 @@ function renderPlans(period) {
       <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay / bank transfer</a>
     </div>`).join('');
 }
-renderPlans('monthly');
-document.getElementById('priceNote').textContent = `${cloudEnabled() ? `Every plan starts with a ${TRIAL_DAYS}-day free trial.` : 'Start free and upgrade any time.'} ${GST_RATE ? 'Prices exclude 18% GST.' : 'Pay by UPI, GPay, bank transfer or card.'}`;
 document.querySelectorAll('.l-toggle button').forEach((b) => b.addEventListener('click', () => {
   document.querySelectorAll('.l-toggle button').forEach((x) => x.classList.toggle('on', x === b));
   renderPlans(b.dataset.period);
 }));
+if (GST_RATE) document.getElementById('priceNote').append(' Prices exclude 18% GST.');
 
-document.getElementById('footCompany').textContent = `© ${new Date().getFullYear()} ${SITE.company}, ${SITE.city}`;
-const contact = [SITE.email && `<a href="mailto:${esc(SITE.email)}">${esc(SITE.email)}</a>`, SITE.whatsapp && `<a href="https://wa.me/${esc(SITE.whatsapp)}" target="_blank" rel="noopener">WhatsApp +${esc(SITE.whatsapp)}</a>`].filter(Boolean);
-document.getElementById('contactLine').innerHTML = contact.length ? `Questions? ${contact.join(' · ')}` : '';
+// Product tour tabs
+const tabs = [...document.querySelectorAll('.l-tabs [data-tab]')];
+tabs.forEach((t) => t.addEventListener('click', () => {
+  tabs.forEach((x) => { const on = x === t; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+  document.querySelectorAll('.l-tour-pane').forEach((p) => { p.hidden = p.id !== t.dataset.tab; });
+}));
+
+// WhatsApp: floating button and "Talk to us"
 if (SITE.whatsapp) {
+  const link = (msg) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
   const wa = document.getElementById('waFloat');
-  wa.href = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent('Hi, I want to know more about BillX.')}`;
+  wa.href = link('Hi BillX Solutions, I want to know more about BillX.');
   wa.hidden = false;
+  const demo = document.getElementById('demoBtn');
+  demo.href = link('Hi BillX Solutions, I would like a demo of BillX for my business.');
+  demo.target = '_blank';
+  demo.rel = 'noopener';
 }
