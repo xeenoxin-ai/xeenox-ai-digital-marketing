@@ -151,3 +151,13 @@ test('public UPI details: anyone reads, only admin writes, no bank fields', asyn
   await assertSucceeds(getDoc(doc(guest(), 'public', 'pay')));
   await assertFails(getDocs(collection(guest(), 'public')), 'cannot list');
 });
+
+test('referral: new account may carry a referral code; only admin marks it rewarded', async () => {
+  await assertSucceeds(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 'abcdef1234' })));
+  await env.clearFirestore();
+  await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 'bad code!' })));
+  await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 42 })));
+  await seedAccount({ referredBy: 'abcdef1234' });
+  await assertFails(updateDoc(doc(owner(), 'accounts', 'owner'), { referralRewarded: true }));
+  await assertSucceeds(updateDoc(doc(admin(), 'accounts', 'owner'), { referralRewarded: true, paidUntil: ts(30) }));
+});

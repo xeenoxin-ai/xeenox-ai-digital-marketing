@@ -6,6 +6,7 @@ import { computeTotals, docStatus, amountInWords, formatMoney, stateName, upiLin
 import { sectorOf } from './industries.js';
 import { DEFAULT_LABELS, DEFAULT_SHOW, DOC_TYPES } from './store.js';
 import { qrSvg } from './qr.js';
+import { SITE } from './site.js';
 
 export const TEMPLATES = [
   { id: 'modern', name: 'Modern', note: 'Accent band, clean table' },
@@ -294,6 +295,13 @@ function signature(c) {
   </div>`;
 }
 
+/** Small "Billed with BillX" line: every bill a shop sends also introduces BillX. */
+function brandLine(c) {
+  if (!c.show.brand) return '';
+  const host = String(SITE.url || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+  return `<div class="inv-brand">Billed with <b>${esc(SITE.product)}</b>${host ? ` · ${esc(host)}` : ''}</div>`;
+}
+
 function footer(c) {
   if (!c.show.footer) return '';
   const txt = [c.s.footer, c.L.thanks].filter(Boolean).map(esc).join(' · ');
@@ -456,7 +464,7 @@ export function renderInvoice(doc, settings) {
   const style = `--accent:${esc(c.design.accent)};--font:${esc(font)};--paper-w:${paper.w}mm;${paper.h ? `--paper-h:${paper.h}mm;` : ''}`;
   const cls = ['inv', `inv-${tpl}`, `align-${c.design.align || 'left'}`, `dens-${c.design.density || 'normal'}`, paper.h ? '' : 'inv-roll'].join(' ');
   return {
-    html: `<div class="${cls}" style="${style}" data-paper="${esc(c.design.paper)}">${stamp(c)}${LAYOUTS[tpl](c)}</div>`,
+    html: `<div class="${cls}" style="${style}" data-paper="${esc(c.design.paper)}">${stamp(c)}${LAYOUTS[tpl](c)}${brandLine(c)}</div>`,
     ctx: c,
     paper,
   };

@@ -12,6 +12,7 @@ import { money, docsWithTotals, clientLabel } from '../helpers.js';
 import { navigate, setPage } from '../router.js';
 import { collectionList, dueRepeats, REPEAT_EVERY } from '../collect.js';
 import { growth } from '../insights.js';
+import { inviteCardHTML, bindInvite } from './invite.js';
 import { sendReminder, remindedLabel, createFromRepeat } from './remind.js';
 import logoUrl from '../../logo.svg';
 
@@ -147,6 +148,7 @@ export function dashboardView(main) {
         <div><h4>Top customers this month</h4>${g.topCustomers.length ? g.topCustomers.map((c) => `<div class="gr-row cust"><span class="who">${avatar(c.name)}<span>${esc(c.name)}<small>${c.bills} bill${c.bills === 1 ? '' : 's'}</small></span></span><b>${money(c.amount)}</b></div>`).join('') : '<p class="muted small">Add the customer name on bills to see who buys the most.</p>'}</div>
       </div>
     </section>` : ''}
+    ${!empty && document.body.dataset.account ? inviteCardHTML(document.body.dataset.account, s.business.name, true) : ''}
     <section class="card">
       <div class="row-between"><h3>Recent documents</h3><a href="#/docs/all" class="see-all">See all ${icon('arrow', 14)}</a></div>
       ${recent.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Number</th><th>${esc(clientLabel())}</th><th>Date</th><th class="num">Amount</th><th>Status</th></tr></thead>
@@ -155,6 +157,7 @@ export function dashboardView(main) {
     : `<div class="dash-empty">${icon('file', 28)}<p>No documents yet. Your bills will show here.</p><a class="btn primary" href="#/pos">${icon('zap')} Make a bill now</a></div>`}
     </section>`;
   $$('tr.link', main).forEach((tr) => tr.addEventListener('click', () => navigate(`#/doc/${tr.dataset.id}`)));
+  bindInvite(main);
   $$('[data-remind]', main).forEach((b) => b.addEventListener('click', async () => {
     const d = all('docs').find((x) => x.id === b.dataset.remind);
     if (d) { await sendReminder(d); dashboardView(main); }

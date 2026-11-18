@@ -11,6 +11,7 @@ import {
   serverTimestamp, arrayUnion, arrayRemove, updateDoc,
 } from 'firebase/firestore';
 import { firebase } from './firebase.js';
+import { storedRef, refCode } from '../referral.js';
 import { accessInfo, limitsOf } from './access.js';
 import {
   hooks, useNamespace, setWorkspaceList, cacheWorkspace, load, snapshot, settings, onChange, activeWorkspace,
@@ -60,6 +61,7 @@ async function findOrCreateAccount(user) {
     memberEmails: [],
     maxUsers: 3,
     maxBusinesses: 3,
+    ...(storedRef() && storedRef() !== refCode(user.uid) ? { referredBy: storedRef() } : {}),
   });
   await setDoc(uref, { accountId: user.uid, email, role: 'owner', createdAt: serverTimestamp() });
   return user.uid;

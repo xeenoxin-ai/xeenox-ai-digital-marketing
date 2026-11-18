@@ -9,6 +9,9 @@ import { INDUSTRIES } from './industries.js';
 import { route, startRouter, resolve } from './router.js';
 import { icon, toast, modal, esc } from './ui.js';
 import { cloudEnabled } from './cloud/config.js';
+import { captureRef } from './referral.js';
+
+captureRef();
 import { download } from './ui.js';
 import { exportJSON, all } from './store.js';
 import { isBackupDue, markBackup, snoozeBackup, protectStorage, backupName } from './safety.js';
@@ -207,6 +210,7 @@ async function main() {
         return;
       }
       cloud = { session, access };
+      if (session.role === 'owner') document.body.dataset.account = session.accountId;
       if (/^#\/(signup|login)/.test(location.hash)) {
         const w = sessionStorage.getItem('billx-wanted');
         location.hash = w && settings().onboarded && session.role === 'owner' ? `#/subscription?${w}` : '#/';
@@ -215,5 +219,30 @@ async function main() {
     },
   });
 }
+
+/* Install as an app (phone home screen / desktop). */
+function setupInstall() {
+  const btn = document.getElementById('installBtn');
+  if (!btn) return;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
+  if (standalone) return;
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; btn.hidden = false; });
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (ios) btn.hidden = false;
+  btn.addEventListener('click', async () => {
+    if (deferred) {
+      deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      if (outcome === 'accepted') { btn.hidden = true; toast('BillX installed. Open it from your home screen.'); }
+      deferred = null;
+    } else {
+      modal({ title: 'Install BillX', submit: '', cancel: 'OK', body: '<p>On iPhone / iPad: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.</p><p class="muted">On Android Chrome: tap <b>⋮</b> then <b>Install app</b>.</p>' });
+    }
+  });
+  window.addEventListener('appinstalled', () => { btn.hidden = true; });
+}
+setupInstall();
 
 main();

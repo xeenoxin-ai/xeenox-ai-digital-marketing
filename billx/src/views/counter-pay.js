@@ -13,6 +13,7 @@ import {
 import { money, docsWithTotals } from '../helpers.js';
 import { daySummary } from '../insights.js';
 import { billLink, waNumber } from './remind.js';
+import { brandTag } from '../site.js';
 
 const validUpi = (v) => /^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(String(v || '').trim());
 
@@ -174,7 +175,7 @@ export function paidFlash(host, { doc, amount, method, phone, onPrint }) {
       let link = '';
       try { link = await billLink(doc); } catch { /* send without link */ }
       const s = settings();
-      const text = `Thank you for shopping at ${s.business.name}!\nYour bill ${doc.number}: ${money(amount)} (paid by ${method}).${link ? `\nView / download: ${link}` : ''}`;
+      const text = `Thank you for shopping at ${s.business.name}!\nYour bill ${doc.number}: ${money(amount)} (paid by ${method}).${link ? `\nView / download: ${link}` : ''}${brandTag()}`;
       const url = `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(text)}`;
       if (win) win.location.href = url; else window.open(url, '_blank', 'noopener');
       kill();

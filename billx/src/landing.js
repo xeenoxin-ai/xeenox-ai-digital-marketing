@@ -10,6 +10,9 @@ import { DEFAULT_SHOW } from './store.js';
 import { esc, mountPreview } from './ui.js';
 import { formatMoney } from './calc.js';
 import { cloudEnabled } from './cloud/config.js';
+import { captureRef } from './referral.js';
+
+captureRef();
 
 const money = (n) => formatMoney(n, 'INR').replace('.00', '');
 

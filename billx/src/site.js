@@ -27,3 +27,6 @@ export const SITE = {
     payee: 'BillX Solutions',
   },
 };
+
+/** Footer for WhatsApp bills sent by shops ("Billed with BillX"). */
+export const brandTag = () => `\n\n— Billed with ${SITE.product} · ${SITE.url.replace(/^https?:\/\//, '')}`;

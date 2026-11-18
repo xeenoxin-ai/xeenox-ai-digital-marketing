@@ -915,3 +915,18 @@ dialog.cp-full::backdrop { background: #050a1f; }
 
 .qb-paid { position: static; margin: 0 12px 10px; flex: none; }
 .gr-main small b { font-size: inherit; letter-spacing: 0; }
+
+/* Refer & earn */
+.invite { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px 18px; margin-bottom: 16px; border-radius: 18px; color: #fff; background: radial-gradient(80% 140% at 100% 0%, rgb(251 191 36 / .35), transparent 60%), linear-gradient(135deg, #4c1d95, #7c3aed); box-shadow: 0 12px 30px rgb(124 58 237 / .25); }
+.invite-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: rgb(255 255 255 / .16); color: #fde68a; }
+.invite-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.invite-txt > b { font-size: 17px; }
+.invite-txt span { color: #ede9fe; font-size: 14px; }
+.invite-link { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: rgb(0 0 0 / .2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invite-act { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.invite-act .btn { border-color: rgb(255 255 255 / .3); }
+.invite-act .btn:not(.whatsapp) { background: rgb(255 255 255 / .14); color: #fff; }
+@media (max-width: 760px) { .invite { grid-template-columns: auto minmax(0, 1fr); } .invite-act { grid-column: 1 / -1; justify-content: flex-start; } }
+
+.sidebar .install-btn { background: rgb(34 197 94 / .14); border: 1px solid rgb(34 197 94 / .35); color: #bbf7d0; margin-top: 6px; }
+.sidebar .install-btn:hover { background: rgb(34 197 94 / .24); }

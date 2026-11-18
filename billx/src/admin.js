@@ -88,7 +88,29 @@ async function main() {
       });
       await updateDoc(doc(db, 'paymentRequests', r.id), { status: 'approved', reviewedAt: serverTimestamp() });
       toast(`Approved: ${PLANS[r.plan].name} until ${day(until.getTime())}`);
-      load();
+      const referrer = acc.referredBy && !acc.referralRewarded ? rows.find((x) => x.a.id.startsWith(acc.referredBy)) : null;
+      if (referrer) rewardReferral({ ...acc, paidUntil: Timestamp.fromDate(until) }, referrer.a);
+      else load();
+    }
+
+    /** Refer & earn: both shops get 30 more days (the referrer gets the Small plan if they had none). */
+    function rewardReferral(acc, ref) {
+      modal({
+        title: 'Referral reward', submit: 'Give both 1 month free', cancel: 'Not now',
+        body: `<p><b>${esc(acc.ownerEmail)}</b> was invited by <b>${esc(ref.ownerEmail)}</b>.</p>
+          <p class="muted">Give both of them 1 month free? Each account's access is extended by 30 days.</p>`,
+        onSubmit: async () => {
+          const plus = (a) => Timestamp.fromDate(new Date(Math.max(Date.now(), ms(a.paidUntil) || 0) + 30 * 86400000));
+          await updateDoc(doc(db, 'accounts', acc.id), { paidUntil: plus(acc), referralRewarded: true });
+          const refPlan = ref.plan && PLANS[ref.plan] ? ref.plan : 'starter';
+          await updateDoc(doc(db, 'accounts', ref.id), {
+            paidUntil: plus(ref), status: 'active', plan: refPlan, period: ref.period || 'monthly', manual: true,
+            maxUsers: PLANS[refPlan].users, maxBusinesses: PLANS[refPlan].businesses,
+          });
+          toast('Referral rewarded: 1 month free for both');
+          load();
+        },
+      });
     }
 
     function pendingHTML() {
@@ -118,7 +140,7 @@ async function main() {
           <button class="btn" id="payDetails">${icon('cash')} Payment details (private)</button><button class="btn" id="csv">${icon('download')} Export CSV</button><button class="btn" id="reload">${icon('refresh')} Refresh</button></div>
         <div class="table-wrap"><table class="table"><thead><tr><th>Owner</th><th>Signed up</th><th>Plan</th><th>Status</th><th>Access until</th><th class="num">Staff</th><th></th></tr></thead>
         <tbody>${shown.map(({ a, info }) => `<tr>
-          <td><b>${esc(a.ownerName || '—')}</b><div class="sub">${esc(a.ownerEmail)}</div></td>
+          <td><b>${esc(a.ownerName || '—')}</b><div class="sub">${esc(a.ownerEmail)}</div>${a.referredBy ? `<div class="sub">Invited by ${esc((rows.find((x) => x.a.id.startsWith(a.referredBy)) || { a: { ownerEmail: a.referredBy } }).a.ownerEmail)}${a.referralRewarded ? ' · rewarded' : ''}</div>` : ''}</td>
           <td>${day(ms(a.createdAt))}</td>
           <td>${a.plan ? `${esc(PLANS[a.plan] ? PLANS[a.plan].name : a.plan)}<div class="sub">${esc(a.period || '')}${a.manual ? ' · manual' : ''}</div>` : '—'}</td>
           <td><span class="badge b-${{ trial: 'sent', active: 'paid', grace: 'partial', expired: 'overdue' }[info.state]}">${info.state}</span><div class="sub">${esc(a.status)}</div></td>

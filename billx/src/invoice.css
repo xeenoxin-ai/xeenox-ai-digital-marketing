@@ -279,3 +279,7 @@
 @media print {
   .print-page .inv { box-shadow: none; }
 }
+
+.inv-brand { margin-top: 4mm; text-align: center; font-size: 0.72em; color: #94a3b8; letter-spacing: 0.02em; }
+.inv-brand b { color: #64748b; font-weight: 700; }
+.inv-thermal .inv-brand { color: #000; margin-top: 2mm; }

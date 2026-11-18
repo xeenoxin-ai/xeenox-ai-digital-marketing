@@ -6,6 +6,8 @@ import {
 } from '../cloud/session.js';
 import { rupees } from '../pay-details.js';
 import { openCheckout } from './checkout.js';
+import { inviteCardHTML, bindInvite } from './invite.js';
+import { settings } from '../store.js';
 import { accessInfo, limitsOf } from '../cloud/access.js';
 import { subscribe, cancelSubscription } from '../cloud/billing.js';
 import { razorpayKeyId } from '../cloud/config.js';
@@ -67,6 +69,7 @@ export function subscriptionView(main, params, query) {
       ${owner && acc.subscriptionId && a.state === 'active' && acc.status !== 'cancelled' && !acc.cancelAtPeriodEnd ? `<button class="btn" id="cancelSub">${icon('x')} Cancel subscription</button>` : ''}
     </section>
 
+    ${owner ? inviteCardHTML(session.accountId, settings().business.name) : ''}
     ${pend ? `<section class="sx-pending">${icon('clock', 20)}<div><b>Payment being verified</b><span>${rupees(pend.amount)} for ${esc((PLANS[pend.plan] || {}).name || pend.plan)} (${esc(pend.period)}) · ref. ${esc(pend.utr)}. Your plan switches on as soon as it's confirmed.</span></div></section>` : ''}
 
     ${owner ? `<section class="sx-plans-wrap">
@@ -144,6 +147,7 @@ export function subscriptionView(main, params, query) {
     });
   }
   $('#signOut').addEventListener('click', () => signOut());
+  bindInvite(main);
   const rerender = () => { if (location.hash.startsWith('#/subscription')) subscriptionView(main, params, query); };
   window.addEventListener('billx:account', rerender, { once: true });
 }

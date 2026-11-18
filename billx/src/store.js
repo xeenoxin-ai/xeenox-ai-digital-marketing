@@ -74,7 +74,7 @@ export const DEFAULT_LABELS = {
 export const DEFAULT_SHOW = {
   logo: true, signature: true, qr: true, bank: true, hsn: true, unit: true, discountCol: true,
   taxCol: true, words: true, taxSummary: true, shipTo: false, notes: true, terms: true, footer: true,
-  stamp: true, business: true, contact: true, placeOfSupply: true, dueDate: true,
+  stamp: true, business: true, contact: true, placeOfSupply: true, dueDate: true, brand: true,
 };
 
 function defaultSettings(ind = 'general') {

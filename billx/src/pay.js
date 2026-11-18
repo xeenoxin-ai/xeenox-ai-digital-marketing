@@ -9,6 +9,9 @@ import { cloudEnabled } from './cloud/config.js';
 import { whatsappLink, confirmationText } from './pay-details.js';
 import { openCheckout } from './views/checkout.js';
 import { publicPayDetails } from './public-pay.js';
+import { captureRef } from './referral.js';
+
+captureRef();
 
 const root = document.getElementById('pay');
 const q = new URLSearchParams(location.search);

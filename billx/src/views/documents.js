@@ -15,6 +15,7 @@ import { totalsOf, statusOf, money, clientLabel, docsWithTotals } from '../helpe
 import { clientFormHTML, readClientForm } from './clients.js';
 import { sendReminder, remindedLabel, repeatDialog } from './remind.js';
 import { REPEAT_EVERY } from '../collect.js';
+import { brandTag } from '../site.js';
 import { navigate, setDirty, setPage } from '../router.js';
 
 /* ------------------------------------------------------------------ list */
@@ -631,7 +632,7 @@ export function shareDialog(doc, done) {
   const root = m.el;
   portalLink(cl.id ? (get('clients', cl.id) || cl) : cl, [{ ...doc, status: doc.status === 'draft' ? 'sent' : doc.status }]).then((url) => {
     const amount = money(t.insurance ? t.payable : t.total);
-    const msg = `Hello ${cl.name || ''},\n\nYour ${doc.title || DOC_TYPES[doc.type].title} ${doc.number} for ${amount} from ${s.business.name} is ready.\nView, download & pay: ${url}\n\nThank you.`;
+    const msg = `Hello ${cl.name || ''},\n\nYour ${doc.title || DOC_TYPES[doc.type].title} ${doc.number} for ${amount} from ${s.business.name} is ready.\nView, download & pay: ${url}\n\nThank you.${brandTag()}`;
     const phone = String(cl.phone || '').replace(/\D/g, '');
     const wa = `https://wa.me/${phone.length === 10 ? `91${phone}` : phone}?text=${encodeURIComponent(msg)}`;
     $('#shareUrl', root).value = url;

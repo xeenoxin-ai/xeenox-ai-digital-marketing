@@ -64,7 +64,9 @@ service cloud.firestore {
       // A new account always starts as a 7-day trial (3 users, 3 businesses).
       allow create: if signedIn() && a == request.auth.uid
         && request.resource.data.keys().hasOnly(['ownerUid', 'ownerEmail', 'ownerName', 'createdAt', 'status', 'plan',
-          'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses'])
+          'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses', 'referredBy'])
+        && (!('referredBy' in request.resource.data) || (request.resource.data.referredBy is string
+          && request.resource.data.referredBy.matches('^[A-Za-z0-9]{6,40}$')))
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdAt == request.time
         && request.resource.data.status == 'trial'
@@ -89,7 +91,7 @@ service cloud.firestore {
         ) || (
           isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'plan', 'period', 'paidUntil', 'maxUsers', 'maxBusinesses', 'manual'])
+            .hasOnly(['status', 'plan', 'period', 'paidUntil', 'maxUsers', 'maxBusinesses', 'manual', 'referralRewarded'])
         );
       allow delete: if false;
 

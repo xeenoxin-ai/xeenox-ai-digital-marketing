@@ -14,7 +14,7 @@ const SHOW_LABELS = {
   dueDate: 'Due date', hsn: 'HSN/SAC column', unit: 'Units with quantity', discountCol: 'Discount column (when used)',
   taxCol: 'Tax % column', shipTo: 'Ship-to address', words: 'Amount in words', taxSummary: 'GST summary table',
   bank: 'Bank details', qr: 'UPI QR code', notes: 'Notes', terms: 'Terms', signature: 'Signature block',
-  footer: 'Footer / thank-you line', stamp: 'PAID / OVERDUE stamp',
+  footer: 'Footer / thank-you line', stamp: 'PAID / OVERDUE stamp', brand: '"Billed with BillX" line',
 };
 
 function sampleDoc() {
