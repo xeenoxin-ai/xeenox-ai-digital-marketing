@@ -5,7 +5,7 @@ rules_version = '2';
 //  - An account belongs to its owner plus the staff emails the owner added.
 //    Staff must have a verified email.
 //  - Members can always READ their data. They can WRITE only during the
-//    14-day trial or while a paid plan is active (+3 days grace).
+//    7-day trial or while a paid plan is active (+3 days grace).
 //  - Plan, status and payment fields are changed only by the payment server
 //    or a BillX admin (listed in /admins).
 service cloud.firestore {
@@ -24,9 +24,9 @@ service cloud.firestore {
         || (verifiedEmail() && myEmail() in acc.memberEmails));
     }
 
-    // Trial (14 days from sign-up) or paid until paidUntil (+3 days grace).
+    // Trial (7 days from sign-up) or paid until paidUntil (+3 days grace).
     function canWrite(acc) {
-      return (acc.status == 'trial' && request.time < acc.createdAt + duration.value(14, 'd'))
+      return (acc.status == 'trial' && request.time < acc.createdAt + duration.value(7, 'd'))
         || (acc.paidUntil is timestamp
             && acc.status in ['active', 'cancelled', 'past_due', 'halted']
             && request.time < acc.paidUntil + duration.value(3, 'd'));
@@ -61,7 +61,7 @@ service cloud.firestore {
       // Staff look up the account that added their email; admins list all.
       allow list: if isAdmin() || (verifiedEmail() && myEmail() in resource.data.memberEmails);
 
-      // A new account always starts as a 14-day trial with Business-level limits.
+      // A new account always starts as a 7-day trial (3 users, 3 businesses).
       allow create: if signedIn() && a == request.auth.uid
         && request.resource.data.keys().hasOnly(['ownerUid', 'ownerEmail', 'ownerName', 'createdAt', 'status', 'plan',
           'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses'])
@@ -123,7 +123,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
         && request.resource.data.status == 'pending'
         && request.resource.data.createdAt == request.time
-        && request.resource.data.plan in ['starter', 'business', 'pro']
+        && request.resource.data.plan in ['starter', 'growth', 'business', 'pro']
         && request.resource.data.period in ['monthly', 'yearly']
         && request.resource.data.amount is number && request.resource.data.amount > 0
         && str(request.resource.data.utr, 40) && request.resource.data.utr.size() >= 6

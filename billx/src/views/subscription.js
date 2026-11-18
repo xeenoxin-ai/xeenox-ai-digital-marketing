@@ -1,6 +1,6 @@
 // Subscription & team (cloud mode): trial/plan status, choose a plan and pay,
 // cancel, invite staff, sign out.
-import { PLANS, TAX_NOTE } from '../plans.js';
+import { PLANS, TAX_NOTE, TRIAL_DAYS, SEGMENTS, plansIn } from '../plans.js';
 import {
   session, addMember, removeMember, signOut, submitPayment, myPayments, paymentDetails,
 } from '../cloud/session.js';
@@ -25,7 +25,8 @@ export function subscriptionView(main, params, query) {
   const lim = limitsOf(acc);
   let period = query.get('period') || acc.period || 'monthly';
   const wanted = query.get('plan') || '';
-  let chosen = PLANS[wanted] ? wanted : (PLANS[acc.plan] ? acc.plan : 'business');
+  let chosen = PLANS[wanted] ? wanted : (PLANS[acc.plan] ? acc.plan : 'growth');
+  let segment = (PLANS[chosen] || {}).segment || 'small';
   let payments = [];
   let details = null;
   setPage('Subscription & team', `<button class="btn" id="signOut">${icon('back')} Sign out</button>`);
@@ -52,7 +53,7 @@ export function subscriptionView(main, params, query) {
 
   const render = () => {
     const stateName = { trial: 'Free trial', active: 'Active', grace: 'Payment due', expired: 'Expired' }[a.state];
-    const pct = a.state === 'trial' ? Math.max(4, Math.min(100, Math.round((a.daysLeft / 14) * 100))) : 0;
+    const pct = a.state === 'trial' ? Math.max(4, Math.min(100, Math.round((a.daysLeft / TRIAL_DAYS) * 100))) : 0;
     const pend = pending();
     main.innerHTML = `
     <section class="sx-hero st-${a.state}">
@@ -73,7 +74,8 @@ export function subscriptionView(main, params, query) {
         <div><h2>${a.state === 'active' ? 'Change your plan' : 'Choose your plan'}</h2><p class="muted">Simple pricing. Pay by UPI in a minute. Cancel any time.</p></div>
         <div class="co-seg" role="group" aria-label="Billing period"><button type="button" data-period="monthly" class="${period === 'monthly' ? 'on' : ''}">Monthly</button><button type="button" data-period="yearly" class="${period === 'yearly' ? 'on' : ''}">Yearly <em>2 months free</em></button></div>
       </div>
-      <div class="sx-plans">${Object.entries(PLANS).map(([k, p]) => {
+      <div class="sx-segs" role="tablist" aria-label="Business size">${Object.entries(SEGMENTS).map(([k, g]) => `<button type="button" role="tab" aria-selected="${segment === k}" class="${segment === k ? 'on' : ''}" data-seg="${k}"><b>${esc(g.name)}</b><small>${esc(g.blurb)}</small></button>`).join('')}</div>
+      <div class="sx-plans">${plansIn(segment).map(([k, p]) => {
     const current = a.state === 'active' && acc.plan === k && acc.period === period;
     return `<article class="sx-plan${p.popular ? ' popular' : ''}${wanted === k ? ' wanted' : ''}">
           ${p.popular ? '<span class="sx-ribbon">Most popular</span>' : ''}
@@ -101,6 +103,7 @@ export function subscriptionView(main, params, query) {
     </section>`;
 
     $$('[data-period]', main).forEach((b) => b.addEventListener('click', () => { period = b.dataset.period; render(); }));
+    $$('[data-seg]', main).forEach((b) => b.addEventListener('click', () => { segment = b.dataset.seg; render(); }));
     $$('[data-checkout]', main).forEach((b) => b.addEventListener('click', () => checkout(b.dataset.checkout)));
     $$('[data-plan]', main).forEach((b) => b.addEventListener('click', async () => {
       const plan = b.dataset.plan;

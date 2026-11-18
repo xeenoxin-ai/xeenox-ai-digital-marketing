@@ -1,7 +1,7 @@
 // Who may change data: the same rules Firestore enforces (billx/firestore.rules),
 // mirrored here so the app can explain them. Pure functions, tested in Node.
 
-import { TRIAL_DAYS, planLimits } from '../plans.js';
+import { TRIAL_DAYS, TRIAL_LIMITS } from '../plans.js';
 
 export const GRACE_DAYS = 3;
 const DAY = 86400000;
@@ -32,10 +32,10 @@ export function accessInfo(account, now = Date.now()) {
   return { state: 'expired', canWrite: false, daysLeft: 0, until: Math.max(paidUntil, trialEnd) };
 }
 
-/** Limits for an account: plan limits once paid, Business-level during the trial. */
+/** Limits for an account: plan limits once paid, trial limits before. */
 export function limitsOf(account) {
   if (account && account.maxUsers && account.maxBusinesses) return { users: account.maxUsers, businesses: account.maxBusinesses };
-  return { users: planLimits('business').users, businesses: planLimits('business').businesses };
+  return { ...TRIAL_LIMITS };
 }
 
 export const isOwner = (account, uid) => !!account && account.ownerUid === uid;

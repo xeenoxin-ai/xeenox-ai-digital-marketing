@@ -761,3 +761,34 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 4px color-mix(in s
   .dash-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .da { padding: 12px; }
 }
+.sx-segs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.sx-segs button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 14px 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.sx-segs button b { font-size: 15px; }
+.sx-segs button small { color: var(--ink-3); font-size: 12.5px; }
+.sx-segs button.on { border-color: var(--brand-2); box-shadow: 0 8px 22px rgb(36 87 245 / .16); }
+.sx-plans { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+@media (max-width: 640px) { .sx-segs button small { display: none; } }
+
+/* Get paid / reminders / repeating bills */
+.getpaid .gp-sum { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 8px; }
+.gp-pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--bg); color: var(--ink-2); }
+.gp-pill b { font-variant-numeric: tabular-nums; }
+.gp-pill.late { background: var(--bad-soft); color: var(--bad); }
+.gp-pill.today { background: var(--warn-soft); color: var(--warn); }
+.gp-pill.soon { background: var(--brand-soft); color: var(--brand); }
+.gp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.gp-row .who { color: var(--ink); text-decoration: none !important; }
+.gp-row .who small { display: block; color: var(--ink-3); font-size: 12px; }
+.gp-amt { font-weight: 800; font-variant-numeric: tabular-nums; }
+.gp-remind { min-height: 34px; padding: 4px 10px; color: #15803d; border-color: color-mix(in srgb, #16a34a 40%, transparent); background: color-mix(in srgb, #16a34a 8%, var(--panel)); }
+.gp-remind:hover { background: #16a34a; color: #fff; }
+.due-chip { font-weight: 700; }
+.due-chip.late { color: var(--bad); }
+.due-chip.today { color: var(--warn); }
+.due-chip.soon { color: var(--brand-2); }
+.getpaid .see-all { margin-top: 10px; }
+.repeat-due { border: 1px solid color-mix(in srgb, var(--brand-2) 35%, transparent); background: linear-gradient(120deg, var(--brand-soft), var(--panel) 70%); }
+.repeat-due h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; }
+.repeat-due p { margin: 0; }
+.remind-btn { color: #15803d; }
+.remind-note { margin: -2px 0 4px; }

@@ -7,9 +7,11 @@ import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { fmtDate } from '../templates.js';
-import { icon, esc, $, $$, badge, options, field, avatar } from '../ui.js';
+import { icon, esc, $, $$, badge, options, field, avatar, toast } from '../ui.js';
 import { money, docsWithTotals, clientLabel } from '../helpers.js';
 import { navigate, setPage } from '../router.js';
+import { collectionList, dueRepeats, REPEAT_EVERY } from '../collect.js';
+import { sendReminder, remindedLabel, createFromRepeat } from './remind.js';
 import logoUrl from '../../logo.svg';
 
 export function dashboardView(main) {
@@ -59,8 +61,11 @@ export function dashboardView(main) {
   }).join('');
 
   const recent = docsWithTotals().slice(0, 8);
-  const dueSoon = inv.filter((r) => ['sent', 'partial', 'overdue'].includes(r.status)).sort((a, b) => (a.d.dueDate || '').localeCompare(b.d.dueDate || '')).slice(0, 6);
   const empty = !all('docs').length;
+  const chase = collectionList(inv, t0);
+  const chaseRows = [...chase.overdue, ...chase.today, ...chase.soon];
+  const repeats = dueRepeats(all('docs'), t0);
+  const chip = (r) => (r.daysLate ? `<span class="due-chip late">${r.daysLate} day${r.daysLate === 1 ? '' : 's'} late</span>` : r.daysLeft ? `<span class="due-chip soon">due in ${r.daysLeft} day${r.daysLeft === 1 ? '' : 's'}</span>` : '<span class="due-chip today">due today</span>');
 
   const inv1 = esc((s.docTitles.invoice || 'Invoice').toLowerCase());
   main.innerHTML = `
@@ -80,6 +85,11 @@ export function dashboardView(main) {
       </nav>
     </section>
     ${empty ? `<div class="row-gap wrap dash-setup"><a class="btn" href="#/settings">${icon('settings')} Complete business profile</a><a class="btn" href="#/design">${icon('palette')} Choose a design</a></div>` : ''}
+    ${repeats.length ? `<section class="card repeat-due">
+      <div class="row-between"><div><h3>${icon('refresh', 18)} ${repeats.length} repeating bill${repeats.length === 1 ? '' : 's'} to create</h3>
+        <p class="muted small">${repeats.slice(0, 3).map((d) => `${esc(d.client ? d.client.name : d.number)} (${esc(REPEAT_EVERY[d.repeat.every].toLowerCase())})`).join(', ')}${repeats.length > 3 ? '…' : ''}</p></div>
+        <button class="btn primary" id="createRepeats">${icon('plus')} Create ${repeats.length === 1 ? 'it' : 'all'} now</button></div>
+    </section>` : ''}
     <div class="kpis">
       <div class="kpi"><i class="kpi-ic">${icon('trend', 18)}</i><span>Billed this month</span><b>${money(sum(thisMonth, (r) => r.t.total))}</b><small>${thisMonth.length} ${esc((thisMonth.length === 1 ? DOC_TYPES.invoice.name : DOC_TYPES.invoice.plural).toLowerCase())}</small></div>
       <div class="kpi good"><i class="kpi-ic">${icon('cash', 18)}</i><span>Received this month</span><b>${money(collectedMonth)}</b><small>Payments recorded</small></div>
@@ -94,11 +104,18 @@ export function dashboardView(main) {
           <linearGradient id="gBilled" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d4cff"/><stop offset="1" stop-color="#2457f5"/></linearGradient>
           <linearGradient id="gPaid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>${bars}</svg>
       </section>
-      <section class="card">
-        <div class="row-between"><h3>Waiting for payment</h3>${dueSoon.length ? `<span class="muted small">${money(outstanding)} due</span>` : ''}</div>
-        ${dueSoon.length ? dueSoon.map(({ d, t, status }) => `<a class="list-row" href="#/doc/${d.id}">
-          <span class="who">${avatar(d.client ? d.client.name : '?')}<span><b>${esc(d.client ? d.client.name : '—')}</b><small>${esc(d.number)} · due ${fmtDate(d.dueDate)}</small></span></span>
-          <span class="right">${money(t.balance)}${badge(status)}</span></a>`).join('') : `<div class="dash-empty">${icon('check', 28)}<p>All paid up. Nothing outstanding.</p></div>`}
+      <section class="card getpaid">
+        <div class="row-between"><h3>Get paid</h3>${chaseRows.length ? `<span class="muted small">${money(chase.total)} to collect</span>` : ''}</div>
+        ${chaseRows.length ? `<div class="gp-sum">
+            <span class="gp-pill late"><b>${chase.overdue.length}</b> overdue</span><span class="gp-pill today"><b>${chase.today.length}</b> due today</span><span class="gp-pill soon"><b>${chase.soon.length}</b> due soon</span>
+          </div>
+          ${chaseRows.slice(0, 6).map((r) => `<div class="gp-row">
+            <a class="who" href="#/doc/${r.d.id}">${avatar(r.d.client ? r.d.client.name : '?')}<span><b>${esc(r.d.client ? r.d.client.name : '—')}</b><small>${esc(r.d.number)} · ${chip(r)}${r.lastReminded ? ` · ${esc(remindedLabel(r.d))}` : ''}</small></span></a>
+            <span class="gp-amt">${money(r.t.balance)}</span>
+            <button class="btn gp-remind" data-remind="${r.d.id}" title="Send WhatsApp reminder">${icon('whatsapp', 16)}<span class="hide-sm"> Remind</span></button>
+          </div>`).join('')}
+          ${chaseRows.length > 6 ? `<a class="see-all" href="#/docs/invoice?status=overdue">All ${chaseRows.length} bills to collect ${icon('arrow', 14)}</a>` : ''}`
+    : `<div class="dash-empty">${icon('check', 28)}<p>All paid up. Nothing overdue or due this week.</p></div>`}
       </section>
     </div>
     <section class="card">
@@ -109,6 +126,16 @@ export function dashboardView(main) {
     : `<div class="dash-empty">${icon('file', 28)}<p>No documents yet. Your bills will show here.</p><a class="btn primary" href="#/pos">${icon('zap')} Make a bill now</a></div>`}
     </section>`;
   $$('tr.link', main).forEach((tr) => tr.addEventListener('click', () => navigate(`#/doc/${tr.dataset.id}`)));
+  $$('[data-remind]', main).forEach((b) => b.addEventListener('click', async () => {
+    const d = all('docs').find((x) => x.id === b.dataset.remind);
+    if (d) { await sendReminder(d); dashboardView(main); }
+  }));
+  const cr = $('#createRepeats', main);
+  if (cr) cr.addEventListener('click', () => {
+    const made = repeats.flatMap((d) => createFromRepeat(d));
+    toast(`${made.length} bill${made.length === 1 ? '' : 's'} created: ${made.map((d) => d.number).join(', ')}`);
+    dashboardView(main);
+  });
 }
 
 function sectorSummary(key) {

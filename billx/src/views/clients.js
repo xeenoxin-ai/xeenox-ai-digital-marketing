@@ -4,9 +4,10 @@ import { all, get, upsert, remove, settings, flush, DOC_TYPES } from '../store.j
 import { STATES } from '../calc.js';
 import { sectorOf } from '../industries.js';
 import { fmtDate } from '../templates.js';
-import { icon, esc, $, $$, toast, confirmBox, badge, options, field, copyText, printDocs, modal, avatar } from '../ui.js';
+import { icon, esc, $, $$, toast, confirmBox, badge, options, field, copyText, printDocs, modal, avatar, download } from '../ui.js';
+import { parseClientList, mergeClients } from '../collect.js';
 import { portalLink } from './documents.js';
-import { money, clientLabel, clientBalance, docsWithTotals } from '../helpers.js';
+import { money, clientLabel, clientBalance, docsWithTotals, toCSV } from '../helpers.js';
 import { navigate, setPage, setDirty } from '../router.js';
 
 export function clientFormHTML(c) {
@@ -41,11 +42,54 @@ export function readClientForm(fd, base) {
   return c;
 }
 
+const SAMPLE_CLIENTS = `Name,Phone,Email,Company,GSTIN,City,State
+Ravi Kumar,9847012345,ravi@example.com,Ravi Stores,32ABCDE1234F1Z5,Palakkad,Kerala
+Anu Thomas,9000000002,,,,Thrissur,Kerala`;
+
+function openClientImport(label, done) {
+  const m = modal({
+    title: `Import ${label.toLowerCase()}s`, submit: 'Import', wide: true,
+    body: `<p class="muted">Upload your whole ${esc(label.toLowerCase())} list at once: copy from Excel / Google Sheets and paste here, choose a CSV file, or type lines like <code>Ravi 9847012345</code>. Thousands of rows are fine.</p>
+      <div class="row-gap wrap" style="margin-bottom:8px">
+        <label class="btn">${icon('upload')} Choose CSV file<input type="file" id="ciFile" accept=".csv,.txt,text/csv,text/plain" hidden></label>
+        <button type="button" class="btn" id="ciSample">${icon('download')} Sample CSV</button>
+      </div>
+      <textarea name="text" id="ciText" rows="9" placeholder="${esc(SAMPLE_CLIENTS)}" style="width:100%;font-family:ui-monospace,monospace;font-size:13px"></textarea>
+      <p class="muted small">Columns: Name and Phone, and optionally Email, Company, GSTIN, Address, City, State, Pincode, Notes, in any order when the first row has headings. People already saved (same phone number) are updated, not duplicated.</p>
+      <div id="ciPreview" class="muted small"></div>`,
+    onSubmit: (fd) => {
+      const { clients } = parseClientList(fd.get('text'));
+      if (!clients.length) { toast('Nothing to import. Each line needs at least a name.', 'err'); return false; }
+      const { add, update } = mergeClients(all('clients'), clients);
+      for (const c of update) upsert('clients', c);
+      for (const c of [...add].reverse()) upsert('clients', c);
+      flush();
+      toast(`Imported: ${add.length} new${update.length ? `, ${update.length} updated` : ''}`);
+      done();
+      return true;
+    },
+  });
+  const ta = $('#ciText', m.el);
+  const pv = $('#ciPreview', m.el);
+  const preview = () => {
+    const { clients, skipped } = parseClientList(ta.value);
+    if (!clients.length) { pv.textContent = ta.value.trim() ? 'No names found yet.' : ''; return; }
+    const { add, update } = mergeClients(all('clients'), clients);
+    pv.innerHTML = `<b>${clients.length} found</b>: ${add.length} new, ${update.length} to update${skipped ? `, ${skipped} lines skipped (no name)` : ''} · e.g. ${clients.slice(0, 3).map((c) => esc(`${c.name}${c.phone ? ` ${c.phone}` : ''}`)).join(', ')}${clients.length > 3 ? '…' : ''}`;
+  };
+  ta.addEventListener('input', preview);
+  $('#ciFile', m.el).addEventListener('change', async (e) => { const f = e.target.files[0]; if (f) { ta.value = await f.text(); preview(); } });
+  $('#ciSample', m.el).addEventListener('click', () => download('billx-customers-sample.csv', SAMPLE_CLIENTS, 'text/csv'));
+  ta.focus();
+}
+
 export function listView(main, params, query) {
   const label = clientLabel();
   const q = (query.get('q') || '').toLowerCase();
   const firstF = sectorOf(settings()).clientFields[0];
-  setPage(`${label}s`, `<a class="btn primary" href="#/client/new">${icon('plus')} New ${esc(label.toLowerCase())}</a>`);
+  setPage(`${label}s`, `<button class="btn" id="cImport">${icon('upload')}<span class="hide-sm"> Import</span></button>
+    <button class="btn" id="cExport" title="Export CSV">${icon('download')}<span class="hide-sm"> CSV</span></button>
+    <a class="btn primary" href="#/client/new">${icon('plus')} New ${esc(label.toLowerCase())}</a>`);
   const list = all('clients')
     .filter((c) => !q || [c.name, c.company, c.phone, c.email, c.gstin, ...(Object.values(c.extra || {}))].some((v) => String(v || '').toLowerCase().includes(q)))
     .map((c) => ({ c, b: clientBalance(c.id) }))
@@ -59,7 +103,8 @@ export function listView(main, params, query) {
         <td>${esc(c.phone || '')}<div class="sub">${esc(c.email || '')}</div></td>
         <td class="num">${money(b.billed)}</td>
         <td class="num ${b.outstanding > 0.5 ? 'due' : ''}">${money(b.outstanding)}</td></tr>`).join('')}</tbody></table></div>`
-    : `<div class="empty">${icon('users', 40)}<p>No ${esc(label.toLowerCase())}s yet.</p><a class="btn primary" href="#/client/new">${icon('plus')} Add ${esc(label.toLowerCase())}</a></div>`}`;
+    : `<div class="empty">${icon('users', 40)}<p>No ${esc(label.toLowerCase())}s yet. Add one, or upload your whole list from Excel in one go.</p>
+      <div class="row-gap wrap" style="justify-content:center"><button class="btn primary" data-cimport>${icon('upload')} Import ${esc(label.toLowerCase())}s</button><a class="btn" href="#/client/new">${icon('plus')} Add one</a></div></div>`}`;
   let t;
   $('#q', main).addEventListener('input', (e) => {
     clearTimeout(t);
@@ -69,6 +114,15 @@ export function listView(main, params, query) {
     }, 250);
   });
   $$('tr.link', main).forEach((tr) => tr.addEventListener('click', () => navigate(`#/client/${tr.dataset.id}`)));
+  const imp = () => openClientImport(label, () => listView(main, params, query));
+  $('#cImport').addEventListener('click', imp);
+  const ei = $('[data-cimport]', main);
+  if (ei) ei.addEventListener('click', imp);
+  $('#cExport').addEventListener('click', () => {
+    const rows = [['Name', 'Phone', 'Email', 'Company', 'GSTIN', 'Address', 'City', 'State', 'Pincode', 'Notes', 'Billed', 'Outstanding'],
+      ...all('clients').map((c) => { const b = clientBalance(c.id); return [c.name, c.phone || '', c.email || '', c.company || '', c.gstin || '', c.address || '', c.city || '', c.state || '', c.pincode || '', c.notes || '', b.billed, b.outstanding]; })];
+    download(`billx-${label.toLowerCase()}s.csv`, toCSV(rows), 'text/csv');
+  });
 }
 
 export function detailView(main, params) {

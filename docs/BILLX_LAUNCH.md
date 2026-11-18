@@ -1,7 +1,7 @@
 # Launching BillX as a paid service
 
 This guide takes BillX from code to a live website where businesses sign up,
-get a 14-day free trial and pay you every month. Follow the steps in order.
+get a 7-day free trial and pay you every month. Follow the steps in order.
 Expect about 2 hours, plus Razorpay's KYC approval time (often 1–3 working days).
 
 | What | Service | Cost to you |
@@ -45,7 +45,7 @@ Edit `billx/src/site.js`:
   `billx/legal/*` (the text is generated in `billx/src/legal.js`). While it is `false`, the
   legal pages show a "Draft" note.
 
-Plans and prices live in `billx/src/plans.js` (₹499 / ₹1,499 / ₹3,999 a month).
+Plans and prices live in `billx/src/plans.js`: small businesses Small ₹399 and Small Plus ₹799, large businesses Business ₹1,499 and Enterprise ₹3,999 a month (yearly = 10 months).
 Change them there and they update on the website, in the app and on the server.
 
 ## 1. Firebase: logins and database (20 minutes)
@@ -136,9 +136,9 @@ The manual dashboard set-up below is only needed if you move to a different Clou
    | `RAZORPAY_KEY_ID` | Key ID | Text |
    | `RAZORPAY_KEY_SECRET` | Key Secret | **Secret** |
    | `RAZORPAY_WEBHOOK_SECRET` | webhook secret from step 2.5 | **Secret** |
-   | `RZP_PLAN_STARTER_MONTHLY` … `RZP_PLAN_PRO_YEARLY` | the 6 plan IDs | Text |
+   | `RZP_PLAN_STARTER_MONTHLY` … `RZP_PLAN_PRO_YEARLY` | the 8 plan IDs | Text |
 
-   The six plan variables are `RZP_PLAN_STARTER_MONTHLY`, `RZP_PLAN_STARTER_YEARLY`,
+   The eight plan variables are `RZP_PLAN_STARTER_MONTHLY`, `RZP_PLAN_STARTER_YEARLY`, `RZP_PLAN_GROWTH_MONTHLY`, `RZP_PLAN_GROWTH_YEARLY`,
    `RZP_PLAN_BUSINESS_MONTHLY`, `RZP_PLAN_BUSINESS_YEARLY`, `RZP_PLAN_PRO_MONTHLY`, `RZP_PLAN_PRO_YEARLY`.
 5. **Deployments → Retry deployment** so the build picks up the variables.
 6. Firebase console → **Authentication → Settings → Authorized domains → Add domain**:

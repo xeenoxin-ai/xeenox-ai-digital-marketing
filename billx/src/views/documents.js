@@ -13,6 +13,8 @@ import {
 } from '../ui.js';
 import { totalsOf, statusOf, money, clientLabel, docsWithTotals } from '../helpers.js';
 import { clientFormHTML, readClientForm } from './clients.js';
+import { sendReminder, remindedLabel, repeatDialog } from './remind.js';
+import { REPEAT_EVERY } from '../collect.js';
 import { navigate, setDirty, setPage } from '../router.js';
 
 /* ------------------------------------------------------------------ list */
@@ -500,6 +502,9 @@ export function docView(main, params) {
       </section>
       <section class="card actions">
         ${isInv && st !== 'paid' && st !== 'cancelled' ? `<button class="btn primary block" data-a="pay">${icon('cash')} Record payment</button>` : ''}
+        ${doc.type === 'invoice' && t.balance > 0.004 && !['draft', 'cancelled'].includes(doc.status) ? `<button class="btn block remind-btn" data-a="remind">${icon('whatsapp')} Send payment reminder</button>${remindedLabel(doc) ? `<p class="muted small remind-note">${esc(remindedLabel(doc))} · ${(doc.reminders || []).length} reminder${(doc.reminders || []).length === 1 ? '' : 's'} sent</p>` : ''}` : ''}
+        ${doc.type === 'invoice' && doc.status !== 'cancelled' && !doc.repeatOf ? `<button class="btn block" data-a="repeat">${icon('refresh')} ${doc.repeat && doc.repeat.active ? `Repeats ${esc(REPEAT_EVERY[doc.repeat.every].toLowerCase())} · next ${fmtDate(doc.repeat.next)}` : 'Repeat this bill'}</button>` : ''}
+        ${doc.repeatOf && get('docs', doc.repeatOf) ? `<p class="muted small">Created from repeating bill <a href="#/doc/${doc.repeatOf}">${esc(get('docs', doc.repeatOf).number)}</a></p>` : ''}
         ${doc.status === 'draft' ? `<button class="btn block" data-a="sent">${icon('send')} Mark as sent</button>` : ''}
         ${doc.type === 'quote' || doc.type === 'proforma' ? `<button class="btn block" data-a="convert">${icon('refresh')} Convert to invoice</button>` : ''}
         ${doc.type === 'quote' && !['accepted', 'converted'].includes(st) ? `<button class="btn block" data-a="accept">${icon('check')} Mark accepted</button>` : ''}
@@ -529,6 +534,8 @@ export function docView(main, params) {
     print: () => printDocs([doc], s),
     share: () => shareDialog(doc, () => docView(main, params)),
     pay: () => paymentDialog(doc, t, () => commit('Payment recorded')),
+    remind: async () => { await sendReminder(doc); docView(main, params); },
+    repeat: () => repeatDialog(doc, () => docView(main, params)),
     sent: () => { doc.status = 'sent'; doc.sentAt = new Date().toISOString(); commit('Marked as sent'); },
     accept: () => { doc.status = 'accepted'; commit('Marked accepted'); },
     convert: () => {

@@ -43,7 +43,7 @@ async function seedAccount(data) {
 const invoice = { id: 'd1', type: 'invoice', number: 'INV-0001', items: [] };
 const writeDoc = (db) => setDoc(doc(db, 'accounts', 'owner', 'workspaces', 'main', 'docs', 'd1'), invoice);
 
-test('sign-up creates only a standard 14-day trial account', async () => {
+test('sign-up creates only a standard 7-day trial account', async () => {
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ status: 'active' })));
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ paidUntil: ts(365) })));
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ maxUsers: 99 })));
@@ -54,7 +54,7 @@ test('sign-up creates only a standard 14-day trial account', async () => {
 });
 
 test('members read and write during trial; strangers and guests never', async () => {
-  await seedAccount({});
+  await seedAccount({ createdAt: ts(-6) });
   await assertSucceeds(writeDoc(owner()));
   await assertSucceeds(writeDoc(staff()));
   await assertSucceeds(getDoc(doc(staff(), 'accounts', 'owner', 'workspaces', 'main', 'docs', 'd1')));
@@ -66,7 +66,7 @@ test('members read and write during trial; strangers and guests never', async ()
 });
 
 test('after the trial: read-only until paid', async () => {
-  await seedAccount({ createdAt: ts(-15) });
+  await seedAccount({ createdAt: ts(-8) });
   await assertFails(writeDoc(owner()));
   await assertSucceeds(getDoc(doc(owner(), 'accounts', 'owner')));
   await assertSucceeds(getDocs(collection(owner(), 'accounts', 'owner', 'workspaces', 'main', 'docs')));

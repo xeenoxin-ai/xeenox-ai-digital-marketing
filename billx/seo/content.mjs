@@ -3,7 +3,7 @@
 // a Kerala page, a hub), plus sitemap and robots. Pure functions; the Vite
 // plugin in ./plugin.mjs writes them into the build.
 import { SITE } from '../src/site.js';
-import { PLANS, TRIAL_DAYS, GST_RATE } from '../src/plans.js';
+import { PLANS, TRIAL_DAYS, GST_RATE, plansIn } from '../src/plans.js';
 import { INDUSTRIES, groupedIndustries, starterItems, sampleValue } from '../src/industries.js';
 import { renderInvoice } from '../src/templates.js';
 import { DEFAULT_SHOW } from '../src/store.js';
@@ -117,8 +117,8 @@ export const homeHead = () => headTags({
   jsonLd: [orgJsonLd(), appJsonLd('BillX', 'GST billing and invoicing software for 45 business types: invoices, quotes, receipts, UPI QR, client portal and reports.'), faqJsonLd(homeFaq())],
 });
 
-export function plansHTML(period = 'monthly') {
-  return Object.entries(PLANS).map(([k, p]) => `
+export function plansHTML(period = 'monthly', segment = 'small') {
+  return (segment ? plansIn(segment) : Object.entries(PLANS)).map(([k, p]) => `
     <div class="l-plan${p.popular ? ' popular' : ''}">
       ${p.popular ? '<span class="l-badge">Most popular</span>' : ''}
       <h3>${esc(p.name)}</h3>
@@ -127,7 +127,7 @@ export function plansHTML(period = 'monthly') {
       ${period === 'yearly' ? `<p class="l-save">${rupees(Math.round(p.yearly / 12))}/month, billed yearly</p>` : '<p class="l-save">&nbsp;</p>'}
       <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
       <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">${startCTA()}</a>
-      <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay / bank transfer</a>
+      <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay</a>
     </div>`).join('');
 }
 
@@ -250,7 +250,7 @@ function sectorPage(key) {
     [`What details can I add to a ${p.docTitle.toLowerCase()}?`, `${fields.length ? `${fields.join(', ')} on every bill` : 'Any details you need'}${cfields.length ? `; ${cfields.join(', ')} saved for each ${p.clientLabel.toLowerCase()}` : ''}${cols.length ? `; and item columns for ${cols.join(', ')}` : ''}. You can rename, add or remove any field in Settings.`],
     ...(CLOUD ? [['Can my staff use it too?', 'Yes. Add staff by email and they sign in with their own login. Everyone sees the same bills, updated live, on phone or computer.']] : []),
     [`How do my ${p.clientLabel.toLowerCase()}s pay?`, 'Every bill carries a UPI QR code and a pay button. You can also share a private link where they see all their bills and their balance, download PDFs and confirm payment on WhatsApp.'],
-    ['How much does it cost?', `${Object.values(PLANS).map((x) => `${x.name} ${rupees(x.monthly)}/month`).join(', ')}${GST_RATE ? ' plus GST' : ''}. ${CLOUD ? `Every plan starts with a ${TRIAL_DAYS}-day free trial.` : 'You can start free and upgrade any time.'}`],
+    ['How much does it cost?', `Small businesses: ${plansIn('small').map(([, x]) => `${x.name} ${rupees(x.monthly)}/month`).join(', ')}. Large businesses: ${plansIn('large').map(([, x]) => `${x.name} ${rupees(x.monthly)}/month`).join(', ')}${GST_RATE ? ' plus GST' : ''}. ${CLOUD ? `Every plan starts with a ${TRIAL_DAYS}-day free trial.` : 'You can start free and upgrade any time.'}`],
   ];
   const items = starterItems(key);
   const related = Object.entries(INDUSTRIES).filter(([k, v]) => v.group === p.group && k !== key && SECTORS[k]);
@@ -282,7 +282,7 @@ function sectorPage(key) {
       <div class="table-wrap"><table class="table"><thead><tr><th>Item / service</th><th>Unit</th><th class="num">Sample rate</th><th class="num">GST</th><th>HSN/SAC</th></tr></thead>
       <tbody>${items.map((it) => `<tr><td>${esc(it.name)}</td><td>${esc(it.unit)}</td><td class="num">${it.rate ? rupees(it.rate) : '–'}</td><td class="num">${it.tax}%</td><td>${esc(it.hsn)}</td></tr>`).join('')}</tbody></table></div>
     </section>
-    <section class="seo-sec"><h2>Pricing</h2><div class="l-plans">${plansHTML().replaceAll('href="app/', 'href="/app/').replaceAll('href="pay.html', 'href="/pay.html')}</div></section>
+    <section class="seo-sec"><h2>Pricing</h2><div class="l-plans">${plansHTML('monthly', null).replaceAll('href="app/', 'href="/app/').replaceAll('href="pay.html', 'href="/pay.html')}</div></section>
     <section class="seo-sec"><h2>Questions from ${esc(audience)}</h2><div class="l-faq">${faqHTML(faq)}</div></section>
     ${related.length ? `<section class="seo-sec"><h2>Also used by</h2><p class="seo-links">${related.map(([k, v]) => `<a href="/${sectorPath(k)}">${esc(v.name)}</a>`).join('')}<a href="/billing-software/">All business types</a></p></section>` : ''}`;
   return {
@@ -361,7 +361,7 @@ function keralaPage() {
       <div class="l-cta"><a class="btn primary big" href="/app/#/signup">${startCTA()}</a>${SITE.whatsapp ? `<a class="btn big" href="https://wa.me/${esc(SITE.whatsapp)}?text=${encodeURIComponent('Hi, I want a BillX demo.')}">Book a demo on WhatsApp</a>` : ''}</div></section>
     <section class="seo-sec"><h2>Serving businesses across Kerala</h2><p class="seo-links">${cities.map((c) => `<span>${c}</span>`).join('')}</p></section>
     <section class="seo-sec"><h2>Popular in Kerala</h2><p class="seo-links">${['hospital', 'clinic', 'pharmacy', 'retail', 'textile', 'jewellery', 'restaurant', 'bakery', 'hotel', 'automobile', 'education', 'construction'].map((k) => `<a href="/${sectorPath(k)}">${esc(INDUSTRIES[k].name)}</a>`).join('')}</p></section>
-    <section class="seo-sec"><h2>Pricing</h2><div class="l-plans">${plansHTML().replaceAll('href="app/', 'href="/app/').replaceAll('href="pay.html', 'href="/pay.html')}</div></section>
+    <section class="seo-sec"><h2>Pricing</h2><div class="l-plans">${plansHTML('monthly', null).replaceAll('href="app/', 'href="/app/').replaceAll('href="pay.html', 'href="/pay.html')}</div></section>
     <section class="seo-sec"><h2>Questions</h2><div class="l-faq">${faqHTML(faq)}</div></section>`;
   return {
     path, html: page({
