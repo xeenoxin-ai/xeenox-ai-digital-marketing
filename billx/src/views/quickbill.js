@@ -6,8 +6,6 @@ import {
   all, settings, newDoc, saveDoc, upsert, persist, flush, today,
 } from '../store.js';
 import { posDefaults } from '../industries.js';
-import { upiLink } from '../calc.js';
-import { qrSvg } from '../qr.js';
 import {
   icon, esc, $, $$, toast, modal, confirmBox, printDocs, printHTML, options, field,
 } from '../ui.js';
@@ -16,6 +14,9 @@ import { setPage, navigate } from '../router.js';
 import {
   matchItems, parseQuickEntry, addLine, setQty, categoriesOf, gridItems, kotHTML,
 } from '../pos-logic.js';
+import {
+  upiPayDialog, quickQrDialog, paidFlash, todayDialog, todayChip,
+} from './counter-pay.js';
 
 const KOT_CSS = `<style>.kot{width:72mm;padding:3mm;font:12pt 'JetBrains Mono',ui-monospace,monospace;color:#000}
 .kot-h{text-align:center;font-weight:800;border-bottom:1px dashed #000;padding-bottom:2mm;margin-bottom:2mm}
@@ -54,6 +55,8 @@ export function quickBillView(main) {
   const orderFor = (table) => openOrders().find((d) => (d.fields || {}).table === String(table));
 
   setPage('Quick Bill', `
+    <button class="btn qb-today" id="qbToday" title="Today's report">${todayChip()}</button>
+    <button class="btn" id="qbQuickQr" title="Collect any amount by UPI QR">${icon('zap')}<span class="hide-sm"> Quick QR</span></button>
     <button class="btn" id="qbHeld" title="Open orders">${icon('pause')}<span class="hide-sm"> Open orders</span> <b id="qbHeldN"></b></button>
     <button class="icon-btn" id="qbSettings" title="Quick Bill settings" aria-label="Quick Bill settings">${icon('settings')}</button>`);
 
@@ -239,8 +242,12 @@ export function quickBillView(main) {
     for (const l of saved.items) if (l.itemId) sold[l.itemId] = (sold[l.itemId] || 0) + (Number(l.qty) || 0);
     for (const it of all('items')) if (sold[it.id]) upsert('items', { ...it, sold: (Number(it.sold) || 0) + sold[it.id] });
     flush();
-    if (P.autoPrint) printDocs([saved], P.receipt === 'thermal58' ? { ...s, design: { ...s.design, paper: '58mm' } } : s);
-    toast(`${saved.number} · ${money(t.payable)} · ${method}`);
+    const printSettings = P.receipt === 'thermal58' ? { ...s, design: { ...s.design, paper: '58mm' } } : s;
+    if (P.autoPrint) printDocs([saved], printSettings);
+    const phone = saved.client && saved.client.phone ? saved.client.phone : '';
+    paidFlash($('#qbOrder', root), { doc: saved, amount: t.payable, method, phone, onPrint: () => printDocs([saved], printSettings) });
+    const chip = $('#qbToday');
+    if (chip) chip.innerHTML = todayChip();
     order = fresh('');
     $('#qbCust', root).value = '';
     search = '';
@@ -254,14 +261,7 @@ export function quickBillView(main) {
     if (!order.items.length) { toast('Add items first', 'err'); return; }
     const t = totalsOf(order, s);
     if (method !== 'UPI') { finish(method); return; }
-    const upi = s.business.upiId ? upiLink({ upiId: s.business.upiId, payee: s.business.name, amount: t.payable, note: order.number }) : '';
-    const m = modal({
-      title: `UPI · ${money(t.payable)}`, submit: 'Payment received', cancel: 'Back',
-      body: upi ? `<div class="qb-upi">${qrSvg(upi, { size: 260 })}<p>Customer scans with GPay, PhonePe, Paytm or any UPI app.</p><b>${money(t.payable)}</b></div>`
-        : '<p>Add your UPI ID in <a href="#/settings">Settings → Getting paid</a> to show a scan-to-pay QR here. You can still record this as a UPI payment.</p>',
-      onSubmit: (fd) => { finish('UPI', fd.get('ref') || ''); },
-    });
-    m.el.querySelector('.modal-body').insertAdjacentHTML('beforeend', field('UPI reference (optional)', '<input name="ref" placeholder="Last 4–12 digits of UTR">'));
+    upiPayDialog({ amount: t.payable, note: order.number, onReceived: (ref) => finish('UPI', ref) });
   }
 
   function kot() {
@@ -357,6 +357,12 @@ export function quickBillView(main) {
     if (e.target.matches('[data-setq]')) changeQty(+e.target.closest('.qb-line').dataset.i, parseFloat(e.target.value));
   });
   $('#qbHeld').addEventListener('click', openHeld);
+  $('#qbToday').addEventListener('click', () => todayDialog());
+  $('#qbQuickQr').addEventListener('click', () => quickQrDialog((saved, amount) => {
+    paidFlash($('#qbOrder', root), { doc: saved, amount, method: 'UPI', phone: '', onPrint: () => printDocs([saved], s) });
+    $('#qbToday').innerHTML = todayChip();
+    renderOrder();
+  }));
   $('#qbSettings').addEventListener('click', openSettings);
 
   const keys = (e) => {

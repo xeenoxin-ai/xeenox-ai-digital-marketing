@@ -7,10 +7,11 @@ import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { fmtDate } from '../templates.js';
-import { icon, esc, $, $$, badge, options, field, avatar, toast } from '../ui.js';
+import { icon, esc, $, $$, badge, options, field, avatar, toast, modal } from '../ui.js';
 import { money, docsWithTotals, clientLabel } from '../helpers.js';
 import { navigate, setPage } from '../router.js';
 import { collectionList, dueRepeats, REPEAT_EVERY } from '../collect.js';
+import { growth } from '../insights.js';
 import { sendReminder, remindedLabel, createFromRepeat } from './remind.js';
 import logoUrl from '../../logo.svg';
 
@@ -65,6 +66,8 @@ export function dashboardView(main) {
   const chase = collectionList(inv, t0);
   const chaseRows = [...chase.overdue, ...chase.today, ...chase.soon];
   const repeats = dueRepeats(all('docs'), t0);
+  const g = growth(rows, t0, Number(s.goal) || 0);
+  const maxItem = Math.max(1, ...g.topItems.map((x) => x.amount));
   const chip = (r) => (r.daysLate ? `<span class="due-chip late">${r.daysLate} day${r.daysLate === 1 ? '' : 's'} late</span>` : r.daysLeft ? `<span class="due-chip soon">due in ${r.daysLeft} day${r.daysLeft === 1 ? '' : 's'}</span>` : '<span class="due-chip today">due today</span>');
 
   const inv1 = esc((s.docTitles.invoice || 'Invoice').toLowerCase());
@@ -118,6 +121,32 @@ export function dashboardView(main) {
     : `<div class="dash-empty">${icon('check', 28)}<p>All paid up. Nothing overdue or due this week.</p></div>`}
       </section>
     </div>
+    ${!empty ? `<section class="card growth">
+      <div class="row-between"><h3>${icon('trend', 18)} Your growth</h3><button class="btn ghost" id="setGoal">${icon('star', 16)} ${g.goal ? 'Change goal' : 'Set monthly goal'}</button></div>
+      <div class="gr-grid">
+        <div class="gr-main">
+          <span>This month so far</span><b>${money(g.thisMonth)}</b>
+          ${g.pct === null ? '<em class="flat">First month in BillX. Keep billing!</em>'
+    : `<em class="${g.pct >= 0 ? 'up' : 'down'}">${g.pct >= 0 ? '▲' : '▼'} ${Math.abs(g.pct)}% vs the same days last month</em>`}
+          <small>On pace for <b>${money(g.projected)}</b> this month · ${g.bills} bill${g.bills === 1 ? '' : 's'}</small>
+        </div>
+        <div class="gr-goal">
+          ${g.goal ? `<span>Monthly goal</span>
+            <div class="gr-ring" style="--p:${Math.round(g.goal.progress * 100)}"><b>${Math.round(g.goal.progress * 100)}%</b></div>
+            <small>${money(g.thisMonth)} of ${money(g.goal.target)} · <b class="${g.goal.onTrack ? 'ok' : 'behind'}">${g.goal.onTrack ? 'On track' : 'Push a little more'}</b></small>`
+    : `<span>Monthly goal</span><p>Set a sales target and watch it fill up every day.</p><button class="btn primary" data-goal>${icon('star', 16)} Set a goal</button>`}
+        </div>
+        <div class="gr-badges">
+          <div><i>${icon('zap', 18)}</i><span><b>${g.streak}-day</b> billing streak</span></div>
+          <div><i>${icon('star', 18)}</i><span>Best day: <b>${g.bestDay ? money(g.bestDay.total) : '—'}</b>${g.bestDay ? ` <small>(${fmtDate(g.bestDay.date)})</small>` : ''}</span></div>
+          <div class="gr-mile"><i>${icon('check', 18)}</i><span><b>${g.totalBills}</b> bills made · next milestone <b>${g.milestone.next}</b><em><u style="width:${Math.round(g.milestone.progress * 100)}%"></u></em></span></div>
+        </div>
+      </div>
+      <div class="gr-lists">
+        <div><h4>Best sellers this month</h4>${g.topItems.length ? g.topItems.map((x) => `<div class="gr-row"><span>${esc(x.name)}</span><i><u style="width:${(x.amount / maxItem) * 100}%"></u></i><b>${money(x.amount)}</b></div>`).join('') : '<p class="muted small">Your best sellers will show here.</p>'}</div>
+        <div><h4>Top customers this month</h4>${g.topCustomers.length ? g.topCustomers.map((c) => `<div class="gr-row cust"><span class="who">${avatar(c.name)}<span>${esc(c.name)}<small>${c.bills} bill${c.bills === 1 ? '' : 's'}</small></span></span><b>${money(c.amount)}</b></div>`).join('') : '<p class="muted small">Add the customer name on bills to see who buys the most.</p>'}</div>
+      </div>
+    </section>` : ''}
     <section class="card">
       <div class="row-between"><h3>Recent documents</h3><a href="#/docs/all" class="see-all">See all ${icon('arrow', 14)}</a></div>
       ${recent.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Number</th><th>${esc(clientLabel())}</th><th>Date</th><th class="num">Amount</th><th>Status</th></tr></thead>
@@ -130,6 +159,22 @@ export function dashboardView(main) {
     const d = all('docs').find((x) => x.id === b.dataset.remind);
     if (d) { await sendReminder(d); dashboardView(main); }
   }));
+  const goalBtn = $('#setGoal', main) || null;
+  const openGoal = () => modal({
+    title: 'Monthly sales goal', submit: 'Save goal',
+    body: `<p class="muted">How much do you want to sell this month? BillX shows your progress every day and tells you if you are on track.</p>
+      ${field('Goal (₹ per month)', `<input name="goal" inputmode="numeric" value="${esc(s.goal || '')}" placeholder="e.g. 200000">`)}
+      <p class="muted small">Last month you billed ${money(g.lastSame)} by this date${g.projected ? `; you are on pace for ${money(g.projected)} this month` : ''}.</p>`,
+    onSubmit: (fd) => {
+      s.goal = Math.max(0, parseFloat(String(fd.get('goal')).replace(/[₹,\s]/g, '')) || 0);
+      persist();
+      flush();
+      toast(s.goal ? `Goal set: ${money(s.goal)} a month` : 'Goal removed');
+      dashboardView(main);
+    },
+  });
+  if (goalBtn) goalBtn.addEventListener('click', openGoal);
+  $$('[data-goal]', main).forEach((b) => b.addEventListener('click', openGoal));
   const cr = $('#createRepeats', main);
   if (cr) cr.addEventListener('click', () => {
     const made = repeats.flatMap((d) => createFromRepeat(d));
@@ -167,7 +212,9 @@ function onboarding(main) {
       ${field('Business name', `<input name="name" placeholder="e.g. Sunrise Traders" value="${s.business.name === 'Your Business Name' ? '' : esc(s.business.name)}">`)}
       ${field('State', `<select name="state">${options(STATES.map(([c, n]) => [c, n]), s.business.state)}</select>`)}
       ${field('Currency', `<select name="currency">${options(Object.keys(CURRENCIES).map((c) => [c, `${c} (${CURRENCIES[c].symbol})`]), s.currency)}</select>`)}
+      ${field('Your UPI ID (optional)', `<input name="upi" placeholder="e.g. yourshop@okaxis" value="${esc(s.business.upiId || '')}" autocomplete="off">`, 'span2')}
     </div>
+    <p class="muted small ob-upi-note">With a UPI ID every bill shows a scan-to-pay QR with the exact amount, and money goes straight to your bank. You can add it later in Settings.</p>
     <div class="row-gap wrap end">
       ${others.length ? `<button type="button" class="btn ghost" id="obCancel">Cancel</button>` : ''}
       <button class="btn" value="sample">${icon('eye')} Explore with sample data</button>
@@ -191,6 +238,8 @@ function onboarding(main) {
     if (sample) loadSample(ind);
     else setIndustry(ind);
     if (fd.get('name')) s.business.name = fd.get('name').trim();
+    const upi = String(fd.get('upi') || '').trim();
+    if (/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(upi)) s.business.upiId = upi;
     if (!sample) s.business.state = fd.get('state');
     s.currency = fd.get('currency');
     if (s.currency !== 'INR') s.taxMode = 'simple';

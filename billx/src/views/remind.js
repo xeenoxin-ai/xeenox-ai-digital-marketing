@@ -14,7 +14,8 @@ import {
 import { totalsOf, money } from '../helpers.js';
 import { esc, modal, toast, options, field } from '../ui.js';
 
-async function payLink(doc) {
+/** Private link where the customer views, downloads and pays this bill. */
+export async function billLink(doc) {
   const cl = doc.client || {};
   const client = cl.id ? (get('clients', cl.id) || cl) : cl;
   const token = await encodePortal(portalPayload(settings(), client, [doc]));
@@ -34,7 +35,7 @@ export async function sendReminder(doc) {
   const t = totalsOf(doc);
   const cl = doc.client || {};
   let link = '';
-  try { link = await payLink(doc); } catch { /* still send without the link */ }
+  try { link = await billLink(doc); } catch { /* still send without the link */ }
   const text = reminderText({
     name: cl.name || '', business: s.business.name, docTitle: doc.title || DOC_TYPES[doc.type].title, number: doc.number,
     amount: money(Math.max(t.balance, 0)), due: doc.dueDate || doc.date, today: today(), link, upiId: s.business.upiId || '',
