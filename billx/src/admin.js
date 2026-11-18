@@ -55,7 +55,7 @@ async function main() {
       const f = (name, label, ph = '') => field(label, `<input name="${name}" value="${esc(d[name] || '')}" placeholder="${esc(ph)}">`);
       modal({
         title: 'Payment details (private)',
-        body: `<p class="muted">Customers pay you by UPI only. They see the UPI ID and a QR code with the exact amount on the checkout page, after signing in. Never stored in the website code. Bank account details are not shown to anyone.</p>
+        body: `<p class="muted">Customers pay you by UPI only. Your UPI ID and a QR with the exact amount are shown on the checkout (Subscribe now page and inside BillX). It is saved in your database, never in the website code. Bank account details are not shown to anyone.</p>
           <div class="grid g2">
             ${f('payee', 'Pay to name (shown on checkout)', 'BillX Solutions')}
             ${f('upiId', 'UPI ID', 'yourname@okaxis')}
@@ -66,7 +66,9 @@ async function main() {
           const data = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v).trim()]));
           if (!/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(data.upiId || '')) { toast('Enter a valid UPI ID, like name@okaxis', 'err'); return false; }
           try {
-            await setDoc(doc(db, 'private', 'payment'), { ...data, updatedAt: serverTimestamp() });
+            const clean = { payee: data.payee || '', upiId: data.upiId };
+            await setDoc(doc(db, 'private', 'payment'), { ...clean, updatedAt: serverTimestamp() });
+            await setDoc(doc(db, 'public', 'pay'), { ...clean, updatedAt: serverTimestamp() });
             toast('Payment details saved');
           } catch (e) { toast(e.message, 'err'); return false; }
           return true;

@@ -49,8 +49,8 @@ function renderPlans() {
       <div class="l-price">${money(period === 'yearly' ? p.yearly : p.monthly)}<small>/${period === 'yearly' ? 'year' : 'month'}</small></div>
       ${period === 'yearly' ? `<p class="l-save">${money(p.yearly / 12)}/month, billed yearly</p>` : '<p class="l-save">&nbsp;</p>'}
       <ul>${p.features.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
-      <a class="btn ${p.popular ? 'primary' : ''} block" href="app/#/signup?plan=${k}&period=${period}">${cloudEnabled() ? `Start ${TRIAL_DAYS}-day free trial` : 'Start free'}</a>
-      <a class="l-paynow" href="pay.html?plan=${k}&period=${period}">or buy now: UPI / GPay</a>
+      <a class="btn ${p.popular ? 'primary' : 'dark'} block l-sub-btn" href="pay.html?plan=${k}&period=${period}">Subscribe now</a>
+      <a class="l-paynow" href="app/#/signup?plan=${k}&period=${period}">${cloudEnabled() ? `or try free for ${TRIAL_DAYS} days` : 'or start free'}</a>
     </div>`).join('');
 }
 renderPlans();

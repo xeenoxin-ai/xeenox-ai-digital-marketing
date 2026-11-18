@@ -112,6 +112,15 @@ service cloud.firestore {
       }
     }
 
+    // UPI details for the public "Subscribe now" page: payee name and UPI ID only.
+    match /public/pay {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['payee', 'upiId', 'updatedAt'])
+        && str(request.resource.data.payee, 80) && str(request.resource.data.upiId, 80);
+    }
+
     // "I've paid by UPI / bank transfer": the owner submits the reference,
     // a BillX admin checks the bank and approves (which activates the plan).
     match /paymentRequests/{id} {

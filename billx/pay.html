@@ -6,12 +6,17 @@
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <title>Pay for BillX · UPI, GPay or bank transfer</title>
-    <meta name="description" content="Buy a BillX plan: pay BillX Solutions by UPI, GPay, PhonePe, Paytm or bank transfer and send your payment reference to activate." />
+    <title>Subscribe to BillX · Secure UPI checkout</title>
+    <meta name="description" content="Subscribe to BillX: scan the UPI QR with GPay, PhonePe, Paytm or BHIM, enter the payment reference, and your plan is activated." />
   </head>
   <body class="landing">
-    <header class="l-nav"><a class="l-brand" href="./"><img src="logo.svg" alt="" width="32" height="32" /><span>Bill<b>X</b></span></a><a class="btn" href="./#pricing">Pricing</a><a class="btn primary" href="app/#/signup">Start free</a></header>
-    <main class="legal pay-page" id="pay"></main>
+    <header class="l-nav">
+      <div class="l-nav-in">
+        <a class="l-brand" href="./" aria-label="BillX by BillX Solutions, home"><img src="logo.svg" alt="" width="34" height="34" /><span class="l-brand-text"><span class="l-brand-name">Bill<b>X</b></span><small>by BillX Solutions</small></span></a>
+        <div class="l-nav-cta"><a class="btn ghost" href="./#pricing">All plans</a><a class="btn" href="app/">Sign in</a></div>
+      </div>
+    </header>
+    <main class="pay-page" id="pay"></main>
     <script type="module" src="./src/pay.js"></script>
   </body>
 </html>

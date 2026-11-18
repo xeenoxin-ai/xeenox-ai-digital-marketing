@@ -142,3 +142,12 @@ test('private payment details: verified signed-in users read, only admin writes'
   await assertFails(getDoc(doc(guest(), 'private', 'payment')), 'not signed in');
   await assertFails(getDocs(collection(owner(), 'private')), 'cannot list');
 });
+
+test('public UPI details: anyone reads, only admin writes, no bank fields', async () => {
+  await seedAccount({});
+  await assertFails(setDoc(doc(owner(), 'public', 'pay'), { payee: 'Fake', upiId: 'fake@upi' }));
+  await assertFails(setDoc(doc(admin(), 'public', 'pay'), { payee: 'Test Co', upiId: 'test@upi', accountNo: '00001112223' }), 'bank fields refused');
+  await assertSucceeds(setDoc(doc(admin(), 'public', 'pay'), { payee: 'Test Co', upiId: 'test@upi', updatedAt: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(guest(), 'public', 'pay')));
+  await assertFails(getDocs(collection(guest(), 'public')), 'cannot list');
+});
