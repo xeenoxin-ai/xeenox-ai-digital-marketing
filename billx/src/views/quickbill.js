@@ -90,6 +90,15 @@ export function quickBillView(main) {
   </div>`;
 
   const root = main.firstElementChild;
+  // Fill the screen below the top bar and any banner, so the pay buttons are always visible.
+  const fit = () => {
+    if (!root.isConnected) { window.removeEventListener('resize', fit); return; }
+    root.style.height = `calc(100dvh - ${Math.max(0, root.getBoundingClientRect().top + window.scrollY) + 12}px)`;
+  };
+  fit();
+  window.addEventListener('resize', fit);
+  const banner = document.getElementById('acctBanner');
+  if (banner && window.ResizeObserver) new ResizeObserver(fit).observe(banner);
   const q = $('#qbq', root);
 
   /* ---------- rendering ---------- */

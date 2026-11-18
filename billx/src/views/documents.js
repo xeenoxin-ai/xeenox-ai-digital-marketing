@@ -9,7 +9,7 @@ import { sectorOf } from '../industries.js';
 import { TEMPLATES, fmtDate } from '../templates.js';
 import { encodePortal, portalPayload } from '../portal-codec.js';
 import {
-  icon, esc, $, $$, toast, modal, confirmBox, mountPreview, printDocs, badge, options, field, copyText, STATUS_LABEL,
+  icon, esc, $, $$, toast, modal, confirmBox, mountPreview, printDocs, badge, options, field, copyText, STATUS_LABEL, avatar,
 } from '../ui.js';
 import { totalsOf, statusOf, money, clientLabel, docsWithTotals } from '../helpers.js';
 import { clientFormHTML, readClientForm } from './clients.js';
@@ -46,7 +46,7 @@ export function listView(main, params, query) {
       <tbody>${rows.map(({ d, t, status: st }) => `
         <tr class="link" data-id="${d.id}">
           <td><b>${esc(d.number)}</b><div class="sub">${esc(DOC_TYPES[d.type].name)}</div></td>
-          <td>${esc((d.client && d.client.name) || '—')}${d.client && d.client.company && d.client.company !== d.client.name ? `<div class="sub">${esc(d.client.company)}</div>` : ''}</td>
+          <td><span class="who">${avatar((d.client && d.client.name) || '?')}<span>${esc((d.client && d.client.name) || '—')}${d.client && d.client.company && d.client.company !== d.client.name ? `<div class="sub">${esc(d.client.company)}</div>` : ''}</span></span></td>
           <td>${fmtDate(d.date)}</td><td>${fmtDate(d.dueDate)}</td>
           <td class="num">${money(t.payable)}</td>
           <td class="num">${d.type === 'invoice' ? money(Math.max(t.balance, 0)) : '–'}</td>

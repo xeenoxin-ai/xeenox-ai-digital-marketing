@@ -4,7 +4,7 @@ import { all, get, upsert, remove, settings, flush, DOC_TYPES } from '../store.j
 import { STATES } from '../calc.js';
 import { sectorOf } from '../industries.js';
 import { fmtDate } from '../templates.js';
-import { icon, esc, $, $$, toast, confirmBox, badge, options, field, copyText, printDocs, modal } from '../ui.js';
+import { icon, esc, $, $$, toast, confirmBox, badge, options, field, copyText, printDocs, modal, avatar } from '../ui.js';
 import { portalLink } from './documents.js';
 import { money, clientLabel, clientBalance, docsWithTotals } from '../helpers.js';
 import { navigate, setPage, setDirty } from '../router.js';
@@ -55,7 +55,7 @@ export function listView(main, params, query) {
     ${list.length ? `<div class="table-wrap"><table class="table">
       <thead><tr><th>Name</th><th>Contact</th><th class="num">Billed</th><th class="num">Outstanding</th></tr></thead>
       <tbody>${list.map(({ c, b }) => `<tr class="link" data-id="${c.id}">
-        <td><b>${esc(c.name)}</b>${c.company && c.company !== c.name ? `<div class="sub">${esc(c.company)}</div>` : ''}${firstF && c.extra && c.extra[firstF.key] ? `<div class="sub">${esc(firstF.label)}: ${esc(c.extra[firstF.key])}</div>` : ''}</td>
+        <td><span class="who">${avatar(c.name)}<span><b>${esc(c.name)}</b>${c.company && c.company !== c.name ? `<div class="sub">${esc(c.company)}</div>` : ''}${firstF && c.extra && c.extra[firstF.key] ? `<div class="sub">${esc(firstF.label)}: ${esc(c.extra[firstF.key])}</div>` : ''}</span></span></td>
         <td>${esc(c.phone || '')}<div class="sub">${esc(c.email || '')}</div></td>
         <td class="num">${money(b.billed)}</td>
         <td class="num ${b.outstanding > 0.5 ? 'due' : ''}">${money(b.outstanding)}</td></tr>`).join('')}</tbody></table></div>`

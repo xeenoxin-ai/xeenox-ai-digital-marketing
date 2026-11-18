@@ -7,7 +7,7 @@ import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { fmtDate } from '../templates.js';
-import { icon, esc, $, $$, badge, options, field } from '../ui.js';
+import { icon, esc, $, $$, badge, options, field, avatar } from '../ui.js';
 import { money, docsWithTotals, clientLabel } from '../helpers.js';
 import { navigate, setPage } from '../router.js';
 import logoUrl from '../../logo.svg';
@@ -29,6 +29,11 @@ export function dashboardView(main) {
   const outstanding = sum(inv, (r) => Math.max(r.t.balance, 0));
   const collectedMonth = inv.reduce((a, r) => a + (r.d.payments || []).filter((p) => (p.date || '').startsWith(month)).reduce((x, p) => x + Number(p.amount || 0), 0), 0);
   const openQuotes = rows.filter((r) => r.d.type === 'quote' && r.status === 'awaiting');
+  const todays = inv.filter((r) => r.d.date === t0);
+  const collectedToday = inv.reduce((a, r) => a + (r.d.payments || []).filter((p) => p.date === t0).reduce((x, p) => x + Number(p.amount || 0), 0), 0);
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const todayLabel = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   // Last 6 months chart
   const months = [];
@@ -48,8 +53,8 @@ export function dashboardView(main) {
     const h2 = (x.paid / max) * (H - 30);
     const label = new Date(`${x.k}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'short' });
     return `<g><title>${label}: billed ${money(x.billed)}, received ${money(x.paid)}</title>
-      <rect x="${i * bw + bw * 0.18}" y="${H - 20 - h1}" width="${bw * 0.3}" height="${h1}" rx="3" class="c-billed"/>
-      <rect x="${i * bw + bw * 0.52}" y="${H - 20 - h2}" width="${bw * 0.3}" height="${h2}" rx="3" class="c-paid"/>
+      <rect x="${i * bw + bw * 0.18}" y="${H - 20 - h1}" width="${bw * 0.3}" height="${h1}" rx="6" class="c-billed" fill="url(#gBilled)"/>
+      <rect x="${i * bw + bw * 0.52}" y="${H - 20 - h2}" width="${bw * 0.3}" height="${h2}" rx="6" class="c-paid" fill="url(#gPaid)"/>
       <text x="${i * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${label}</text></g>`;
   }).join('');
 
@@ -57,37 +62,51 @@ export function dashboardView(main) {
   const dueSoon = inv.filter((r) => ['sent', 'partial', 'overdue'].includes(r.status)).sort((a, b) => (a.d.dueDate || '').localeCompare(b.d.dueDate || '')).slice(0, 6);
   const empty = !all('docs').length;
 
+  const inv1 = esc((s.docTitles.invoice || 'Invoice').toLowerCase());
   main.innerHTML = `
-    ${empty ? `<section class="card hero">
-      <h2>Welcome, ${esc(s.business.name)}</h2>
-      <p>Create your first ${esc((s.docTitles.invoice || 'invoice').toLowerCase())} in under a minute. Your logo, UPI QR and design are applied automatically.</p>
-      <div class="row-gap wrap"><a class="btn primary" href="#/new/invoice">${icon('plus')} Create ${esc((s.docTitles.invoice || 'invoice').toLowerCase())}</a>
-      <a class="btn" href="#/settings">${icon('settings')} Complete business profile</a><a class="btn" href="#/design">${icon('palette')} Choose a design</a></div>
-    </section>` : ''}
+    <section class="dash-hero">
+      <div class="dash-hero-main">
+        <p class="dash-date">${esc(todayLabel)}</p>
+        <h2>${greet}, ${esc(s.business.name)}</h2>
+        ${empty ? `<p class="dash-sub">Create your first ${inv1} in under a minute. Your logo, UPI QR and design are applied automatically.</p>`
+    : `<div class="dash-today"><div><span>Today's sales</span><b>${money(sum(todays, (r) => r.t.total))}</b><small>${todays.length} bill${todays.length === 1 ? '' : 's'}</small></div>
+          <div><span>Collected today</span><b>${money(collectedToday)}</b><small>Cash, UPI &amp; card</small></div></div>`}
+      </div>
+      <nav class="dash-actions" aria-label="Quick actions">
+        <a href="#/pos" class="da da-pos">${icon('zap', 22)}<b>Quick Bill</b><small>Fast counter billing</small></a>
+        <a href="#/new/invoice" class="da">${icon('file', 22)}<b>New ${inv1}</b><small>Full GST invoice</small></a>
+        <a href="#/clients" class="da">${icon('users', 22)}<b>${esc(clientLabel())}s</b><small>Add &amp; manage</small></a>
+        <a href="${all('items').length > 5 ? '#/items' : '#/items?import=1'}" class="da">${icon('box', 22)}<b>Items</b><small>${all('items').length} saved</small></a>
+      </nav>
+    </section>
+    ${empty ? `<div class="row-gap wrap dash-setup"><a class="btn" href="#/settings">${icon('settings')} Complete business profile</a><a class="btn" href="#/design">${icon('palette')} Choose a design</a></div>` : ''}
     <div class="kpis">
-      <div class="kpi"><span>Billed this month</span><b>${money(sum(thisMonth, (r) => r.t.total))}</b><small>${thisMonth.length} ${esc(DOC_TYPES.invoice.plural.toLowerCase())}</small></div>
-      <div class="kpi good"><span>Received this month</span><b>${money(collectedMonth)}</b></div>
-      <div class="kpi warn"><span>Outstanding</span><b>${money(outstanding)}</b><small>${inv.filter((r) => r.t.balance > 0.004).length} unpaid</small></div>
-      <a class="kpi bad" href="#/docs/invoice?status=overdue"><span>Overdue</span><b>${money(sum(overdue, (r) => r.t.balance))}</b><small>${overdue.length} invoices</small></a>
-      <a class="kpi" href="#/docs/quote?status=awaiting"><span>Open quotes</span><b>${money(sum(openQuotes, (r) => r.t.total))}</b><small>${openQuotes.length} waiting</small></a>
+      <div class="kpi"><i class="kpi-ic">${icon('trend', 18)}</i><span>Billed this month</span><b>${money(sum(thisMonth, (r) => r.t.total))}</b><small>${thisMonth.length} ${esc((thisMonth.length === 1 ? DOC_TYPES.invoice.name : DOC_TYPES.invoice.plural).toLowerCase())}</small></div>
+      <div class="kpi good"><i class="kpi-ic">${icon('cash', 18)}</i><span>Received this month</span><b>${money(collectedMonth)}</b><small>Payments recorded</small></div>
+      <div class="kpi warn"><i class="kpi-ic">${icon('clock', 18)}</i><span>Outstanding</span><b>${money(outstanding)}</b><small>${inv.filter((r) => r.t.balance > 0.004).length} unpaid</small></div>
+      <a class="kpi bad" href="#/docs/invoice?status=overdue"><i class="kpi-ic">${icon('alert', 18)}</i><span>Overdue</span><b>${money(sum(overdue, (r) => r.t.balance))}</b><small>${overdue.length} ${overdue.length === 1 ? 'invoice' : 'invoices'}</small></a>
+      <a class="kpi" href="#/docs/quote?status=awaiting"><i class="kpi-ic">${icon('file', 18)}</i><span>Open quotes</span><b>${money(sum(openQuotes, (r) => r.t.total))}</b><small>${openQuotes.length} waiting</small></a>
     </div>
     <div class="two-col">
       <section class="card">
         <div class="row-between"><h3>Last 6 months</h3><span class="legend"><i></i> Billed <i class="paid"></i> Received</span></div>
-        <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Billed and received per month">${bars}</svg>
+        <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Billed and received per month"><defs>
+          <linearGradient id="gBilled" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d4cff"/><stop offset="1" stop-color="#2457f5"/></linearGradient>
+          <linearGradient id="gPaid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>${bars}</svg>
       </section>
       <section class="card">
-        <h3>Waiting for payment</h3>
+        <div class="row-between"><h3>Waiting for payment</h3>${dueSoon.length ? `<span class="muted small">${money(outstanding)} due</span>` : ''}</div>
         ${dueSoon.length ? dueSoon.map(({ d, t, status }) => `<a class="list-row" href="#/doc/${d.id}">
-          <span><b>${esc(d.client ? d.client.name : '—')}</b><small>${esc(d.number)} · due ${fmtDate(d.dueDate)}</small></span>
-          <span class="right">${money(t.balance)}${badge(status)}</span></a>`).join('') : '<p class="muted">Nothing outstanding. 🎉</p>'}
+          <span class="who">${avatar(d.client ? d.client.name : '?')}<span><b>${esc(d.client ? d.client.name : '—')}</b><small>${esc(d.number)} · due ${fmtDate(d.dueDate)}</small></span></span>
+          <span class="right">${money(t.balance)}${badge(status)}</span></a>`).join('') : `<div class="dash-empty">${icon('check', 28)}<p>All paid up. Nothing outstanding.</p></div>`}
       </section>
     </div>
     <section class="card">
-      <div class="row-between"><h3>Recent documents</h3><a href="#/docs/all">See all</a></div>
+      <div class="row-between"><h3>Recent documents</h3><a href="#/docs/all" class="see-all">See all ${icon('arrow', 14)}</a></div>
       ${recent.length ? `<div class="table-wrap"><table class="table"><thead><tr><th>Number</th><th>${esc(clientLabel())}</th><th>Date</th><th class="num">Amount</th><th>Status</th></tr></thead>
       <tbody>${recent.map(({ d, t, status }) => `<tr class="link" data-id="${d.id}"><td><b>${esc(d.number)}</b><div class="sub">${esc(DOC_TYPES[d.type].name)}</div></td>
-        <td>${esc(d.client ? d.client.name : '—')}</td><td>${fmtDate(d.date)}</td><td class="num">${money(t.payable)}</td><td>${badge(status)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted">No documents yet.</p>'}
+        <td><span class="who">${avatar(d.client ? d.client.name : '?')}<span>${esc(d.client ? d.client.name : '—')}</span></span></td><td>${fmtDate(d.date)}</td><td class="num"><b>${money(t.payable)}</b></td><td>${badge(status)}</td></tr>`).join('')}</tbody></table></div>`
+    : `<div class="dash-empty">${icon('file', 28)}<p>No documents yet. Your bills will show here.</p><a class="btn primary" href="#/pos">${icon('zap')} Make a bill now</a></div>`}
     </section>`;
   $$('tr.link', main).forEach((tr) => tr.addEventListener('click', () => navigate(`#/doc/${tr.dataset.id}`)));
 }
