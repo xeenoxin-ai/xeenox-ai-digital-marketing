@@ -9,6 +9,7 @@ import { sectorPickerHTML, bindSectorPicker } from './sector-picker.js';
 import { STATES, CURRENCIES } from '../calc.js';
 import { INDUSTRIES } from '../industries.js';
 import { icon, esc, $, toast, confirmBox, options, field, readImage, download } from '../ui.js';
+import { lastBackup, markBackup, backupName } from '../safety.js';
 import { navigate, setPage, setDirty } from '../router.js';
 
 export function settingsView(main) {
@@ -99,6 +100,7 @@ export function settingsView(main) {
   <section class="card">
     <h3>Your data</h3>
     <p class="muted">Everything is saved in this browser on this device. Download a backup regularly and keep it safe; restore it on any device.</p>
+    <p class="small">${lastBackup() ? `Last backup: <b>${new Date(lastBackup()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</b>` : '<b class="danger-text">No backup downloaded yet.</b>'} · Tip: send the backup file to yourself on WhatsApp or save it to Google Drive.</p>
     <div class="row-gap wrap">
       <button class="btn" id="exp">${icon('download')} Download backup</button>
       <label class="btn">${icon('upload')} Restore backup<input type="file" id="imp" accept="application/json,.json" hidden></label>
@@ -237,7 +239,7 @@ export function settingsView(main) {
     settingsView(main);
   });
 
-  $('#exp', main).addEventListener('click', () => download(`billing-backup-${new Date().toISOString().slice(0, 10)}.json`, exportJSON()));
+  $('#exp', main).addEventListener('click', () => { download(backupName(settings().business.name), exportJSON()); markBackup(); toast('Backup saved to your Downloads'); settingsView(main); });
   $('#imp', main).addEventListener('change', async (e) => {
     const f = e.target.files[0];
     if (!f) return;

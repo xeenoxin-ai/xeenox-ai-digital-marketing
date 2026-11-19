@@ -27,3 +27,20 @@ export const SITE = {
     payee: 'BillX Solutions',
   },
 };
+
+/** Footer for WhatsApp bills sent by shops ("Billed with BillX"). */
+export const brandTag = () => `\n\n— Billed with ${SITE.product} · ${SITE.url.replace(/^https?:\/\//, '')}`;
+
+/**
+ * Cloudflare gives every upload a preview address (e.g. 8f3a2b1c.billxsolutions.pages.dev).
+ * Google sign-in only works on the main address, so preview links move there.
+ */
+export function goCanonical(loc = typeof location !== 'undefined' ? location : null) {
+  if (!loc || !SITE.url) return false;
+  const main = new URL(SITE.url);
+  if (loc.hostname !== main.hostname && loc.hostname.endsWith(`.${main.hostname}`)) {
+    loc.replace(`${main.origin}${loc.pathname}${loc.search}${loc.hash}`);
+    return true;
+  }
+  return false;
+}

@@ -9,10 +9,13 @@ import { sectorOf } from '../industries.js';
 import { TEMPLATES, fmtDate } from '../templates.js';
 import { encodePortal, portalPayload } from '../portal-codec.js';
 import {
-  icon, esc, $, $$, toast, modal, confirmBox, mountPreview, printDocs, badge, options, field, copyText, STATUS_LABEL,
+  icon, esc, $, $$, toast, modal, confirmBox, mountPreview, printDocs, badge, options, field, copyText, STATUS_LABEL, avatar,
 } from '../ui.js';
 import { totalsOf, statusOf, money, clientLabel, docsWithTotals } from '../helpers.js';
 import { clientFormHTML, readClientForm } from './clients.js';
+import { sendReminder, remindedLabel, repeatDialog } from './remind.js';
+import { REPEAT_EVERY } from '../collect.js';
+import { brandTag } from '../site.js';
 import { navigate, setDirty, setPage } from '../router.js';
 
 /* ------------------------------------------------------------------ list */
@@ -46,7 +49,7 @@ export function listView(main, params, query) {
       <tbody>${rows.map(({ d, t, status: st }) => `
         <tr class="link" data-id="${d.id}">
           <td><b>${esc(d.number)}</b><div class="sub">${esc(DOC_TYPES[d.type].name)}</div></td>
-          <td>${esc((d.client && d.client.name) || '—')}${d.client && d.client.company && d.client.company !== d.client.name ? `<div class="sub">${esc(d.client.company)}</div>` : ''}</td>
+          <td><span class="who">${avatar((d.client && d.client.name) || '?')}<span>${esc((d.client && d.client.name) || '—')}${d.client && d.client.company && d.client.company !== d.client.name ? `<div class="sub">${esc(d.client.company)}</div>` : ''}</span></span></td>
           <td>${fmtDate(d.date)}</td><td>${fmtDate(d.dueDate)}</td>
           <td class="num">${money(t.payable)}</td>
           <td class="num">${d.type === 'invoice' ? money(Math.max(t.balance, 0)) : '–'}</td>
@@ -500,6 +503,9 @@ export function docView(main, params) {
       </section>
       <section class="card actions">
         ${isInv && st !== 'paid' && st !== 'cancelled' ? `<button class="btn primary block" data-a="pay">${icon('cash')} Record payment</button>` : ''}
+        ${doc.type === 'invoice' && t.balance > 0.004 && !['draft', 'cancelled'].includes(doc.status) ? `<button class="btn block remind-btn" data-a="remind">${icon('whatsapp')} Send payment reminder</button>${remindedLabel(doc) ? `<p class="muted small remind-note">${esc(remindedLabel(doc))} · ${(doc.reminders || []).length} reminder${(doc.reminders || []).length === 1 ? '' : 's'} sent</p>` : ''}` : ''}
+        ${doc.type === 'invoice' && doc.status !== 'cancelled' && !doc.repeatOf ? `<button class="btn block" data-a="repeat">${icon('refresh')} ${doc.repeat && doc.repeat.active ? `Repeats ${esc(REPEAT_EVERY[doc.repeat.every].toLowerCase())} · next ${fmtDate(doc.repeat.next)}` : 'Repeat this bill'}</button>` : ''}
+        ${doc.repeatOf && get('docs', doc.repeatOf) ? `<p class="muted small">Created from repeating bill <a href="#/doc/${doc.repeatOf}">${esc(get('docs', doc.repeatOf).number)}</a></p>` : ''}
         ${doc.status === 'draft' ? `<button class="btn block" data-a="sent">${icon('send')} Mark as sent</button>` : ''}
         ${doc.type === 'quote' || doc.type === 'proforma' ? `<button class="btn block" data-a="convert">${icon('refresh')} Convert to invoice</button>` : ''}
         ${doc.type === 'quote' && !['accepted', 'converted'].includes(st) ? `<button class="btn block" data-a="accept">${icon('check')} Mark accepted</button>` : ''}
@@ -529,6 +535,8 @@ export function docView(main, params) {
     print: () => printDocs([doc], s),
     share: () => shareDialog(doc, () => docView(main, params)),
     pay: () => paymentDialog(doc, t, () => commit('Payment recorded')),
+    remind: async () => { await sendReminder(doc); docView(main, params); },
+    repeat: () => repeatDialog(doc, () => docView(main, params)),
     sent: () => { doc.status = 'sent'; doc.sentAt = new Date().toISOString(); commit('Marked as sent'); },
     accept: () => { doc.status = 'accepted'; commit('Marked accepted'); },
     convert: () => {
@@ -624,7 +632,7 @@ export function shareDialog(doc, done) {
   const root = m.el;
   portalLink(cl.id ? (get('clients', cl.id) || cl) : cl, [{ ...doc, status: doc.status === 'draft' ? 'sent' : doc.status }]).then((url) => {
     const amount = money(t.insurance ? t.payable : t.total);
-    const msg = `Hello ${cl.name || ''},\n\nYour ${doc.title || DOC_TYPES[doc.type].title} ${doc.number} for ${amount} from ${s.business.name} is ready.\nView, download & pay: ${url}\n\nThank you.`;
+    const msg = `Hello ${cl.name || ''},\n\nYour ${doc.title || DOC_TYPES[doc.type].title} ${doc.number} for ${amount} from ${s.business.name} is ready.\nView, download & pay: ${url}\n\nThank you.${brandTag()}`;
     const phone = String(cl.phone || '').replace(/\D/g, '');
     const wa = `https://wa.me/${phone.length === 10 ? `91${phone}` : phone}?text=${encodeURIComponent(msg)}`;
     $('#shareUrl', root).value = url;

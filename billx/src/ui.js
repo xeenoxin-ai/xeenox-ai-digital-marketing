@@ -33,6 +33,13 @@ const P = {
   star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z',
   menu: 'M3 12h18M3 6h18M3 18h18',
   hospital: 'M3 21h18M5 21V7l7-4 7 4v14M10 9h4M12 7v4M9 21v-4h6v4',
+  alert: 'M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+  trend: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
+  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  clock: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2',
+  phone: 'M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01',
+  arrow: 'M5 12h14M12 5l7 7-7 7',
   zap: 'M13 2 3 14h9l-1 8 10-12h-9l1-8z',
   minus: 'M5 12h14',
   pause: 'M6 4h4v16H6zM14 4h4v16h-4z',
@@ -44,6 +51,16 @@ export const icon = (name, size = 18) =>
   `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[name] || P.file}"/></svg>`;
 
 export { esc };
+
+const AV_HUES = [214, 262, 330, 12, 32, 150, 190, 282, 350, 172, 45, 232];
+/** Round initials badge with a stable colour per name. */
+export function avatar(name) {
+  const n = String(name || '?').trim();
+  const ini = n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+  let h = 0;
+  for (const c of n) h = (h * 33 + c.charCodeAt(0)) >>> 0;
+  return `<i class="av" style="--h:${AV_HUES[h % AV_HUES.length]}" aria-hidden="true">${esc(ini)}</i>`;
+}
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];

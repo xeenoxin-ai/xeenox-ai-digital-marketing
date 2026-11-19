@@ -100,7 +100,7 @@ export function kotHTML({ number, table, slotLabel = 'Table', lines, note = '', 
 
 /* ---------------- bulk item import ---------------- */
 
-function splitCSVLine(line, sep) {
+export function splitCSVLine(line, sep) {
   const out = [];
   let cur = '';
   let q = false;

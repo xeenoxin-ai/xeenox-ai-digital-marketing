@@ -5,7 +5,7 @@ runs in **Free mode** today, because Firebase has not been set up yet.
 
 | | Free mode (live now) | Cloud mode (after Firebase setup) |
 |---|---|---|
-| Who can use it | Anyone, without an account | Signed-in accounts with a 14-day trial, then a paid plan |
+| Who can use it | Anyone, without an account | Signed-in accounts with a 7-day trial, then a paid plan |
 | Where bills are saved | Only in that customer's browser, on their own device | Google Firebase (Firestore) database, plus a copy in the browser for speed and offline use |
 | Works offline | Yes | Yes, and syncs when back online |
 | Multiple devices / staff | No (one device) | Yes: phone, counter PC and staff logins all see the same data |
@@ -44,6 +44,14 @@ their size.
 use private/incognito mode, the bills are gone. They should use **Settings →
 Download backup** every week. The backup is a JSON file that **Settings →
 Restore backup** reads back. Cloud mode removes this risk.
+
+BillX helps with this in free mode:
+
+- It asks the browser to keep its storage permanently (`navigator.storage.persist()`),
+  so Chrome or Safari do not clear it when the phone is low on space.
+- Once a shop has bills and hasn't backed up for 7 days, a yellow banner offers
+  **Download backup** in one tap (or "Later" for a day). Settings shows the date of the
+  last backup. Keys: `billx-last-backup`, `billx-backup-snooze`.
 
 ## 2. Cloud mode: Google Firebase (Firestore)
 

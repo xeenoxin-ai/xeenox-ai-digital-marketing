@@ -5,7 +5,7 @@ rules_version = '2';
 //  - An account belongs to its owner plus the staff emails the owner added.
 //    Staff must have a verified email.
 //  - Members can always READ their data. They can WRITE only during the
-//    14-day trial or while a paid plan is active (+3 days grace).
+//    7-day trial or while a paid plan is active (+3 days grace).
 //  - Plan, status and payment fields are changed only by the payment server
 //    or a BillX admin (listed in /admins).
 service cloud.firestore {
@@ -24,9 +24,9 @@ service cloud.firestore {
         || (verifiedEmail() && myEmail() in acc.memberEmails));
     }
 
-    // Trial (14 days from sign-up) or paid until paidUntil (+3 days grace).
+    // Trial (7 days from sign-up) or paid until paidUntil (+3 days grace).
     function canWrite(acc) {
-      return (acc.status == 'trial' && request.time < acc.createdAt + duration.value(14, 'd'))
+      return (acc.status == 'trial' && request.time < acc.createdAt + duration.value(7, 'd'))
         || (acc.paidUntil is timestamp
             && acc.status in ['active', 'cancelled', 'past_due', 'halted']
             && request.time < acc.paidUntil + duration.value(3, 'd'));
@@ -61,10 +61,12 @@ service cloud.firestore {
       // Staff look up the account that added their email; admins list all.
       allow list: if isAdmin() || (verifiedEmail() && myEmail() in resource.data.memberEmails);
 
-      // A new account always starts as a 14-day trial with Business-level limits.
+      // A new account always starts as a 7-day trial (3 users, 3 businesses).
       allow create: if signedIn() && a == request.auth.uid
         && request.resource.data.keys().hasOnly(['ownerUid', 'ownerEmail', 'ownerName', 'createdAt', 'status', 'plan',
-          'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses'])
+          'period', 'paidUntil', 'subscriptionId', 'memberEmails', 'maxUsers', 'maxBusinesses', 'referredBy'])
+        && (!('referredBy' in request.resource.data) || (request.resource.data.referredBy is string
+          && request.resource.data.referredBy.matches('^[A-Za-z0-9]{6,40}$')))
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdAt == request.time
         && request.resource.data.status == 'trial'
@@ -89,7 +91,7 @@ service cloud.firestore {
         ) || (
           isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'plan', 'period', 'paidUntil', 'maxUsers', 'maxBusinesses', 'manual'])
+            .hasOnly(['status', 'plan', 'period', 'paidUntil', 'maxUsers', 'maxBusinesses', 'manual', 'referralRewarded'])
         );
       allow delete: if false;
 
@@ -112,6 +114,15 @@ service cloud.firestore {
       }
     }
 
+    // UPI details for the public "Subscribe now" page: payee name and UPI ID only.
+    match /public/pay {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['payee', 'upiId', 'updatedAt'])
+        && str(request.resource.data.payee, 80) && str(request.resource.data.upiId, 80);
+    }
+
     // "I've paid by UPI / bank transfer": the owner submits the reference,
     // a BillX admin checks the bank and approves (which activates the plan).
     match /paymentRequests/{id} {
@@ -123,7 +134,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
         && request.resource.data.status == 'pending'
         && request.resource.data.createdAt == request.time
-        && request.resource.data.plan in ['starter', 'business', 'pro']
+        && request.resource.data.plan in ['starter', 'growth', 'business', 'pro']
         && request.resource.data.period in ['monthly', 'yearly']
         && request.resource.data.amount is number && request.resource.data.amount > 0
         && str(request.resource.data.utr, 40) && request.resource.data.utr.size() >= 6

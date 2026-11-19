@@ -43,7 +43,7 @@ async function seedAccount(data) {
 const invoice = { id: 'd1', type: 'invoice', number: 'INV-0001', items: [] };
 const writeDoc = (db) => setDoc(doc(db, 'accounts', 'owner', 'workspaces', 'main', 'docs', 'd1'), invoice);
 
-test('sign-up creates only a standard 14-day trial account', async () => {
+test('sign-up creates only a standard 7-day trial account', async () => {
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ status: 'active' })));
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ paidUntil: ts(365) })));
   await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ maxUsers: 99 })));
@@ -54,7 +54,7 @@ test('sign-up creates only a standard 14-day trial account', async () => {
 });
 
 test('members read and write during trial; strangers and guests never', async () => {
-  await seedAccount({});
+  await seedAccount({ createdAt: ts(-6) });
   await assertSucceeds(writeDoc(owner()));
   await assertSucceeds(writeDoc(staff()));
   await assertSucceeds(getDoc(doc(staff(), 'accounts', 'owner', 'workspaces', 'main', 'docs', 'd1')));
@@ -66,7 +66,7 @@ test('members read and write during trial; strangers and guests never', async ()
 });
 
 test('after the trial: read-only until paid', async () => {
-  await seedAccount({ createdAt: ts(-15) });
+  await seedAccount({ createdAt: ts(-8) });
   await assertFails(writeDoc(owner()));
   await assertSucceeds(getDoc(doc(owner(), 'accounts', 'owner')));
   await assertSucceeds(getDocs(collection(owner(), 'accounts', 'owner', 'workspaces', 'main', 'docs')));
@@ -141,4 +141,23 @@ test('private payment details: verified signed-in users read, only admin writes'
   await assertFails(getDoc(doc(staff(false), 'private', 'payment')), 'unverified');
   await assertFails(getDoc(doc(guest(), 'private', 'payment')), 'not signed in');
   await assertFails(getDocs(collection(owner(), 'private')), 'cannot list');
+});
+
+test('public UPI details: anyone reads, only admin writes, no bank fields', async () => {
+  await seedAccount({});
+  await assertFails(setDoc(doc(owner(), 'public', 'pay'), { payee: 'Fake', upiId: 'fake@upi' }));
+  await assertFails(setDoc(doc(admin(), 'public', 'pay'), { payee: 'Test Co', upiId: 'test@upi', accountNo: '00001112223' }), 'bank fields refused');
+  await assertSucceeds(setDoc(doc(admin(), 'public', 'pay'), { payee: 'Test Co', upiId: 'test@upi', updatedAt: serverTimestamp() }));
+  await assertSucceeds(getDoc(doc(guest(), 'public', 'pay')));
+  await assertFails(getDocs(collection(guest(), 'public')), 'cannot list');
+});
+
+test('referral: new account may carry a referral code; only admin marks it rewarded', async () => {
+  await assertSucceeds(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 'abcdef1234' })));
+  await env.clearFirestore();
+  await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 'bad code!' })));
+  await assertFails(setDoc(doc(owner(), 'accounts', 'owner'), newAccount({ referredBy: 42 })));
+  await seedAccount({ referredBy: 'abcdef1234' });
+  await assertFails(updateDoc(doc(owner(), 'accounts', 'owner'), { referralRewarded: true }));
+  await assertSucceeds(updateDoc(doc(admin(), 'accounts', 'owner'), { referralRewarded: true, paidUntil: ts(30) }));
 });

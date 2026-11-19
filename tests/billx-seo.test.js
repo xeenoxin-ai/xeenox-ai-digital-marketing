@@ -45,9 +45,11 @@ test('bank and UPI details are never in the public code; shown only when passed 
   const pub = payDetailsHTML('pro', 'monthly');
   assert.ok(pub.includes('Get payment details on WhatsApp'));
   assert.ok(!/\d{9,}/.test(pub.replace(/wa\.me\/\d+/, '')), 'no long account-like numbers on the public box');
-  const sample = { payee: 'Test Co', gpay: '9000000001', accountNo: '00001112223', accountName: 'Test Owner', ifsc: 'TEST0000001' };
+  const sample = { payee: 'Test Co', upiId: 'testco@upi', gpay: '9000000001', accountNo: '00001112223', accountName: 'Test Owner', ifsc: 'TEST0000001' };
   const priv = payDetailsHTML('pro', 'monthly', sample);
-  for (const v of ['Test Co', '9000000001', '00001112223', 'TEST0000001', '₹3,999']) assert.ok(priv.includes(v), v);
+  for (const v of ['Test Co', 'testco@upi', 'upi://pay?pa=testco%40upi', '₹3,999']) assert.ok(priv.includes(v), v);
+  for (const v of ['9000000001', '00001112223', 'TEST0000001', 'Test Owner']) assert.ok(!priv.includes(v), `UPI only: ${v} is never shown`);
+  assert.ok(payDetailsHTML('pro', 'monthly', { accountNo: '00001112223' }).includes('Get payment details on WhatsApp'), 'bank details alone are not shown');
   assert.equal(payAmount('pro', 'yearly'), SITE.gstin ? 47188.2 : 39990);
   const msg = confirmationText({ plan: 'business', period: 'monthly', utr: '412345678901', name: 'Ravi' });
   assert.ok(msg.includes('UTR: 412345678901') && msg.includes('Business (monthly)'));

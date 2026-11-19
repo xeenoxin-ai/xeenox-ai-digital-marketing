@@ -7,6 +7,9 @@ import { PLANS, daysOf } from './plans.js';
 import { esc, icon, toast, modal, field, options, download } from './ui.js';
 import { formatMoney } from './calc.js';
 import { toCSV } from './helpers.js';
+import { goCanonical } from './site.js';
+
+goCanonical();
 
 const view = document.getElementById('view');
 const money = (n) => formatMoney(n, 'INR').replace('.00', '');
@@ -29,7 +32,11 @@ async function main() {
   authMod.onAuthStateChanged(auth, async (user) => {
     if (!user) { authView.showAuth('login'); return; }
     document.body.classList.remove('onboarding');
-    const isAdmin = (await getDoc(doc(db, 'admins', user.uid)).catch(() => null))?.exists();
+    let isAdmin = false;
+    try { isAdmin = (await getDoc(doc(db, 'admins', user.uid))).exists(); } catch (e) {
+      view.innerHTML = `<div class="empty"><h2>Could not check admin access</h2><p>${esc(e.code === 'unavailable' ? 'No internet connection, or Firebase could not be reached.' : (e.message || 'Unknown error'))}</p><button class="btn primary" onclick="location.reload()">Reload</button></div>`;
+      return;
+    }
     document.getElementById('pageActions').innerHTML = `<span class="muted small">${esc(user.email)}</span><button class="btn" id="out">Sign out</button>`;
     document.getElementById('out').onclick = () => authMod.signOut(auth);
     if (!isAdmin) {
@@ -55,23 +62,20 @@ async function main() {
       const f = (name, label, ph = '') => field(label, `<input name="${name}" value="${esc(d[name] || '')}" placeholder="${esc(ph)}">`);
       modal({
         title: 'Payment details (private)',
-        body: `<p class="muted">Shown only to signed-in BillX customers on their Subscription page. Never stored in the website code.</p>
+        body: `<p class="muted">Customers pay you by UPI only. Your UPI ID and a QR with the exact amount are shown on the checkout (Subscribe now page and inside BillX). It is saved in your database, never in the website code. Bank account details are not shown to anyone.</p>
           <div class="grid g2">
-            ${f('payee', 'Pay to name', 'BillX Solutions')}
-            ${f('gpay', 'GPay / UPI number')}
-            ${f('upiId', 'UPI ID (for the QR code)', 'name@okaxis')}
-            ${f('accountName', 'Account holder name')}
-            ${f('accountNo', 'Account number')}
-            ${f('ifsc', 'IFSC', 'SBIN0014966')}
-            ${f('bankName', 'Bank', 'State Bank of India')}
-            ${f('branch', 'Branch')}
-          </div>`,
+            ${f('payee', 'Pay to name (shown on checkout)', 'BillX Solutions')}
+            ${f('upiId', 'UPI ID', 'yourname@okaxis')}
+          </div>
+          <p class="muted small">Saving replaces any older details, so bank account details saved earlier are deleted.</p>`,
         submit: 'Save',
         onSubmit: async (fd) => {
           const data = Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v).trim()]));
-          data.ifsc = (data.ifsc || '').toUpperCase();
+          if (!/^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(data.upiId || '')) { toast('Enter a valid UPI ID, like name@okaxis', 'err'); return false; }
           try {
-            await setDoc(doc(db, 'private', 'payment'), { ...data, updatedAt: serverTimestamp() });
+            const clean = { payee: data.payee || '', upiId: data.upiId };
+            await setDoc(doc(db, 'private', 'payment'), { ...clean, updatedAt: serverTimestamp() });
+            await setDoc(doc(db, 'public', 'pay'), { ...clean, updatedAt: serverTimestamp() });
             toast('Payment details saved');
           } catch (e) { toast(e.message, 'err'); return false; }
           return true;
@@ -91,7 +95,29 @@ async function main() {
       });
       await updateDoc(doc(db, 'paymentRequests', r.id), { status: 'approved', reviewedAt: serverTimestamp() });
       toast(`Approved: ${PLANS[r.plan].name} until ${day(until.getTime())}`);
-      load();
+      const referrer = acc.referredBy && !acc.referralRewarded ? rows.find((x) => x.a.id.startsWith(acc.referredBy)) : null;
+      if (referrer) rewardReferral({ ...acc, paidUntil: Timestamp.fromDate(until) }, referrer.a);
+      else load();
+    }
+
+    /** Refer & earn: both shops get 30 more days (the referrer gets the Small plan if they had none). */
+    function rewardReferral(acc, ref) {
+      modal({
+        title: 'Referral reward', submit: 'Give both 1 month free', cancel: 'Not now',
+        body: `<p><b>${esc(acc.ownerEmail)}</b> was invited by <b>${esc(ref.ownerEmail)}</b>.</p>
+          <p class="muted">Give both of them 1 month free? Each account's access is extended by 30 days.</p>`,
+        onSubmit: async () => {
+          const plus = (a) => Timestamp.fromDate(new Date(Math.max(Date.now(), ms(a.paidUntil) || 0) + 30 * 86400000));
+          await updateDoc(doc(db, 'accounts', acc.id), { paidUntil: plus(acc), referralRewarded: true });
+          const refPlan = ref.plan && PLANS[ref.plan] ? ref.plan : 'starter';
+          await updateDoc(doc(db, 'accounts', ref.id), {
+            paidUntil: plus(ref), status: 'active', plan: refPlan, period: ref.period || 'monthly', manual: true,
+            maxUsers: PLANS[refPlan].users, maxBusinesses: PLANS[refPlan].businesses,
+          });
+          toast('Referral rewarded: 1 month free for both');
+          load();
+        },
+      });
     }
 
     function pendingHTML() {
@@ -121,7 +147,7 @@ async function main() {
           <button class="btn" id="payDetails">${icon('cash')} Payment details (private)</button><button class="btn" id="csv">${icon('download')} Export CSV</button><button class="btn" id="reload">${icon('refresh')} Refresh</button></div>
         <div class="table-wrap"><table class="table"><thead><tr><th>Owner</th><th>Signed up</th><th>Plan</th><th>Status</th><th>Access until</th><th class="num">Staff</th><th></th></tr></thead>
         <tbody>${shown.map(({ a, info }) => `<tr>
-          <td><b>${esc(a.ownerName || '—')}</b><div class="sub">${esc(a.ownerEmail)}</div></td>
+          <td><b>${esc(a.ownerName || '—')}</b><div class="sub">${esc(a.ownerEmail)}</div>${a.referredBy ? `<div class="sub">Invited by ${esc((rows.find((x) => x.a.id.startsWith(a.referredBy)) || { a: { ownerEmail: a.referredBy } }).a.ownerEmail)}${a.referralRewarded ? ' · rewarded' : ''}</div>` : ''}</td>
           <td>${day(ms(a.createdAt))}</td>
           <td>${a.plan ? `${esc(PLANS[a.plan] ? PLANS[a.plan].name : a.plan)}<div class="sub">${esc(a.period || '')}${a.manual ? ' · manual' : ''}</div>` : '—'}</td>
           <td><span class="badge b-${{ trial: 'sent', active: 'paid', grace: 'partial', expired: 'overdue' }[info.state]}">${info.state}</span><div class="sub">${esc(a.status)}</div></td>

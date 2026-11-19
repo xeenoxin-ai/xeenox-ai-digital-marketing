@@ -24,7 +24,14 @@ function envJSON(name) {
 }
 
 // Either paste the config object here instead of null…
-const PASTED_FIREBASE_CONFIG = null;
+const PASTED_FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyCasT6S2zgt8A1JiyLTrhdFzGzniVPq2FA',
+  authDomain: 'billx-3a14f.firebaseapp.com',
+  projectId: 'billx-3a14f',
+  storageBucket: 'billx-3a14f.firebasestorage.app',
+  messagingSenderId: '228246376059',
+  appId: '1:228246376059:web:05cc10fe58c514303adcde',
+};
 // …or set VITE_BILLX_FIREBASE when building.
 export const firebaseConfig = envJSON('VITE_BILLX_FIREBASE') || PASTED_FIREBASE_CONFIG;
 
