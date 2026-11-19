@@ -5,7 +5,7 @@ import { billxSeo } from './billx/seo/plugin.mjs';
 import { SITE } from './billx/src/site.js';
 
 // Relative base so the build works on GitHub Pages under /<repo>/ as well as at a domain root.
-// Two apps: EasyWay (index.html) and BillX (billx/ + its client portal).
+// Three apps: EasyWay (index.html), BillX (billx/ + its client portal) and BookX (bookx/).
 export default defineConfig({
   base: './',
   // BillX copy on GitHub Pages links its SEO pages to the main BillX site.
@@ -17,6 +17,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        'bookx-app': resolve(__dirname, 'bookx/index.html'),
+        'bookx-book': resolve(__dirname, 'bookx/book.html'),
         ...Object.fromEntries(Object.entries(billxPages(resolve(__dirname, 'billx'))).map(([k, v]) => [`billx-${k}`, v])),
       },
     },

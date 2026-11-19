@@ -141,3 +141,33 @@ Website with features and pricing at **`/billx/`**, the app at **`/billx/app/`**
 | **Your data** | Saved in the browser; JSON backup/restore from Settings. |
 
 Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm test` (`tests/billx*.test.js`), `npm run test:billx-rules` (security rules on the Firebase emulator).
+
+## BookX – bookings & repeat visits (v0.1)
+
+For clinics, dental & physio, salons, barbers, beauty parlours, photo / fitness / tattoo
+studios, bakeries & cake shops and pet groomers. The app is at **`/bookx/`** (e.g.
+https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/bookx/). Code is in [`bookx/`](bookx/).
+Free, no login, and data stays in the browser (JSON backup / restore in Settings).
+
+| Feature | What you get |
+| --- | --- |
+| **12 business types** | Each sets the words (Patient / Client / Member…), hours, staff, starter services with prices and repeat gaps. Bakeries get **pickup orders** with quantities, advance, delivery address and cake message instead of timed slots. |
+| **Calendar** | Day view with one column per staff member (tap an empty space to book), week view and a 30-day list. Free slots respect opening hours, lunch break, holidays, each staff member's days and hours, service length and a gap between bookings. Bakeries have a number of orders per pickup slot. |
+| **Bookings** | Find or add the customer by name or phone, pick services (or items), staff, date and a free time, or force any time with an overlap warning. Walk-ins get a token number. Statuses: booked → confirmed → arrived → done, plus no-show / cancelled. |
+| **WhatsApp messages** | One tap opens WhatsApp with the message ready: confirmation, reminder the day before, thank-you with loyalty progress and review link. All messages can be edited in Settings. |
+| **Repeat visits** | Every service has a "repeat after N days" (haircut 30, dental cleaning 180, birthday cake 365). The Reminders page lists customers due or overdue, birthdays & anniversaries coming up, and **win-back** customers who stopped coming. Rows hide once they book; sent ones are marked; snooze or opt out. |
+| **Loyalty card** | Every N visits earns a reward (e.g. "6th visit 50% off"), shown on the profile and in the thank-you message. |
+| **Online booking link** | A link and QR code for Instagram, Google and the counter. Customers pick a service, person, day and free time; the request arrives on the business's WhatsApp with a link that adds it to BookX in one tap. Everything travels in the link's #fragment; no server, and no customer names in the link. |
+| **Customers** | Profiles with visit history, spend, average gap, no-shows, notes, tags, birthday; filters for regulars, new, lapsed; CSV export. |
+| **Reports** | Revenue and visits vs the previous period, average ticket, repeat-customer rate, new customers, no-show rate, online bookings, top services, busiest hours, per-staff numbers, bookings CSV. |
+
+```bash
+npm run dev:bookx     # http://localhost:5173
+npm run build:bookx   # standalone site in dist-bookx/ (the main build also includes /bookx/)
+```
+
+Tests: `tests/bookx.test.js` (slots, reminders, loyalty, reports, links). Code map: `bookx/src/logic.js`
+(pure booking logic), `presets.js` (business types), `store.js` (local data, sample data),
+`codec.js` (booking and request links), `booking.js` (booking form), `views.js` (Today,
+Calendar, Reminders), `people.js` (customers), `manage.js` (services, staff, reports,
+settings, booking link), `book.js` (public booking page).
