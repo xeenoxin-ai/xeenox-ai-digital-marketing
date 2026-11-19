@@ -6,3 +6,4 @@ dist/
 .env*
 *-debug.log
 dist-billx/
+dist-bookx/

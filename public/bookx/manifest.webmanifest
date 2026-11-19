@@ -1,0 +1,11 @@
+{
+  "name": "BookX – bookings & repeat visits",
+  "short_name": "BookX",
+  "description": "Bookings, reminders and repeat visits for clinics, salons, studios and bakeries.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#0f766e",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
