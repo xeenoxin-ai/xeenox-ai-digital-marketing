@@ -10,6 +10,9 @@ import { route, startRouter, resolve } from './router.js';
 import { icon, toast, modal, esc } from './ui.js';
 import { cloudEnabled } from './cloud/config.js';
 import { captureRef } from './referral.js';
+import { goCanonical } from './site.js';
+
+goCanonical();
 
 captureRef();
 import { download } from './ui.js';

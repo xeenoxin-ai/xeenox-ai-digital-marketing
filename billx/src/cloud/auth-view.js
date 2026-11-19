@@ -1,8 +1,9 @@
 // Sign in / create account / verify email screens.
 import {
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,
-  sendEmailVerification, sendPasswordResetEmail, updateProfile, signOut,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+  getRedirectResult, sendEmailVerification, sendPasswordResetEmail, updateProfile, signOut,
 } from 'firebase/auth';
+import { SITE } from '../site.js';
 import { firebase } from './firebase.js';
 import { TRIAL_DAYS } from '../plans.js';
 import { icon, esc, toast } from '../ui.js';
@@ -17,9 +18,21 @@ const ERRORS = {
   'auth/invalid-email': 'That email address does not look right.',
   'auth/too-many-requests': 'Too many attempts. Wait a minute and try again.',
   'auth/popup-closed-by-user': 'Google sign-in was closed.',
-  'auth/network-request-failed': 'No internet connection.',
+  'auth/network-request-failed': 'No internet connection. Check your network and try again.',
+  'auth/unauthorized-domain': `This web address is not allowed for sign-in. Open ${SITE.url} and sign in there.`,
+  'auth/popup-blocked': 'Your browser blocked the Google window. Allow pop-ups, or sign in with email and password.',
+  'auth/cancelled-popup-request': 'Google sign-in was interrupted. Tap the button again.',
+  'auth/operation-not-supported-in-this-environment': 'Google sign-in does not work in this browser. Open the site in Chrome or Safari, or use email and password.',
+  'auth/web-storage-unsupported': 'This browser blocks sign-in storage (private mode?). Open the site in normal Chrome or Safari.',
+  'auth/user-disabled': 'This account has been disabled. Contact BillX Solutions on WhatsApp.',
+  'auth/missing-password': 'Type your password.',
+  'auth/invalid-login-credentials': 'Email or password is wrong.',
+  'auth/internal-error': 'Sign-in failed for a moment. Wait a few seconds and try again.',
 };
-const nice = (e) => ERRORS[e.code] || e.message || 'Something went wrong.';
+const nice = (e) => ERRORS[e.code] || (e.code ? `Sign-in failed (${e.code}). Try again, or send us this message on WhatsApp.` : e.message) || 'Something went wrong.';
+
+/** WhatsApp / Instagram / Facebook in-app browsers: Google blocks sign-in there. */
+export const inAppBrowser = (ua = typeof navigator !== 'undefined' ? navigator.userAgent : '') => /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|; wv\)|Snapchat/i.test(ua);
 
 function shell(inner) {
   document.body.classList.add('onboarding');
@@ -29,8 +42,15 @@ function shell(inner) {
   return main.firstElementChild;
 }
 
+let slowTimer = null;
 export function showStatus(text) {
-  shell(`<div class="auth-card"><div class="spinner" aria-hidden="true"></div><p>${esc(text)}</p></div>`);
+  const root = shell(`<div class="auth-card"><div class="spinner" aria-hidden="true"></div><p>${esc(text)}</p><div class="auth-slow" hidden>
+    <p class="muted">This is taking longer than usual. Check your internet connection.</p>
+    <button class="btn primary block" type="button" data-reload>${icon('refresh')} Reload</button>
+    <a class="btn block" href="./?guest=1#/">Use BillX without signing in</a></div></div>`);
+  root.querySelector('[data-reload]').addEventListener('click', () => location.reload());
+  clearTimeout(slowTimer);
+  slowTimer = setTimeout(() => { const el = root.isConnected && root.querySelector('.auth-slow'); if (el) el.hidden = false; }, 12000);
 }
 
 export function showAuth(mode = location.hash.startsWith('#/signup') ? 'signup' : 'login') {
@@ -57,10 +77,29 @@ export function showAuth(mode = location.hash.startsWith('#/signup') ? 'signup' 
   const form = root.querySelector('#authForm');
   const busy = (on) => form.querySelectorAll('button').forEach((b) => { b.disabled = on; });
 
+  if (inAppBrowser()) {
+    root.querySelector('#google').insertAdjacentHTML('beforebegin', `<div class="auth-inapp">${icon('alert', 16)}<div><b>Open this page in Chrome or Safari</b> to sign in with Google (it does not work inside WhatsApp or Instagram). Tap <b>⋮</b> → <b>Open in browser</b>, or use email and password below.
+      <button type="button" class="btn" data-copylink>${icon('copy', 14)} Copy link</button></div></div>`);
+    root.querySelector('[data-copylink]').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(location.href); toast('Link copied. Paste it in Chrome.'); } catch { toast(location.href); }
+    });
+  }
+  getRedirectResult(auth).catch((e) => err(e));
   root.querySelector('#google').addEventListener('click', async () => {
     busy(true);
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { err(e); busy(false); }
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    try { await signInWithPopup(auth, provider); } catch (e) {
+      if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment', 'auth/cancelled-popup-request'].includes(e.code)) {
+        try { await signInWithRedirect(auth, provider); return; } catch (e2) { err(e2); busy(false); return; }
+      }
+      err(e);
+      busy(false);
+    }
   });
+  const pw = form.querySelector('input[name=password]');
+  pw.insertAdjacentHTML('afterend', `<button type="button" class="pw-eye" aria-label="Show password" title="Show password">${icon('eye', 16)}</button>`);
+  form.querySelector('.pw-eye').addEventListener('click', () => { pw.type = pw.type === 'password' ? 'text' : 'password'; pw.focus(); });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(form);

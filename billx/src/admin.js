@@ -7,6 +7,9 @@ import { PLANS, daysOf } from './plans.js';
 import { esc, icon, toast, modal, field, options, download } from './ui.js';
 import { formatMoney } from './calc.js';
 import { toCSV } from './helpers.js';
+import { goCanonical } from './site.js';
+
+goCanonical();
 
 const view = document.getElementById('view');
 const money = (n) => formatMoney(n, 'INR').replace('.00', '');
@@ -29,7 +32,11 @@ async function main() {
   authMod.onAuthStateChanged(auth, async (user) => {
     if (!user) { authView.showAuth('login'); return; }
     document.body.classList.remove('onboarding');
-    const isAdmin = (await getDoc(doc(db, 'admins', user.uid)).catch(() => null))?.exists();
+    let isAdmin = false;
+    try { isAdmin = (await getDoc(doc(db, 'admins', user.uid))).exists(); } catch (e) {
+      view.innerHTML = `<div class="empty"><h2>Could not check admin access</h2><p>${esc(e.code === 'unavailable' ? 'No internet connection, or Firebase could not be reached.' : (e.message || 'Unknown error'))}</p><button class="btn primary" onclick="location.reload()">Reload</button></div>`;
+      return;
+    }
     document.getElementById('pageActions').innerHTML = `<span class="muted small">${esc(user.email)}</span><button class="btn" id="out">Sign out</button>`;
     document.getElementById('out').onclick = () => authMod.signOut(auth);
     if (!isAdmin) {

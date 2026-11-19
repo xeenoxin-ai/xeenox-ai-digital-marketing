@@ -10,6 +10,9 @@ import { whatsappLink, confirmationText } from './pay-details.js';
 import { openCheckout } from './views/checkout.js';
 import { publicPayDetails } from './public-pay.js';
 import { captureRef } from './referral.js';
+import { goCanonical } from './site.js';
+
+goCanonical();
 
 captureRef();
 
