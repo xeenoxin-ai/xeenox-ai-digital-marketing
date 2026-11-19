@@ -940,3 +940,16 @@ dialog.cp-full::backdrop { background: #050a1f; }
 .pw-eye:hover { color: var(--ink); background: var(--bg); }
 .auth-slow { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .auth-slow[hidden] { display: none; }
+
+/* First-time setup / add a business: one page scroll, actions always visible */
+body.onboarding .acct-banner { display: none; }
+.onboard .sector-picker { max-height: none; overflow: visible; padding-right: 0; }
+.ob-step { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; }
+.ob-step span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; color: #fff; background: linear-gradient(135deg, #2457f5, #6d4cff); }
+.ob-step h2 { margin: 0; font-size: 18px; }
+.ob-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 12px -28px -28px; padding: 14px 28px; background: color-mix(in srgb, var(--panel) 94%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); border-radius: 0 0 18px 18px; box-shadow: 0 -10px 24px rgb(2 6 23 / .08); }
+.ob-bar .sp-info { margin: 0; flex: 1 1 360px; min-width: 0; }
+.ob-actions { flex: none; margin-left: auto; }
+.ind.on { border-color: var(--brand-2); background: color-mix(in srgb, var(--brand-2) 14%, var(--panel)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-2) 22%, transparent); }
+.ind.on::after { content: '✓'; position: absolute; top: 8px; right: 10px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; background: var(--brand-2); }
+@media (max-width: 640px) { .ob-bar { margin: 12px -18px -18px; padding: 12px 18px; border-radius: 0; } .ob-bar .sp-info { flex-basis: 100%; font-size: 12px; } .ob-actions { width: 100%; } .ob-actions .btn.primary { flex: 1; } }

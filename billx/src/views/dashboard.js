@@ -209,22 +209,30 @@ function onboarding(main) {
   <form class="onboard" id="ob">
     <div class="onboard-head"><img src="${logoUrl}" alt="" width="48" height="48"><div><h1>${others.length ? 'Add a business to BillX' : 'Welcome to BillX'}</h1>
     <p>Billing &amp; invoicing for every kind of business. Pick your type and BillX prepares the fields, labels, tax, starter items and invoice design. Not listed? Choose <b>Custom</b> and build your own.</p></div></div>
-    ${sectorPickerHTML(s.industry || 'general')}
-    <p class="sp-info" id="spInfo">${sectorSummary(s.industry || 'general')}</p>
+    <div class="ob-step"><span>1</span><h2>Your business</h2></div>
     <div class="grid g3">
-      ${field('Business name', `<input name="name" placeholder="e.g. Sunrise Traders" value="${s.business.name === 'Your Business Name' ? '' : esc(s.business.name)}">`)}
+      ${field('Business name', `<input name="name" placeholder="e.g. Sunrise Traders" value="${s.business.name === 'Your Business Name' ? '' : esc(s.business.name)}" autocomplete="organization">`)}
       ${field('State', `<select name="state">${options(STATES.map(([c, n]) => [c, n]), s.business.state)}</select>`)}
       ${field('Currency', `<select name="currency">${options(Object.keys(CURRENCIES).map((c) => [c, `${c} (${CURRENCIES[c].symbol})`]), s.currency)}</select>`)}
       ${field('Your UPI ID (optional)', `<input name="upi" placeholder="e.g. yourshop@okaxis" value="${esc(s.business.upiId || '')}" autocomplete="off">`, 'span2')}
     </div>
     <p class="muted small ob-upi-note">With a UPI ID every bill shows a scan-to-pay QR with the exact amount, and money goes straight to your bank. You can add it later in Settings.</p>
-    <div class="row-gap wrap end">
-      ${others.length ? `<button type="button" class="btn ghost" id="obCancel">Cancel</button>` : ''}
-      <button class="btn" value="sample">${icon('eye')} Explore with sample data</button>
-      <button class="btn primary" value="start">${icon('check')} Start billing</button>
+    <div class="ob-step"><span>2</span><h2>What kind of business?</h2></div>
+    ${sectorPickerHTML(s.industry || 'general')}
+    <div class="ob-bar">
+      <p class="sp-info" id="spInfo">${sectorSummary(s.industry || 'general')}</p>
+      <div class="row-gap wrap ob-actions">
+        ${others.length ? `<button type="button" class="btn ghost" id="obCancel">Cancel</button>` : ''}
+        <button class="btn" value="sample">${icon('eye')}<span class="hide-sm"> Explore with</span> sample data</button>
+        <button class="btn primary" value="start">${icon('check')} Start billing</button>
+      </div>
     </div>
   </form>`;
   const form = $('#ob', main);
+  // Always start at the top (the browser would restore the old scroll position after a reload).
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+  requestAnimationFrame(() => window.scrollTo(0, 0));
   bindSectorPicker(form, (key) => { $('#spInfo', form).innerHTML = sectorSummary(key); });
   const cancel = $('#obCancel', form);
   if (cancel) cancel.addEventListener('click', () => {
