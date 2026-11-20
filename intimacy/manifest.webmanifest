@@ -1,0 +1,11 @@
+{
+  "name": "Intimacy for Couples",
+  "short_name": "Intimacy",
+  "description": "A private game for couples. 18+.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#16060f",
+  "theme_color": "#16060f",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

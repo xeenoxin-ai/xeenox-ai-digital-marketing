@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Intimacy for Couples</title>
+  <meta name="description" content="A private game for couples: truth or dare, desire match, position planner, date plans, and live video and voice for long-distance love. 18+.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#16060f">
+  <meta name="rating" content="adult">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-heat="2">
+  <header class="top">
+    <div class="brand"><span class="logo">💗</span><b>Intimacy</b><i id="net-dot" class="dot"></i></div>
+    <div class="top-actions">
+      <button id="heat-chip" class="chip" data-a="heat" title="Heat level"></button>
+      <button class="icon-btn" data-a="hideApp" title="Hide app (Esc)" aria-label="Hide app">🙈</button>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <button id="pause-btn" class="pause-btn" data-a="pause" hidden title="Safe word — pause everything">🛑</button>
+
+  <nav id="tabs" class="tabs" hidden>
+    <button data-a="tab" data-tab="home"><span>🏠</span>Home</button>
+    <button data-a="tab" data-tab="games"><span>🎲</span>Games</button>
+    <button data-a="tab" data-tab="positions"><span>🌙</span>Positions</button>
+    <button data-a="tab" data-tab="plans"><span>📅</span>Plans</button>
+    <button data-a="tab" data-tab="connect"><span>💌</span>Connect<i class="badge" hidden></i></button>
+  </nav>
+
+  <!-- live call -->
+  <div id="call" hidden>
+    <video id="remote-video" autoplay playsinline></video>
+    <div class="voice-face"><div class="avatar">💗</div></div>
+    <video id="local-video" autoplay playsinline muted></video>
+    <div class="call-info"><b id="call-name"></b><span id="call-status"></span></div>
+    <div class="call-bar">
+      <button id="btn-mute" data-a="mute" title="Mute">🎙️</button>
+      <button id="btn-cam" data-a="cam" title="Camera">📷</button>
+      <button data-a="mini" title="Minimise">⤢</button>
+      <button class="end" data-a="endCall" title="End call">✕</button>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay" hidden></div>
+  <div id="modal" class="overlay" hidden></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- discreet mode: double-tap "Notes" to come back -->
+  <div id="hide-screen" hidden>
+    <h1 id="hide-title">Notes</h1>
+    <ul><li>Milk, eggs, bread</li><li>Pay electricity bill</li><li>Call the plumber</li><li>Pick up dry cleaning</li><li>Gym — Tuesday 7 AM</li></ul>
+  </div>
+
+  <div id="lock" class="overlay" hidden>
+    <form class="sheet center"><div class="logo-big">🔒</div><h2>Enter PIN</h2>
+      <input type="password" inputmode="numeric" maxlength="8" autocomplete="off" aria-label="PIN">
+      <button class="btn wide">Unlock</button></form>
+  </div>
+
+  <script src="vendor/peerjs.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

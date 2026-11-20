@@ -141,3 +141,12 @@ Website with features and pricing at **`/billx/`**, the app at **`/billx/app/`**
 | **Your data** | Saved in the browser; JSON backup/restore from Settings. |
 
 Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm test` (`tests/billx*.test.js`), `npm run test:billx-rules` (security rules on the Firebase emulator).
+
+## Intimacy for Couples (18+)
+
+A private game for couples in [`intimacy/`](intimacy/): Truth or Dare with 4 heat levels, Desire Match,
+Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather, Hot Seat, Fantasy Builder, a position
+planner, a next meet-up planner with countdown, future planning and a hot-experiences bucket list.
+Long-distance couples connect two phones with a room code for synced games, chat, voice and video calls
+(peer-to-peer WebRTC). No accounts and no server database. It's a static site, so open `intimacy/index.html` over HTTPS.
+Design and 2026–27 trend analysis: [`intimacy/DESIGN.md`](intimacy/DESIGN.md).
