@@ -58,18 +58,27 @@ Also add the domain to the Pages project (Pages → intimacycouple → Custom do
 **One address for SEO:** in Cloudflare → intimacycouple.com → **Rules → Redirect Rules**, create
 "Redirect from WWW to root" (it's a ready-made template). This sends `www.` to the bare domain with a 301 redirect.
 
-## 3. Reliable calls on every network (optional, recommended)
+## 3. Reliable calls on every network (optional, free)
 
-Some mobile networks block direct phone-to-phone connections. A TURN relay fixes that:
+Some mobile networks block direct phone-to-phone connections, so calls there need a TURN relay.
+Games and chat work everywhere without one; only voice and video need it.
 
-1. Cloudflare dashboard → **Realtime → TURN Server → Create**. Copy the **Key ID** and **API token**.
-2. Save them as Worker secrets:
-   ```bash
-   cd intimacy
-   npx wrangler@4.156.0 secret put TURN_KEY_ID
-   npx wrangler@4.156.0 secret put TURN_KEY_API_TOKEN
-   ```
-The app picks them up automatically through `/api/ice`.
+**Free option, no card needed:** sign up at a TURN provider with a free plan, for example
+**ExpressTURN** (expressturn.com) or **Metered Open Relay** (metered.ca). Check each one's current
+free limit when you sign up. The dashboard shows a TURN URL, a username and a password.
+Add them to the Worker as secrets in Cloudflare → Workers & Pages → `intimacycouple` → Settings →
+**Variables and Secrets** → Add, using type **Secret**:
+
+| Name | Value (example) |
+| --- | --- |
+| `TURN_URL` | `turn:relay1.expressturn.com:3478` (several allowed, comma-separated) |
+| `TURN_USERNAME` | the username from the provider |
+| `TURN_CREDENTIAL` | the password from the provider |
+
+They take effect immediately. Never paste these into chats or commit them to GitHub.
+
+**Paid-card option:** Cloudflare Realtime TURN (1,000 GB/month free, but it requires a card on file).
+Set `TURN_KEY_ID` and `TURN_KEY_API_TOKEN` instead.
 
 ## 4. Automatic deploys from GitHub
 

@@ -52,6 +52,11 @@ async function api(req, env, url) {
 
   if (path === '/ice') {
     const ice = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
+    // Any standard TURN provider with fixed credentials (e.g. a free ExpressTURN or Metered account):
+    // set TURN_URL (comma-separated), TURN_USERNAME and TURN_CREDENTIAL as Worker secrets.
+    if (env.TURN_URL && env.TURN_USERNAME && env.TURN_CREDENTIAL) {
+      ice.push({ urls: env.TURN_URL.split(',').map((u) => u.trim()).filter(Boolean), username: env.TURN_USERNAME, credential: env.TURN_CREDENTIAL });
+    }
     if (env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN) {
       try {
         const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`, {
