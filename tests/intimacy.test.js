@@ -16,7 +16,7 @@ test('content decks are large and well-formed', () => {
   assert.ok(C.POSITIONS.length >= 55);
   assert.ok(C.LEARN.length >= 5 && C.HOT_TOPICS.length >= 8);
   assert.equal(new Set(C.POSITIONS.map((p) => p.id)).size, C.POSITIONS.length);
-  for (const [h, t] of [...C.TRUTHS, ...C.DARES]) assert.ok(h >= 1 && h <= 4 && t.length > 5);
+  for (const [h, t] of [...C.TRUTHS, ...C.DARES]) assert.ok(h >= 1 && h <= 5 && t.length > 5);
   for (const r of C.RATHER) assert.match(r[1], / — or /);
 });
 
@@ -35,6 +35,12 @@ test('site pages are served with SEO tags', async () => {
   assert.match(robots, /Sitemap: https:\/\/example.test\/sitemap.xml/);
   assert.match(robots, /Disallow: \/admin\//);
   assert.doesNotMatch(sm, /\/admin\//);
+});
+
+test('X-Rated cards stay inside the app, off public pages', async () => {
+  const x = C.TRUTHS.find((t) => t[0] === 5)[1];
+  const html = await (await get('/truth-or-dare-for-couples/')).text();
+  assert.ok(!html.includes(x.replace(/'/g, '&#39;')) && !html.includes(x));
 });
 
 test('app, redirects and 404', async () => {

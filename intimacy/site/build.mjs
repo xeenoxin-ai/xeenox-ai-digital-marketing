@@ -273,7 +273,7 @@ function landing() {
     body: `<p><a class="cta" href="/play/">Play free — no sign-up</a></p>
 <section class="features">
 <article><h3>🎲 10 couple games</h3><p>${games.join(' · ')}</p></article>
-<article><h3>🌡️ 4 heat levels</h3><p>Sweet, Flirty, Spicy and Wild. Either partner can turn it down any time.</p></article>
+<article><h3>🌡️ 5 heat levels</h3><p>Sweet, Flirty, Spicy, Wild and X-Rated. Either partner can turn it down any time.</p></article>
 <article><h3>🔥 Hot Chat & Hot Score</h3><p>Every sexy message your partner loves raises your Hot Score. Who is the hottest talker?</p></article>
 <article><h3>🌙 Position planner</h3><p>${C.POSITIONS.length} positions with private Want/Pass votes. Only mutual matches show.</p></article>
 <article><h3>📅 Meet-up planner</h3><p>Countdown, plans, outfit, checklist and tonight's playlist — straight into your calendar.</p></article>
@@ -281,6 +281,7 @@ function landing() {
 <article><h3>🔮 Future & bucket list</h3><p>Plan travel, home, money and family — and tick off hot experiences together.</p></article>
 <article><h3>🔥 Community</h3><p>Real couples share experiences anonymously. Trending hot topics, reviewed before they go live.</p></article>
 <article><h3>📖 Sex guides</h3><p>What men love, what women love, toys for couples and how to make your partner happy.</p></article>
+<article><h3>💌 Wishes & turn-ons</h3><p>Tell your partner what drives you wild — black lace, candles, oil massage — and send one-tap wishes for tonight.</p></article>
 <article><h3>🔒 Private by design</h3><p>No email or phone number. A safe word, PIN lock and one-tap hide.</p></article>
 </section>
 <section><h2>How it works</h2><ol><li>Open <a href="/play/">the game</a> and enter your names.</li><li>Play on one phone — or share your Love Number and connect two phones.</li><li>Play, plan your next night together, and keep your streak alive.</li></ol></section>

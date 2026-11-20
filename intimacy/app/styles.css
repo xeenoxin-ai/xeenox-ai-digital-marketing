@@ -450,3 +450,15 @@ body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
 .ask-own .seg label { margin: 0; text-align: center; padding: 8px; border-radius: 999px; color: var(--text); cursor: pointer; }
 .ask-own .seg label:has(input:checked) { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
 .ask-own .seg input { display: none; }
+
+/* X-Rated heat */
+body[data-heat="5"] { --accent: #ff0a54; --accent2: #c9184a; --bg2: #3a0414; }
+.playcard.heat5 { background: linear-gradient(150deg, #5c0418, #1a0208); border-color: rgba(255, 10, 84, .45); box-shadow: 0 20px 50px -18px #ff0a54; }
+.heat-pick label:last-child, .heat-pick button:last-child { grid-column: span 2; }
+
+/* wishes & turn-ons */
+.wish { background: linear-gradient(140deg, rgba(20, 0, 10, .4), rgba(255, 10, 84, .14)); border-color: rgba(255, 120, 160, .3); }
+.wish-in { margin: 10px 0; padding: 12px 14px; border-radius: 16px; background: rgba(0, 0, 0, .3); border: 1px solid rgba(243, 201, 139, .3); }
+.wish-in small { color: var(--gold); }
+.wish-in p { margin: 4px 0 8px; font-size: 1.15rem; font-weight: 600; }
+.profile-card form.row { margin-top: 8px; }

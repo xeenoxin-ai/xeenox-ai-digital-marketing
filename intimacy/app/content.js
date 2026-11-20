@@ -7,6 +7,7 @@ export const HEAT = [
   { level: 2, name: 'Flirty', icon: '💋', hint: 'Teasing, kissing, playful touch' },
   { level: 3, name: 'Spicy', icon: '🌶️', hint: 'Sensual, clothes optional' },
   { level: 4, name: 'Wild', icon: '😈', hint: 'No filter. Adults who trust each other' },
+  { level: 5, name: 'X-Rated', icon: '🔞', hint: 'Explicit. Nothing held back' },
 ];
 
 // [heat, text]
@@ -78,6 +79,33 @@ export const TRUTHS = [
   [4, 'Describe exactly how you like to be kissed when we are getting started.'],
   [4, 'Which fantasy of yours feels a little too naughty to say — say it anyway.'],
   [4, 'What do you want me to whisper in your ear right before?'],
+  [1, 'What is the most romantic thing I have ever done for you?'],
+  [1, 'When do you feel closest to me — and why?'],
+  [1, 'What do you want our life to look like in 10 years?'],
+  [1, 'What is one thing about me you want to never change?'],
+  [2, 'What lingerie or underwear do you most want to see me in?'],
+  [2, 'What colour looks sexiest on me?'],
+  [2, 'Where do you most want me to kiss you right now?'],
+  [2, 'What is the most romantic place you want to make love?'],
+  [4, 'What do you want me wearing — or not wearing — next time we are alone?'],
+  [4, 'What is your favourite way I undress you?'],
+  [4, 'What do you think about when you touch yourself?'],
+  [4, 'What would you do if I walked in right now wearing only black lace?'],
+  [5, 'Describe, in detail, the best orgasm I have ever given you.'],
+  [5, 'What exactly do you want me to do with my mouth tonight?'],
+  [5, 'Which position makes you come the hardest with me?'],
+  [5, 'Tell me the dirtiest thing you have ever wanted to say to me during sex.'],
+  [5, 'What is your favourite part of my naked body — and what do you want to do to it?'],
+  [5, 'Do you like it when I take you slow and deep, or hard and fast? Be specific.'],
+  [5, 'Where on my body do you want to finish next time?'],
+  [5, 'What is the kinkiest thing you would let me do to you tonight?'],
+  [5, 'Describe how you want me to ride you — speed, angle, everything.'],
+  [5, 'What do you want me to moan in your ear?'],
+  [5, 'What is something you want to try in bed that you have been too shy to ask for?'],
+  [5, 'If I tied your hands right now, what would you beg me to do first?'],
+  [5, 'What is your favourite way to be woken up for sex?'],
+  [5, 'Rate my oral skills out of 10 — and tell me how to get a 10.'],
+  [5, 'What is the longest you want me to tease you before giving you what you want?'],
 ];
 
 export const DARES = [
@@ -147,6 +175,30 @@ export const DARES = [
   [4, 'Choose any toy or object in the room and make it part of the next dare.'],
   [4, 'Tell me what you want me to do to you, then let me decide whether to obey.'],
   [4, 'Get on top and stay there until the next round.'],
+  [1, 'Look into my eyes and tell me why you love me — no laughing.'],
+  [1, 'Kiss my forehead, then my cheeks, then my lips — slowly.'],
+  [1, 'Plan our next date out loud, in 60 seconds.'],
+  [2, 'Show me your sexiest underwear — just a peek.'],
+  [2, 'Kiss me like we are in a movie and the credits are about to roll.'],
+  [2, 'Slowly unbutton my shirt and kiss every inch you uncover.'],
+  [4, 'Put on the sexiest underwear you own and come back for the next round.'],
+  [4, 'Strip down to your bra / briefs and stay that way until the game ends.'],
+  [4, 'Give me a slow oil massage — top to bottom — without touching between my legs.'],
+  [5, 'Go down on me for 2 minutes. Then stop and let me beg.'],
+  [5, 'Take off everything. Lie back. I get to look at you for 30 seconds.'],
+  [5, 'Ride me (or a pillow) for 30 seconds — show me your best moves.'],
+  [5, 'Touch yourself for one minute while I watch.'],
+  [5, 'Lick a line from my navel downwards. Stop when I say stop.'],
+  [5, 'Put your hand where it makes me moan the loudest — and keep it there for a minute.'],
+  [5, 'Whisper exactly how you want to make me come tonight.'],
+  [5, 'Pick any position from the planner — we do it right now for 2 minutes.'],
+  [5, 'Get me naked using only your teeth and lips.'],
+  [5, 'On video: undress slowly for me, one piece at a time.'],
+  [5, 'Edge me: get me right to the edge three times before you let me finish.'],
+  [5, 'Wear only a black bra / briefs and give me a lap dance.'],
+  [5, 'Kiss and lick every place I point to — I will point lower each time.'],
+  [5, 'Take control: tell me exactly what to do to you for 3 minutes.'],
+  [5, 'Leave a love bite somewhere only I will see — and tell me where.'],
 ];
 
 export const NEVER = [
@@ -168,6 +220,26 @@ export const NEVER = [
   [4, 'Never have I ever used a blindfold or restraints.'],
   [4, 'Never have I ever watched something steamy to get in the mood.'],
   [4, 'Never have I ever had a fantasy I was too shy to tell you about.'],
+  [1, 'Never have I ever cried happy tears because of you.'],
+  [1, 'Never have I ever planned our wedding or future home in my head.'],
+  [2, 'Never have I ever bought underwear just for you to see.'],
+  [2, 'Never have I ever replayed our first kiss in my head.'],
+  [3, 'Never have I ever thought about you naked during a meeting or class.'],
+  [3, 'Never have I ever woken up turned on because of a dream about you.'],
+  [4, 'Never have I ever touched myself while texting you.'],
+  [4, 'Never have I ever wanted you to rip my clothes off.'],
+  [5, 'Never have I ever had sex in a car.'],
+  [5, 'Never have I ever had sex in public (where we could have been caught).'],
+  [5, 'Never have I ever faked an orgasm.'],
+  [5, 'Never have I ever had more than one orgasm in one night.'],
+  [5, 'Never have I ever had sex in the shower.'],
+  [5, 'Never have I ever had phone sex or video sex.'],
+  [5, 'Never have I ever used a sex toy with a partner.'],
+  [5, 'Never have I ever tasted something off a partner\'s body.'],
+  [5, 'Never have I ever had sex more than three times in one day.'],
+  [5, 'Never have I ever been tied up or tied someone up.'],
+  [5, 'Never have I ever recorded intimate audio for a partner.'],
+  [5, 'Never have I ever woken a partner up with oral.'],
 ];
 
 export const RATHER = [
@@ -189,6 +261,18 @@ export const RATHER = [
   [4, 'Role-play strangers at a bar — or boss and assistant?'],
   [4, 'Hear exactly what I want — or have me show you?'],
   [4, 'Try a new position every night for a week — or perfect one favourite?'],
+  [1, 'A love letter every month — or a surprise trip every year?'],
+  [1, 'Fall asleep in my arms — or wake up in them?'],
+  [2, 'See me in black lace — or red silk?'],
+  [2, 'A slow kiss on the neck — or a kiss you can feel everywhere?'],
+  [5, 'Give oral — or receive oral?'],
+  [5, 'Be on top all night — or on the bottom all night?'],
+  [5, 'Quickie in a risky place — or all-night sex at home?'],
+  [5, 'Lights on and mirrors — or blindfolded and guessing?'],
+  [5, 'Make me come with your hands — or your mouth?'],
+  [5, 'Wake up to sex — or fall asleep right after it?'],
+  [5, 'Be dominated tonight — or dominate me?'],
+  [5, 'Have me in lingerie — or completely naked?'],
 ];
 
 // 60-second rapid-fire questions.
@@ -198,6 +282,9 @@ export const HOTSEAT = [
   [2, 'Your secret turn-on?'], [3, 'Favourite position?'], [3, 'Lights on or off?'], [3, 'Loud or quiet?'],
   [3, 'Most sensitive spot?'], [3, 'Tease or straight to the point?'], [4, 'Your wildest fantasy in one sentence?'],
   [4, 'Dominant or submissive?'], [4, 'Toy you want to try?'], [4, 'Place you want to do it next?'], [4, 'Something I do that you want more of?'],
+  [1, 'Your dream date with me?'], [1, 'When did you fall for me?'], [2, 'Black lace or red satin?'],
+  [5, 'Favourite thing I do with my tongue?'], [5, 'Loudest you have ever been in bed?'], [5, 'Spit or swallow — kiss or more?'],
+  [5, 'Best place we ever had sex?'], [5, 'How many times tonight?'], [5, 'Top, bottom or switch?'], [5, 'Your biggest turn-on about my body?'],
 ];
 
 // Naughty date missions. place: home | out | ldr (long distance / video)
@@ -222,6 +309,11 @@ export const DATE_DARES = [
   [4, 'ldr', 'Matching toy night with an app-connected toy — your partner holds the controls.'],
   [4, 'home', 'Position roulette: roll the Sexy Dice three times and try every result.'],
   [4, 'out', 'Weekend away with one rule: no clothes in the room until check-out.'],
+  [1, 'home', 'Romantic slow-dance night: fairy lights, your song on repeat, no phones until midnight.'],
+  [2, 'home', 'Lingerie reveal: one partner dresses up in something new and black, the other waits blindfolded.'],
+  [5, 'home', 'No-clothes evening: from dinner to dessert, nobody wears anything.'],
+  [5, 'out', 'Hotel night with one rule: try three new positions from the planner before checkout.'],
+  [5, 'ldr', 'Video night: undress together, slowly, then guide each other until you both finish.'],
 ];
 
 // Yes / No / Maybe desire match. Only mutual "Yes" or "Maybe" is revealed.
@@ -237,6 +329,9 @@ export const DESIRES = [
   [4, 'Dirty talk'], [4, 'Strip tease'], [4, 'Spanking (light)'],
   [3, 'Sleeping naked together'], [3, 'Slow sex with no goal'], [3, 'Watching each other in the mirror'], [3, 'Sexy voice notes during the day'],
   [4, 'Lingerie / underwear show'], [4, 'Trying a new toy together'], [4, 'Video-call intimacy when apart'], [4, 'Tantric session'],
+  [2, 'Lingerie dress-up (black lace)'], [2, 'Slow romantic sex with candles'],
+  [5, 'Oral until I finish'], [5, 'Sex in the car'], [5, 'Multiple rounds in one night'], [5, 'Watching each other touch ourselves'],
+  [5, 'Being tied up and teased'], [5, 'Recording a private audio clip for each other'], [5, 'Rough, passionate sex'], [5, 'Shower sex'],
 ];
 
 // Sex positions — short, tasteful, practical. diff 1-3, intimacy 1-3, energy 1-3.
@@ -339,16 +434,16 @@ export const DATE_IDEAS = {
 };
 
 // Sexy dice.
-export const DICE_ACTION = ['Kiss', 'Lick', 'Massage', 'Nibble', 'Blow on', 'Caress', 'Tease', 'Whisper to'];
-export const DICE_PLACE = ['Neck', 'Lips', 'Ears', 'Inner thigh', 'Back', 'Chest', 'Wherever you want', 'Tummy'];
+export const DICE_ACTION = ['Kiss', 'Lick', 'Massage', 'Nibble', 'Blow on', 'Caress', 'Tease', 'Whisper to', 'Suck', 'Spank lightly'];
+export const DICE_PLACE = ['Neck', 'Lips', 'Ears', 'Inner thigh', 'Back', 'Chest', 'Wherever you want', 'Tummy', 'Nipples', 'Bum', 'Below the belt'];
 export const DICE_TIME = ['10 seconds', '30 seconds', '1 minute', '2 minutes'];
 
 // Fantasy builder.
 export const FANTASY = {
   setting: ['a luxury hotel suite', 'a secluded beach at night', 'a rainy cabin in the hills', 'a rooftop under the stars', 'a private yacht', 'our own bedroom, transformed with candles'],
-  roles: ['strangers who just met', 'a famous star and their biggest fan', 'a spy and their target', 'old flames meeting again', 'newlyweds on the honeymoon', 'a masseuse and the client'],
+  roles: ['a lingerie model and the photographer', 'a boss and the new assistant', 'strangers who just met', 'a famous star and their biggest fan', 'a spy and their target', 'old flames meeting again', 'newlyweds on the honeymoon', 'a masseuse and the client'],
   mood: ['slow and teasing', 'urgent and passionate', 'playful and giggly', 'dominant and commanding', 'soft and romantic'],
-  rule: ['no hands for the first 5 minutes', 'blindfold stays on', 'whoever moans first loses', 'only whispers allowed', 'one item of clothing comes off every 2 minutes', 'the safe word ends everything instantly'],
+  rule: ['the black lace stays on the whole time', 'you must say exactly what you want before you get it', 'no hands for the first 5 minutes', 'blindfold stays on', 'whoever moans first loses', 'only whispers allowed', 'one item of clothing comes off every 2 minutes', 'the safe word ends everything instantly'],
 };
 
 export const DAILY_SPARK = [
@@ -391,6 +486,12 @@ export const TALK_STARTERS = [
   [4, 'If you were in my bed right now, you would be…'],
   [4, 'The thing I want you to do to me slowly is…'],
   [4, 'My hottest memory of us is…'],
+  [1, 'The moment I knew I loved you was…'],
+  [2, 'I want to see you in black lace and…'],
+  [5, 'I want to taste you…'],
+  [5, 'Tonight I am going to make you come by…'],
+  [5, 'The way you moan when…'],
+  [5, 'I want you to bend me over and…'],
 ];
 
 // Couple intimacy tips — practical, inclusive, health-aware.
@@ -493,4 +594,18 @@ export const HOT_TOPICS = [
   { id: 'positions', icon: '🌙', name: 'Favourite positions' },
   { id: 'talk', icon: '💬', name: 'Talking about sex' },
   { id: 'advice', icon: '🙋', name: 'Ask for advice' },
+];
+
+// Turn-ons: each partner picks what drives them wild; the other sees it.
+export const TURN_ONS = [
+  'Black lace bra 🖤', 'Red lingerie ❤️', 'Stockings & heels', 'Only my shirt', 'Silk nightie', 'Nothing at all',
+  'Tight boxer briefs', 'Lights on', 'Candles & music', 'Blindfold', 'Oil massage first', 'Shower together',
+  'Dirty talk', 'Slow & romantic', 'Rough & passionate', 'Morning sex', 'Kisses everywhere', 'Gentle hair pulling',
+  'Biting & love bites', 'Mirror', 'Being on top', 'Being taken', 'Long foreplay', 'Oral',
+];
+// One-tap requests a partner can send ("Tonight I want…").
+export const REQUESTS = [
+  'Wear your black bra tonight 🖤', 'Wear something red for me ❤️', 'Meet me in the shower 🚿', 'Be on top tonight 😈',
+  'Let me undress you slowly', 'Massage first, then… 🔥', 'Wake me up with kisses ☀️', 'Candles, music and slow love 🕯️',
+  'Wear nothing under your clothes today', 'Dirty talk all night 💬',
 ];

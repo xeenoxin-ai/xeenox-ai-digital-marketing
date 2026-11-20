@@ -21,7 +21,7 @@ function defaultShared() {
     points: { A: 0, B: 0 }, streak: { count: 0, last: '' },
     hidden: {}, desire: { A: {}, B: {} }, pos: {}, plan: [],
     meetup: { when: '', place: '', vibe: '', outfit: '', notes: '', bring: [] },
-    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {},
+    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {}, turnons: { A: [], B: [] }, requests: {},
   };
 }
 function defaultLocal() {
@@ -78,12 +78,18 @@ const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 // Values from the partner's phone are data: coerce anything rendered as a number.
 function sanitize() {
   const sh = S.shared;
-  sh.heat = Math.min(4, Math.max(1, Math.round(num(sh.heat)) || 2));
+  sh.heat = Math.min(5, Math.max(1, Math.round(num(sh.heat)) || 2));
   sh.points = { A: num(sh.points?.A), B: num(sh.points?.B) };
   sh.streak = { count: num(sh.streak?.count), last: String(sh.streak?.last || '') };
-  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
+  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk', 'turnons', 'requests']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
   for (const k of ['plan', 'future', 'customBucket']) if (!Array.isArray(sh[k])) sh[k] = [];
   if (!Array.isArray(sh.meetup.bring)) sh.meetup.bring = [];
+  for (const r of ['A', 'B']) {
+    const t = sh.turnons[r];
+    sh.turnons[r] = Array.isArray(t) ? t.filter((x) => typeof x === 'string' && x.length <= 40).slice(0, 30) : [];
+    const q = sh.requests[r];
+    if (q !== undefined && !(q && typeof q === 'object' && typeof q.text === 'string' && q.text.length <= 120)) delete sh.requests[r];
+  }
   for (const r of ['A', 'B']) {
     if (!sh.players[r] || typeof sh.players[r] !== 'object') sh.players[r] = { name: r === 'A' ? 'Player 1' : 'Player 2' };
     const pl = sh.players[r];
@@ -311,6 +317,8 @@ function onData(m) {
         ui.tab = 'games'; ui.game = m.v.kind; toast(`${nm(other(S.local.role))} opened ${gameName(m.v.kind)}`);
       }
       if (m.p[0] === 'paused') renderPause();
+      if (m.p[0] === 'requests' && m.p.length === 2 && m.v?.text) toast(`💌 ${nm(m.p[1])} sent you a wish: ${String(m.v.text).slice(0, 60)}`, 5000);
+      if (m.p[0] === 'requests' && m.p[2] === 'reply' && m.v) toast(m.v === 'yes' ? `😘 ${nm(other(m.p[1]))} said YES to your wish!` : `🙈 ${nm(other(m.p[1]))} said maybe…`, 5000);
       softRender();
       break;
     }
@@ -552,6 +560,7 @@ function homeView() {
       <div><b>💞 ${matches}</b><span>desire matches</span></div>
       <div><b>✨ ${both}</b><span>positions you both want</span></div>
     </div>
+    ${wishCard()}
     <div class="card spark"><div class="muted small">Today's spark</div><p>${esc(spark)}</p></div>
     <div class="card talkhome" data-a="game" data-id="talk">${(() => { const sc = talkScores(), l = talkLeader(); return `<div class="row between"><b>🔥 Hot Chat · Hot Score</b><span class="small">${l === 'A' || l === 'B' ? `👑 ${nm(l)}` : l === 'tie' ? 'Tied!' : 'Start talking →'}</span></div>
       <div class="small muted">${nm('A')} ${sc.A.score} · ${nm('B')} ${sc.B.score} — every 🔥 from your partner is +10</div>`; })()}</div>
@@ -816,6 +825,19 @@ function coupleHeader() {
     ${pm ? `<div class="mood-pill">${nm(partner)} is <b>${esc(pm)}</b></div>` : '<div class="mood-pill dim">Tap to add your photos & mood</div>'}
   </div>`;
 }
+function wishCard() {
+  const mine = me(), partner = other(mine), sh = S.shared;
+  const toMe = sh.requests?.[partner], fromMe = sh.requests?.[mine];
+  const pt = (sh.turnons?.[partner] || []).slice(0, 6);
+  return `<div class="card wish">
+    <div class="row between"><b>💌 Tonight's wish</b><button class="btn sm" data-a="wishOpen">Send a wish</button></div>
+    ${toMe ? `<div class="wish-in"><small>${nm(partner)} wishes:</small><p>${esc(toMe.text)}</p>
+      ${toMe.reply ? `<span class="tag ok">${toMe.reply === 'yes' ? '😘 You said yes' : '🙈 You said maybe'}</span>` : canAct(mine) ? `<div class="row"><button class="btn sm" data-a="wishReply" data-v="yes">😘 Yes, tonight</button><button class="btn sm ghost" data-a="wishReply" data-v="maybe">🙈 Maybe</button></div>` : ''}</div>` : ''}
+    ${fromMe ? `<p class="small muted">You wished: <b>${esc(fromMe.text)}</b> — ${fromMe.reply === 'yes' ? '😘 they said YES' : fromMe.reply === 'maybe' ? '🙈 maybe…' : 'waiting…'}</p>` : ''}
+    ${pt.length ? `<div class="small muted">${nm(partner)}'s turn-ons</div><div class="chips wrap">${pt.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : `<p class="small muted">Add your turn-ons in Us → Profile so ${nm(partner)} knows what drives you wild.</p>`}
+  </div>`;
+}
+
 function profileView() {
   const card = (r) => {
     const p = S.shared.players[r] || {}, editable = canAct(r);
@@ -823,6 +845,10 @@ function profileView() {
       <div class="row">${avatar(r, 'av-xl')}<div><b class="pname">${nm(r)}</b>${p.mood ? `<div class="mood-pill">${esc(p.mood)}</div>` : ''}
         ${editable ? `<div class="row"><label class="btn sm">📷 ${p.photo ? 'Change' : 'Add'} photo<input type="file" accept="image/*" data-a="photo" data-r="${r}" hidden></label>${p.photo ? `<button class="btn sm ghost" data-a="photoDel" data-r="${r}">Remove</button>` : ''}</div>` : '<p class="small muted">Edited on their phone</p>'}</div></div>
       ${editable ? `<div class="muted small">Mood right now</div><div class="chips wrap">${MOODS.map((m) => `<button class="chip ${p.mood === m ? 'on' : ''}" data-a="mood" data-r="${r}" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
+      ${(() => { const mineT = S.shared.turnons?.[r] || []; const all = [...new Set([...C.TURN_ONS, ...mineT])];
+        return editable ? `<div class="muted small">🔥 My turn-ons <small>(${nm(other(r))} can see these)</small></div><div class="chips wrap">${all.map((t) => `<button class="chip ${mineT.includes(t) ? 'on' : ''}" data-a="turnon" data-r="${r}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+          <form class="row" data-form="turnon" data-r="${r}"><input name="t" maxlength="40" placeholder="Add your own turn-on…"><button class="btn sm">Add</button></form>`
+          : mineT.length ? `<div class="muted small">🔥 ${nm(r)}'s turn-ons</div><div class="chips wrap">${mineT.map((t) => `<span class="chip on">${esc(t)}</span>`).join('')}</div>` : ''; })()}
     </div>`;
   };
   const sc = talkScores();
@@ -1025,6 +1051,18 @@ const A = {
   openGuide: (el) => { ui.tab = 'games'; ui.game = 'learn'; ui.guide = el.dataset.id; render(); window.scrollTo(0, 0); },
   mood: (el) => { const r = el.dataset.r; if (!canAct(r)) return; const cur = S.shared.players[r]?.mood; set(['players', r, 'mood'], cur === el.dataset.m ? null : el.dataset.m); },
   photoDel: (el) => { if (canAct(el.dataset.r)) set(['players', el.dataset.r, 'photo'], null); },
+  turnon: (el) => {
+    const r = el.dataset.r; if (!canAct(r)) return;
+    const cur = [...(S.shared.turnons?.[r] || [])], t = el.dataset.t, i = cur.indexOf(t);
+    if (i >= 0) cur.splice(i, 1); else cur.push(t);
+    set(['turnons', r], cur.slice(0, 30));
+  },
+  wishOpen: () => modal(`<h3>💌 Send a wish</h3><p class="muted small">${nm(other(me()))} gets it instantly and can say yes.</p>
+    <div class="chips wrap">${C.REQUESTS.map((q) => `<button class="chip" data-a="wishSend" data-t="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+    <form class="row" data-form="wish"><input name="t" maxlength="120" placeholder="Or write your own wish…" required><button class="btn sm">Send</button></form>
+    <button class="btn ghost wide" data-a="close">Close</button>`),
+  wishSend: (el) => sendWish(el.dataset.t),
+  wishReply: (el) => { const p = other(me()); if (!S.shared.requests?.[p]) return; set(['requests', p, 'reply'], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('😘'); },
   compose: () => { ui.comm.compose = !ui.comm.compose; render(); },
   topic: (el) => { ui.comm.topic = el.dataset.t; ui.comm.data = null; render(); },
   sort: (el) => { ui.comm.sort = el.dataset.s; ui.comm.data = null; render(); },
@@ -1248,6 +1286,12 @@ document.addEventListener('submit', (e) => {
       setGame({ card: { id: 'custom', custom: true, heat: S.shared.heat, type: d.type === 'dare' ? 'dare' : 'truth', text: q.slice(0, 300) }, answer: null, loved: false, done: false });
       break;
     }
+    case 'wish': sendWish(d.t); break;
+    case 'turnon': {
+      const r = f.dataset.r, t = (d.t || '').trim().slice(0, 40); if (!t || !canAct(r)) return;
+      const cur = S.shared.turnons?.[r] || []; if (!cur.includes(t)) set(['turnons', r], [...cur, t].slice(0, 30));
+      break;
+    }
     case 'join': ui.joinCode = d.code; joinRoom(d.code); break;
     case 'ring': ui.ringTo = d.to; ringPartner(d.to); break;
     case 'chat': {
@@ -1283,6 +1327,12 @@ async function setPhoto(r, file) {
     while (url.length > 90000 && q > 0.4) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
     set(['players', r, 'photo'], url); toast('Photo updated 💗');
   } catch { toast('Could not read that photo — try another'); }
+}
+
+function sendWish(text) {
+  text = String(text || '').trim().slice(0, 120); if (!text) return;
+  closeModal(); set(['requests', me()], { text, ts: Date.now(), reply: null });
+  toast(`💌 Wish sent to ${S.shared.players[other(me())]?.name || 'your partner'}`); floatEmoji('💌');
 }
 
 function importFile(file) {
