@@ -8,6 +8,7 @@ import { mkdirSync, rmSync, readFileSync, writeFileSync, readdirSync, copyFileSy
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as C from '../app/content.js';
+import { poseSvg } from '../app/poses.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(ROOT, 'dist');
@@ -102,13 +103,13 @@ GUIDES.push({
   title: `${C.POSITIONS.length} Sex Positions for Couples (With Difficulty & Intimacy Ratings)`,
   description: `${C.POSITIONS.length} sex positions explained simply, with difficulty, intimacy and energy ratings. Find positions you both want and plan your next night together.`,
   h1: 'Sex Positions for Couples',
-  intro: `Every position below is explained in plain, non-graphic language with three ratings: how hard it is, how intimate it feels, and how much energy it takes. In the app you each mark Want or Pass in private — only the ones you <b>both</b> want are revealed.`,
+  intro: `Every position below has a simple illustration and is explained in plain, non-graphic language with three ratings: how hard it is, how intimate it feels, and how much energy it takes. In the app you each mark Want or Pass in private — only the ones you <b>both</b> want are revealed.`,
   adult: true,
   body: `<section><h2>Before you try something new</h2><ul>
 <li>Talk first and agree you can stop or switch at any moment.</li>
 <li>Pillows help almost every position: under hips, knees or stomach.</li>
 <li>Use lube, go slow with deeper positions, and stretch before athletic ones.</li></ul></section>
-<section><h2>All positions</h2><div class="pos">${C.POSITIONS.map((p) => `<article><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p class="meter">Difficulty ${'●'.repeat(p.diff)}${'○'.repeat(3 - p.diff)} · Intimacy ${'♥'.repeat(p.intimacy)}${'♡'.repeat(3 - p.intimacy)} · Energy ${'⚡'.repeat(p.energy)}</p></article>`).join('')}</div></section>
+<section><h2>All positions</h2><div class="pos">${C.POSITIONS.map((p) => `<article>${poseSvg(p.id)}<h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p><p class="meter">Difficulty ${'●'.repeat(p.diff)}${'○'.repeat(3 - p.diff)} · Intimacy ${'♥'.repeat(p.intimacy)}${'♡'.repeat(3 - p.intimacy)} · Energy ${'⚡'.repeat(p.energy)}</p></article>`).join('')}</div></section>
 <section><h2>Most intimate positions</h2>${cardList(C.POSITIONS.filter((p) => p.intimacy === 3).map((p) => p.name))}</section>
 <section><h2>Easy positions for beginners</h2>${cardList(C.POSITIONS.filter((p) => p.diff === 1).map((p) => p.name))}</section>`,
   faq: [

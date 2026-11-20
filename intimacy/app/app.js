@@ -3,6 +3,7 @@
 // backend (worker/index.js): game messages relay through a room, voice and video go
 // phone-to-phone with WebRTC.
 import * as C from './content.js';
+import { poseSvg } from './poses.js';
 
 const KEY = 'ifc.v1';
 const ROOM_PREFIX = 'intimacy4c-';
@@ -768,11 +769,11 @@ function positionsView() {
   const dots = (n, c) => c.repeat(n) + '<i>' + c.repeat(3 - n) + '</i>';
   return `<section><h2>Position Planner</h2>${swiperBar()}
     <div class="card plan"><div class="row between"><b>🌙 Tonight's playlist</b><button class="btn sm" data-a="surprise">🎲 Surprise us</button></div>
-      ${plan.length ? `<ol>${plan.map((p) => `<li>${esc(p.name)} <button class="mini" data-a="planToggle" data-id="${p.id}">✕</button></li>`).join('')}</ol>` : '<p class="muted small">Add positions with ＋ to plan your next night together.</p>'}</div>
+      ${plan.length ? `<div class="playlist">${plan.map((p, i) => `<div class="pl-item"><span class="pl-n">${i + 1}</span>${poseSvg(p.id, 'pose mini-pose')}<span>${esc(p.name)}</span><button class="mini" data-a="planToggle" data-id="${p.id}">✕</button></div>`).join('')}</div>` : '<p class="muted small">Add positions with ＋ to plan your next night together.</p>'}</div>
     <div class="chips">${[['all', 'All'], ['both', '✨ Both want'], ['new', 'Not voted'], ['tried', '✓ Tried']].map(([k, l]) => `<button class="chip ${ui.posFilter === k ? 'on' : ''}" data-a="posFilter" data-f="${k}">${l}</button>`).join('')}</div>
     <div class="positions">${list.map((p) => {
       const v = sh.pos?.[p.id] || {}, both = v.A === 'want' && v.B === 'want', inPlan = (sh.plan || []).includes(p.id);
-      return `<div class="pos ${both ? 'match' : ''}"><div class="row between"><b>${esc(p.name)}</b>${both ? '<span class="tag">✨ Both want</span>' : ''}${v.tried ? '<span class="tag ok">✓ Tried</span>' : ''}</div>
+      return `<div class="pos ${both ? 'match' : ''}"><div class="pose-wrap">${poseSvg(p.id)}</div><div class="row between"><b>${esc(p.name)}</b>${both ? '<span class="tag">✨ Both want</span>' : ''}${v.tried ? '<span class="tag ok">✓ Tried</span>' : ''}</div>
         <p class="small">${esc(p.desc)}</p>
         <div class="meters"><span>Difficulty ${dots(p.diff, '●')}</span><span>Intimacy ${dots(p.intimacy, '♥')}</span><span>Energy ${dots(p.energy, '⚡')}</span></div>
         <div class="row"><button class="chip ${v[r] === 'want' ? 'on' : ''}" data-a="posVote" data-id="${p.id}" data-v="want">👍 Want</button>
@@ -1095,7 +1096,7 @@ const A = {
     const pool = both.length ? both : C.POSITIONS.filter((p) => p.heat <= S.shared.heat && S.shared.pos?.[p.id]?.A !== 'no' && S.shared.pos?.[p.id]?.B !== 'no');
     if (!pool.length) return toast('Vote on some positions first');
     const p = rnd(pool);
-    modal(`<div class="center"><div class="muted small">${both.length ? 'From the ones you both want' : 'Something new'}</div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p>
+    modal(`<div class="center"><div class="muted small">${both.length ? 'From the ones you both want' : 'Something new'}</div><div class="pose-wrap">${poseSvg(p.id)}</div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p>
       <div class="row center"><button class="btn" data-a="planAdd" data-id="${p.id}">＋ Add to plan</button><button class="btn ghost" data-a="surprise">Another</button></div><button class="btn ghost wide" data-a="close">Close</button></div>`);
   },
   bring: (el) => { const b = [...(S.shared.meetup.bring || [])]; b[el.dataset.i] = { ...b[el.dataset.i], done: el.checked }; set(['meetup', 'bring'], b); },
