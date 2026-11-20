@@ -5,7 +5,7 @@ name: Publish Intimacy for Couples to Cloudflare
 # Needs the repository secret CLOUDFLARE_API_TOKEN with:
 #   Account > Workers Scripts > Edit, Account > D1 > Edit (and Zone > Workers Routes > Edit
 #   once a custom domain is added).
-# Optional repository variable SITE_URL, e.g. https://intimacycouple.com (defaults to workers.dev).
+# Optional repository variable SITE_URL, e.g. https://intimacycouple.com (defaults to https://intimacycouple.pages.dev).
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
       - name: Build website
         run: node intimacy/site/build.mjs
         env:
-          SITE_URL: ${{ vars.SITE_URL || 'https://intimacycouple.xeenox-in.workers.dev' }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://intimacycouple.pages.dev' }}
 
       - name: Apply database schema and deploy
         working-directory: intimacy

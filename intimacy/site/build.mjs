@@ -11,7 +11,7 @@ import * as C from '../app/content.js';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const OUT = join(ROOT, 'dist');
-export const SITE_URL = (process.env.SITE_URL || 'https://intimacycouple.xeenox-in.workers.dev').replace(/\/$/, '');
+export const SITE_URL = (process.env.SITE_URL || 'https://intimacycouple.pages.dev').replace(/\/$/, '');
 const BRAND = 'Intimacy for Couples';
 const TODAY = new Date().toISOString().slice(0, 10);
 

@@ -23,3 +23,6 @@ database_id = "3f6e8fa9-808b-43e4-aaf0-6674ce62ba01"
 [observability]
 enabled = true
 preview_urls = false
+
+[vars]
+SITE_URL = "https://intimacycouple.pages.dev"

@@ -4,7 +4,7 @@ A private, 18+ game for couples. One app for the things couples actually do toge
 flirting, playing, planning the next meet-up, planning the future, and staying close
 when they're apart.
 
-Live: https://intimacycouple.xeenox-in.workers.dev · Deploy and domain guide: [`DEPLOY.md`](DEPLOY.md)
+Live: https://intimacycouple.pages.dev · Deploy and domain guide: [`DEPLOY.md`](DEPLOY.md)
 
 ```
 intimacy/

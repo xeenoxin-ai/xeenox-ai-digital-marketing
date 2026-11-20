@@ -144,7 +144,7 @@ Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm 
 
 ## Intimacy for Couples (18+)
 
-**Live: https://intimacycouple.xeenox-in.workers.dev** · code in [`intimacy/`](intimacy/)
+**Live: https://intimacycouple.pages.dev** · code in [`intimacy/`](intimacy/)
 
 A private game for couples: Truth or Dare (4 heat levels, 100+ cards), Spicy Talk (every 🔥 your partner
 gives your message scores), Desire Match, Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather,

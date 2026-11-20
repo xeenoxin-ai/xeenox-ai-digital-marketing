@@ -1,15 +1,32 @@
 # Launching Intimacy for Couples
 
-**Live now:** https://intimacycouple.xeenox-in.workers.dev (free Cloudflare address)
+**Live now:** https://intimacycouple.pages.dev (free address, free hosting)
+
+How the free address works: the Cloudflare Pages project `intimacycouple` holds a 7-line `pages/_worker.js`
+that forwards every request to the `intimacycouple` Worker through a service binding called `BACKEND`.
+The Worker serves the whole site and backend. Visits to the raw `…workers.dev` address are redirected
+to the Pages address. The Pages proxy almost never changes. If it does, redeploy it with:
+
+```bash
+curl -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  "https://api.cloudflare.com/client/v4/accounts/775c1e02700fc336b170f305a68dd33e/pages/projects/intimacycouple/deployments" \
+  -F 'manifest={}' -F 'branch=main' -F '_worker.js=@intimacy/pages/_worker.js;type=application/javascript+module'
+```
 
 | Part | Where it runs | Cost |
 | --- | --- | --- |
 | Website: landing page, 9 SEO guides, `/play` game, sitemap | Cloudflare Worker `intimacycouple` | ₹0 (free plan: 100,000 requests/day) |
 | Backend: Love Numbers, pairing, live rooms | Same Worker, plus Durable Objects (rooms) and D1 database `intimacycouple` (APAC) | ₹0 to start |
 | Voice and video | Directly phone-to-phone (WebRTC). Optional Cloudflare TURN relay (step 3) | ₹0. TURN is free up to 1,000 GB/month, then about $0.05/GB |
-| Domain `intimacycouple.com` | Cloudflare Registrar (or any registrar) | About $10–11 a year (check the price shown when you buy) |
+| Address `intimacycouple.pages.dev` | Cloudflare Pages | ₹0, free forever |
+| Own domain later, e.g. `intimacycouple.com` (optional) | Cloudflare Registrar | About $10–11 a year |
 
-## 1. Buy the domain (10 minutes)
+## 1. Optional, later: buy your own domain (10 minutes)
+
+The site works fully on the free `pages.dev` address. A `.com` costs money everywhere. There's no trustworthy free `.com`,
+and free-domain services (`eu.org`, `dpdns.org` and similar) are slow to approve, can be taken away,
+and rank poorly. Buy one only when you're ready.
+
 
 1. Cloudflare dashboard → **Domain Registration → Register Domains** → search `intimacycouple`.
    `.com` is the best choice for SEO and trust. Cloudflare Registrar does not sell `.in`; buy `.in`
@@ -27,7 +44,7 @@ routes = [
 ]
 ```
 
-Then build with the new address and deploy:
+Change `SITE_URL` under `[vars]` in `wrangler.toml` to `https://intimacycouple.com`. Then build with the new address and deploy:
 
 ```bash
 SITE_URL=https://intimacycouple.com npm run deploy:intimacy
@@ -35,6 +52,8 @@ SITE_URL=https://intimacycouple.com npm run deploy:intimacy
 
 In GitHub → Settings → Secrets and variables → Actions → **Variables**, add `SITE_URL` =
 `https://intimacycouple.com` so automatic deploys use it too.
+
+Also add the domain to the Pages project (Pages → intimacycouple → Custom domains) or remove the Pages project, so there's only one public address.
 
 **One address for SEO:** in Cloudflare → intimacycouple.com → **Rules → Redirect Rules**, create
 "Redirect from WWW to root" (it's a ready-made template). This sends `www.` to the bare domain with a 301 redirect.

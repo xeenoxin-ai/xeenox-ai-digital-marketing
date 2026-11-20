@@ -177,6 +177,9 @@ export default {
     if (url.pathname.startsWith('/api/')) {
       try { return await api(req, env, url); } catch (e) { return bad('Server error', 500); }
     }
+    // The public address is intimacycouple.pages.dev (or your own domain): send visitors on the
+    // raw workers.dev address there, so search engines see one site.
+    if (env.SITE_URL && url.hostname.endsWith('.workers.dev')) return Response.redirect(env.SITE_URL + url.pathname + url.search, 301);
     return serveSite(req, url);
   },
 };
