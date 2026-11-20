@@ -587,6 +587,7 @@ export const LEARN = [
 // Hot topics for the community board (prompts, not posts).
 export const HOT_TOPICS = [
   { id: 'first', icon: '💫', name: 'First time with your partner' },
+  { id: 'proposal', icon: '💍', name: 'Proposal stories' },
   { id: 'wild', icon: '😈', name: 'Wildest place' },
   { id: 'ldr', icon: '📱', name: 'Long-distance intimacy' },
   { id: 'spark', icon: '🔥', name: 'Bringing the spark back' },
@@ -697,3 +698,90 @@ export const FANTASY_TALK = [
 ];
 
 LEARN.push(...LEARN_MORE);
+
+// ---------- Intimacy Originals: short stories (fiction, written for the app) ----------
+// cat: first | proposal | hot | ldr | honeymoon. Shown only up to the couple's heat level. In-app only.
+export const STORY_CATS = [
+  { id: 'all', name: 'All', icon: '📚' }, { id: 'first', name: 'First time', icon: '💫' }, { id: 'proposal', name: 'Proposals', icon: '💍' },
+  { id: 'hot', name: 'Hot nights', icon: '🔥' }, { id: 'ldr', name: 'Long distance', icon: '📱' }, { id: 'honeymoon', name: 'Honeymoon', icon: '🌴' },
+];
+export const STORIES = [
+  { id: 's1', cat: 'proposal', heat: 1, title: 'Under the Houseboat Lights', mins: 2, body: [
+    'Anjali thought the houseboat in Alleppey was just a birthday trip. Rahul had been strange all day — checking his pocket, laughing too loudly, refusing to let her near his bag.',
+    'At sunset the boat stopped in the middle of the backwater. The crew disappeared. Someone had strung fairy lights along the roof, and their song — the one from their first long drive — started playing from a speaker hidden in a coconut shell.',
+    'He did not kneel at first. He just held her hands and said, "Every good thing in the last four years has had you in it. I want the next forty to be the same."',
+    'Then he knelt, and the ring box shook in his hand, and she laughed and cried at the same time and said yes before he even finished asking.',
+    'They ate dinner on the deck with their feet in each other\'s laps, and she kept turning the ring in the lantern light, and neither of them could stop smiling.',
+  ] },
+  { id: 's2', cat: 'proposal', heat: 1, title: 'She Asked First', mins: 2, body: [
+    'Everyone expected Karthik to propose. His mother had dropped hints for a year. His friends had a betting pool.',
+    'Nobody expected Divya to book a table on the rooftop where they had their first date, order his favourite biryani, and slide a small black box across the table during dessert.',
+    '"I got tired of waiting," she said. "And I am very sure."',
+    'He stared at the plain silver band, then at her, then burst out laughing — because the ring he had been hiding for three weeks was in his jacket pocket.',
+    'They said yes to each other at the same time. The waiter, who had seen many proposals, said he had never seen two at one table.',
+  ] },
+  { id: 's3', cat: 'proposal', heat: 1, title: 'The Ring in the Popcorn', mins: 2, body: [
+    'Meera always stole his popcorn. Every movie, every time, her hand would sneak into his bucket within the first five minutes.',
+    'So on their third anniversary, Arjun bought one large bucket and buried a ring box halfway down.',
+    'Twenty minutes into the film, she froze, pulled out the box, and turned to him with the most confused face he had ever seen. He whispered, "You finally found something better than my popcorn."',
+    'The people behind them started clapping before she even answered. She said yes, kissed him with butter on her lips, and did not watch a single minute of the rest of the movie.',
+  ] },
+  { id: 's4', cat: 'first', heat: 2, title: 'First Kiss on the Scooter', mins: 2, body: [
+    'They had been friends for two years. Riding home after a late office party, Neha sat behind Sameer on his scooter, her arms around his waist because the road was bumpy — or that is what she told herself.',
+    'At a red light he turned his head to say something, and she was closer than either of them expected. He forgot what he was going to say.',
+    'The light turned green. Someone honked. Neither of them moved.',
+    'She kissed him first — quick, nervous, laughing into it. He parked on the side of the road and kissed her back properly, slow, as if he had been waiting two years. He had.',
+  ] },
+  { id: 's5', cat: 'first', heat: 3, title: 'Monsoon, Marine Drive', mins: 3, body: [
+    'Six months into dating, they still had not spent a night together. Ishaan was patient; Riya was nervous and pretended she was not.',
+    'Then the monsoon broke on Marine Drive and they ran, soaked, to his flat three streets away, laughing so hard they could barely climb the stairs.',
+    'He handed her a towel and his old college T-shirt. She came out of the bathroom wearing only the T-shirt, hair dripping, and suddenly neither of them was laughing.',
+    'It was slow. Clumsy in places — an elbow, a giggle, a pause to ask "is this okay?" and a whispered "yes, don\'t stop." He kissed every place the rain had touched. She pulled him closer when he hesitated.',
+    'Afterwards they lay listening to the rain on the window, her head on his chest, and she said, "That was worth six months." He said, "That was worth six years."',
+  ] },
+  { id: 's6', cat: 'first', heat: 3, title: 'Our Wedding Night Was a Disaster', mins: 3, body: [
+    'Nobody tells you that after a three-day wedding you will be too tired to move. Priya had 47 hairpins in her hair. Vikram had danced for six hours. They collapsed on the hotel bed fully dressed and fell asleep in minutes.',
+    'At 5 a.m. she woke up to him carefully pulling hairpins out of her hair, one by one, counting under his breath. "Thirty-one," he whispered. She started laughing and could not stop.',
+    'By the time he reached forty-seven they were both laughing, and then they were kissing, and the morning light came through the curtains as he slowly unwrapped her from the heavy wedding saree.',
+    'It was gentle and unhurried and completely theirs. Every anniversary since, he leaves forty-seven kisses on her shoulders and counts them out loud.',
+  ] },
+  { id: 's7', cat: 'hot', heat: 4, title: 'Power Cut', mins: 3, body: [
+    'The power went out at 9 p.m. in the middle of a Chennai summer. No fan, no AC, no phone signal.',
+    'Kavya lit one candle and lay on the cool floor in her thinnest cotton nightie. Arun lay beside her, sweating, complaining — until she poured a glass of ice water slowly over her own neck.',
+    'He stopped complaining. He picked up an ice cube from the glass and traced it down her collarbone, watching it melt, following the water with his lips.',
+    'The nightie came off. Then his shirt. The candle threw their shadows huge across the ceiling and the heat stopped mattering at all.',
+    'When the power came back at midnight, the fan roared to life above them. Neither of them had noticed it was ever gone.',
+  ] },
+  { id: 's8', cat: 'ldr', heat: 4, title: 'Six Hundred Kilometres', mins: 3, body: [
+    'Bangalore to Hyderabad: six hundred kilometres, eleven weeks apart. Sneha and Aditya survived on video calls, voice notes and a game app where they sent each other dares.',
+    'One night her dare said: "Undress for me — slowly — and do not say a word." She propped the phone against the mirror, played their song, and took her time. He forgot to breathe.',
+    'Two weeks later she landed at Hyderabad airport. He had booked the airport hotel, because he did not trust himself to drive.',
+    'The door had barely closed before he pressed her against it. "Eleven weeks," he said against her neck. "Then do not waste another second," she said, and pulled him to the bed by his belt.',
+  ] },
+  { id: 's9', cat: 'hot', heat: 5, title: 'The Black Lace Surprise', mins: 3, body: [
+    'For weeks Rohan had mentioned it, half-joking: black lace. Nisha always rolled her eyes.',
+    'On his birthday he came home late and tired to a dark flat, one lamp on, and Nisha sitting on the edge of the bed in a black lace bra and nothing else, legs crossed, smiling like she owned him.',
+    '"Sit," she said, pointing to the chair. "Hands on the armrests. You don\'t touch until I say."',
+    'She took her time. She kissed his neck, unbuttoned his shirt with her teeth, straddled his lap and moved slowly against him until he was begging. Only then did she take his hands and put them on her waist.',
+    'He carried her to the bed. She kept the lace on — he insisted — while he went down on her until her fingers were knotted in his hair and she was saying his name like a prayer. Then she pushed him on his back and rode him, slow at first, then not slow at all, until they finished together, breathless and laughing.',
+    '"Happy birthday," she whispered. He told her it was the best one of his life. She told him to remember that on hers.',
+  ] },
+  { id: 's10', cat: 'honeymoon', heat: 5, title: 'Pool Villa, Day Three', mins: 3, body: [
+    'By the third day of their Bali honeymoon, Aisha and Zayn had given up on wearing clothes inside the villa. The private pool was walled, warm and lit from below.',
+    'At midnight she swam to the edge where he was sitting with his feet in the water, rested her arms on his knees, and looked up at him with a slow, wicked smile.',
+    'She kissed up the inside of his thigh, taking her time, until his head fell back and his hand found her wet hair. When he could not take any more he pulled her up onto the warm stone, laid her back and returned the favour until her moans echoed off the walls.',
+    'Later, in the water, she wrapped her legs around his waist and they moved together slowly, the pool lights rippling over them, her forehead against his, whispering "I love you" between every breath.',
+    'They had planned three temple visits for the next day. They made it to none of them.',
+  ] },
+  { id: 's11', cat: 'hot', heat: 5, title: 'Coffee, Interrupted', mins: 2, body: [
+    'Sunday, 8 a.m. Tara stood in the kitchen in only his shirt, making coffee, humming. Dev walked in, saw her, and forgot about coffee entirely.',
+    'He came up behind her, kissed her neck and slid his hands under the shirt. She leaned back against him and said, "The coffee will get cold." He said, "Let it."',
+    'He lifted her onto the counter. The shirt came open. She wrapped her legs around him and pulled him in, and the kettle whistled and whistled and nobody turned it off.',
+    'Afterwards they drank the coffee cold, sitting on the kitchen floor, still out of breath, and agreed that Sundays should always start like this.',
+  ] },
+  { id: 's12', cat: 'ldr', heat: 2, title: 'The Countdown', mins: 2, body: [
+    'Farah was in Dubai, Imran was in Kochi. Every night for 63 nights, he sent her a voice note: one thing he would do when she came home.',
+    'Day 63: "Hold your hand at the airport and not let go." Day 12: "Cook you terrible pancakes." Day 1: "Kiss you until you forget the flight."',
+    'When she walked out of arrivals he did all three, in that order — except the pancakes, which were so bad they laughed until they cried.',
+  ] },
+];

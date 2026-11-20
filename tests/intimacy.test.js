@@ -43,6 +43,14 @@ test('X-Rated cards stay inside the app, off public pages', async () => {
   assert.ok(!html.includes(x.replace(/'/g, '&#39;')) && !html.includes(x));
 });
 
+test('story library stays inside the app', async () => {
+  assert.ok(C.STORIES.length >= 12);
+  for (const path of ['/', '/sex-tips-for-couples/', '/date-night-ideas/']) {
+    const html = await (await get(path)).text();
+    for (const st of C.STORIES) assert.ok(!html.includes(st.title), st.title + ' leaked to ' + path);
+  }
+});
+
 test('app, redirects and 404', async () => {
   assert.equal((await get('/play/')).status, 200);
   assert.equal((await get('/play/app.js')).headers.get('content-type'), 'text/javascript; charset=utf-8');

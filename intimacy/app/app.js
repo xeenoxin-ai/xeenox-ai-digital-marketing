@@ -481,19 +481,20 @@ const GAMES = [
   { id: 'learn', name: 'Sex Guides', icon: '📖', desc: 'What men & women love, toys, pleasing your partner' },
   { id: 'tips', name: 'Sex Tips', icon: '📚', desc: 'Better intimacy, health & long distance' },
   { id: 'community', name: 'Community', icon: '💬', desc: 'Real couples share hot experiences' },
+  { id: 'stories', name: 'Hot Stories', icon: '📖', desc: 'First times, proposals, steamy nights' },
 ];
 const gameName = (id) => GAMES.find((g) => g.id === id)?.name || 'a game';
 const PLAY_SECTIONS = [
   ['Games for two', ['tod', 'never', 'rather', 'hotseat', 'dice']],
   ['Talk & tease', ['talk', 'desire', 'fantasy', 'dates']],
-  ['Learn & share', ['learn', 'tips', 'community']],
+  ['Stories & learn', ['stories', 'community', 'learn', 'tips']],
 ];
 
 function openGame(id) {
   if (id === 'community') { ui.tab = 'community'; ui.comm.data = null; return render(); }
   if (id === 'lab') { ui.tab = 'fantasy'; return render(); }
   ui.tab = 'games'; ui.game = id;
-  if (['desire', 'talk', 'tips', 'learn'].includes(id)) { ui.guide = null; return render(); }
+  if (['desire', 'talk', 'tips', 'learn', 'stories'].includes(id)) { ui.guide = null; ui.story = null; return render(); }
   const g = S.shared.game?.kind === id ? S.shared.game : { kind: id, turn: 'A', card: null };
   if (S.shared.game?.kind !== id) set(['game'], g); else render();
 }
@@ -528,7 +529,7 @@ function render() {
   if (ui.tab === 'community' && !ui.comm.data && !ui.comm.loading) loadCommunity();
   const v = { home: homeView, games: gamesView, positions: positionsView, fantasy: labView, community: communityView, us: usView }[ui.tab] || homeView;
   view.innerHTML = v();
-  $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game || ['learn', 'tips'].includes(ui.game);
+  $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game || ['learn', 'tips', 'stories'].includes(ui.game);
   renderPause();
   const pd = $('#modal .pos-detail'); if (pd && !$('#modal').hidden) $('#modal .sheet').innerHTML = posDetail(pd.dataset.pos);
   tick();
@@ -589,6 +590,7 @@ function homeView() {
     </div>
     <div class="sec-head"><h3>Explore</h3></div>
     <div class="explore">
+      <button class="ex-row" data-a="game" data-id="stories"><span class="ex-ico g-stories">📖</span><span><b>Hot stories</b><small>First times, proposals & steamy nights</small></span><i>›</i></button>
       <button class="ex-row" data-a="game" data-id="learn"><span class="ex-ico g-learn">📖</span><span><b>Sex guides</b><small>Foreplay, oral, dirty talk, what he & she love</small></span><i>›</i></button>
       <button class="ex-row" data-a="tab" data-tab="community"><span class="ex-ico g-comm">💬</span><span><b>Community</b><small>Hot topics & real couples' stories</small></span><i>›</i></button>
       <button class="ex-row" data-a="us" data-sub="bucket"><span class="ex-ico g-bucket">🔥</span><span><b>Bucket list</b><small>Hot experiences to tick off together</small></span><i>›</i></button>
@@ -604,8 +606,8 @@ function gamesView() {
     return `<section><div class="page-head"><h2>Play</h2><button class="heat-btn" data-a="heat">${heatInfo(S.shared.heat).icon} ${heatInfo(S.shared.heat).name}</button></div>
       ${PLAY_SECTIONS.map(([title, ids]) => `<h3>${title}</h3><div class="grid">${ids.map((id) => GAMES.find((g) => g.id === id)).filter(Boolean).map(gameTile).join('')}</div>`).join('')}</section>`;
   }
-  const back = ui.game === 'learn' && ui.guide ? '<button class="back" data-a="guide" data-id="">‹ Guides</button>' : `<button class="back" data-a="back">‹ Play</button>`;
-  const fn = { tod: todView, talk: talkView, tips: tipsView, learn: learnView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
+  const back = ui.game === 'stories' && ui.story ? '<button class="back" data-a="storyOpen" data-id="">‹ Stories</button>' : ui.game === 'learn' && ui.guide ? '<button class="back" data-a="guide" data-id="">‹ Guides</button>' : `<button class="back" data-a="back">‹ Play</button>`;
+  const fn = { tod: todView, talk: talkView, tips: tipsView, learn: learnView, stories: storiesView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
   return `<section>${back}${fn ? fn() : ''}</section>`;
 }
 
@@ -857,6 +859,30 @@ function posSwipeView() {
         <div class="sc-body"><b>${esc(next.name)}</b><p>${esc(next.desc)}</p><button class="link" data-a="posOpen" data-id="${next.id}">How to do it ›</button></div></div></div>
       <div class="votes"><button class="vote no" data-a="posVote" data-id="${next.id}" data-v="no">✕</button><button class="vote star" data-a="planToggle" data-id="${next.id}">★</button><button class="vote yes" data-a="posVote" data-id="${next.id}" data-v="want">♥</button></div>`
     : '<div class="card center"><b>All swiped! 🎉</b><p class="muted small">Check "Both want" to see your matches.</p><button class="btn" data-a="posSwipe">See matches</button></div>'}</section>`;
+}
+
+// ---------- Stories ----------
+function storiesView() {
+  if (ui.story) {
+    const st = C.STORIES.find((x) => x.id === ui.story);
+    if (st) {
+      const cat = C.STORY_CATS.find((c) => c.id === st.cat);
+      return `<article class="reader"><div class="reader-head g-st-${st.cat}"><span class="eyebrow">${cat.icon} ${cat.name} · ${st.mins} min read</span><h2>${esc(st.title)}</h2><span class="tag">${heatInfo(st.heat).icon} ${heatInfo(st.heat).name}</span></div>
+        ${st.body.map((para) => `<p>${esc(para)}</p>`).join('')}
+        <p class="small muted center">— Intimacy Originals · a story written for couples, not a real event —</p>
+        <div class="row"><button class="btn" data-a="storyAsk" data-id="${st.id}">💬 Ask ${nm(other(me()))} about it</button><button class="btn ghost" data-a="storyShare" data-t="${st.cat === 'proposal' ? 'proposal' : st.cat === 'first' ? 'first' : 'wild'}">✍️ Share your real one</button></div></article>`;
+    }
+  }
+  const cat = ui.storyCat || 'all';
+  const all = C.STORIES.filter((x) => cat === 'all' || x.cat === cat);
+  const visible = all.filter((x) => x.heat <= S.shared.heat), locked = all.length - visible.length;
+  return `<div class="page-head"><h2>Hot Stories</h2></div>
+    <p class="muted small">Intimacy Originals — short romantic and steamy stories written for couples. Read them together, then share your own real story in the Community.</p>
+    <div class="chips">${C.STORY_CATS.map((c) => `<button class="chip ${cat === c.id ? 'on' : ''}" data-a="storyCat" data-c="${c.id}">${c.icon} ${c.name}</button>`).join('')}</div>
+    <div class="story-list">${visible.map((x) => { const c = C.STORY_CATS.find((k) => k.id === x.cat); return `<button class="story-card g-st-${x.cat}" data-a="storyOpen" data-id="${x.id}">
+      <span class="eyebrow">${c.icon} ${c.name} · ${x.mins} min</span><b>${esc(x.title)}</b><small>${esc(x.body[0].slice(0, 110))}…</small><span class="sc-heat">${heatInfo(x.heat).icon}</span></button>`; }).join('')}</div>
+    ${locked ? `<button class="card locked" data-a="heat"><b>🔒 ${locked} hotter ${locked === 1 ? 'story' : 'stories'}</b><small>Turn the heat up to read them.</small></button>` : ''}
+    <button class="card community-cta" data-a="tab" data-tab="community"><b>💬 Real stories from real couples</b><small>Read first-time and proposal stories shared by couples — or share yours.</small></button>`;
 }
 
 // ---------- Fantasy Lab ----------
@@ -1164,6 +1190,10 @@ const A = {
   wishSend: (el) => sendWish(el.dataset.t),
   wishReply: (el) => { const p = other(me()); if (!S.shared.requests?.[p]) return; set(['requests', p, 'reply'], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('😘'); },
   posOpen: (el, e) => { if (e?.target?.closest('[data-a="planToggle"]') && el.dataset.a === 'posOpen') return; modal(posDetail(el.dataset.id)); },
+  storyCat: (el) => { ui.storyCat = el.dataset.c; render(); },
+  storyOpen: (el) => { ui.tab = 'games'; ui.game = 'stories'; ui.story = el.dataset.id || null; render(); window.scrollTo(0, 0); },
+  storyAsk: (el) => { const st = C.STORIES.find((x) => x.id === el.dataset.id); ui.talkDraft = `Just read "${st.title}"… what part would you want to do with me? `; openGame('talk'); },
+  storyShare: (el) => { ui.tab = 'community'; ui.comm.topic = el.dataset.t; ui.comm.compose = true; ui.comm.data = null; render(); window.scrollTo(0, 0); },
   posSwipe: () => { ui.posSwipe = !ui.posSwipe; render(); window.scrollTo(0, 0); },
   labTab: (el) => { ui.labTab = el.dataset.t; render(); window.scrollTo(0, 0); },
   labPick: (el) => {

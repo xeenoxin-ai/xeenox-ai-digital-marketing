@@ -190,7 +190,7 @@ async function api(req, env, url) {
 }
 
 // ---------- community ----------
-const TOPICS = new Set(['first', 'wild', 'ldr', 'spark', 'toys', 'positions', 'talk', 'advice']);
+const TOPICS = new Set(['first', 'proposal', 'wild', 'ldr', 'spark', 'toys', 'positions', 'talk', 'advice']);
 // Keep the board about couples' own experiences: no contact details (solicitation), nothing involving minors.
 const BLOCK_CONTACT = /(https?:\/\/|www\.|\.(com|in|net|org|me|ly)\b|@[a-z0-9_]{3,}|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(\d[\s-]?){8,}|whats\s?app|telegram|snapchat|insta(gram)?|kik\b|onlyfans|escort)/i;
 const BLOCK_MINOR = /\b(minor|under\s?age|underage|teen(ager)?s?|school\s?(girl|boy)|child|children|kid|kids|1[0-7]\s?(yo|y\/o|years?\s?old)|class\s?\d{1,2})\b/i;
