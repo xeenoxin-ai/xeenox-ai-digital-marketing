@@ -14,7 +14,10 @@
     "test:rules": "firebase emulators:exec --only firestore --project demo-easyway \"node --test tests/rules.emulator.js\"",
     "test:billx-rules": "firebase emulators:exec --config billx/firebase.json --only firestore --project demo-billx \"node --test tests/billx-rules.emulator.js\"",
     "emulators:billx": "firebase emulators:start --config billx/firebase.json --only firestore,auth --project demo-billx",
-    "emulators": "firebase emulators:start --only firestore,auth --project demo-easyway"
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-easyway",
+    "build:intimacy": "node intimacy/site/build.mjs",
+    "dev:intimacy": "node intimacy/site/build.mjs && cd intimacy && npx -y wrangler@4.156.0 dev",
+    "deploy:intimacy": "node intimacy/site/build.mjs && cd intimacy && npx -y wrangler@4.156.0 deploy"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",
