@@ -1,6 +1,7 @@
 // Intimacy for Couples — single-page app.
-// Same-phone play works offline. Long-distance play uses WebRTC (PeerJS) peer-to-peer:
-// game state, chat, voice and video go directly between the two phones.
+// Same-phone play works offline. Long-distance play connects two phones through the
+// backend (worker/index.js): game messages relay through a room, voice and video go
+// phone-to-phone with WebRTC.
 import * as C from './content.js';
 
 const KEY = 'ifc.v1';
@@ -19,11 +20,11 @@ function defaultShared() {
     points: { A: 0, B: 0 }, streak: { count: 0, last: '' },
     hidden: {}, desire: { A: {}, B: {} }, pos: {}, plan: [],
     meetup: { when: '', place: '', vibe: '', outfit: '', notes: '', bring: [] },
-    future: [], bucket: {}, customBucket: [], game: null, paused: false,
+    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {},
   };
 }
 function defaultLocal() {
-  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', signal: '', turn: '', chat: [], unread: 0 };
+  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null };
 }
 function load() {
   try {
@@ -67,7 +68,7 @@ function set(p, v, opts = {}) {
 // ---------- helpers ----------
 const nm = (r) => esc(S.shared.players[r]?.name || (r === 'A' ? 'Player 1' : 'Player 2'));
 const other = (r) => (r === 'A' ? 'B' : 'A');
-const online = () => !!(conn && conn.open);
+const online = () => !!ws && net.peers > 0;
 const me = () => (online() ? S.local.role : S.local.swiper);
 const canAct = (r) => !online() || r === S.local.role;
 const heatInfo = (h) => C.HEAT[h - 1] || C.HEAT[1];
@@ -78,7 +79,7 @@ function sanitize() {
   sh.heat = Math.min(4, Math.max(1, Math.round(num(sh.heat)) || 2));
   sh.points = { A: num(sh.points?.A), B: num(sh.points?.B) };
   sh.streak = { count: num(sh.streak?.count), last: String(sh.streak?.last || '') };
-  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
+  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
   for (const k of ['plan', 'future', 'customBucket']) if (!Array.isArray(sh[k])) sh[k] = [];
   if (!Array.isArray(sh.meetup.bring)) sh.meetup.bring = [];
   for (const r of ['A', 'B']) if (!sh.players[r] || typeof sh.players[r] !== 'object') sh.players[r] = { name: r === 'A' ? 'Player 1' : 'Player 2' };
@@ -138,82 +139,146 @@ function countdown(when) {
   return `${d ? d + 'd ' : ''}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
 }
 
-// ---------- networking (PeerJS / WebRTC) ----------
-let peer = null, conn = null;
-const net = { status: 'offline', code: '', host: false };
+// ---------- networking (own backend: WebSocket rooms + WebRTC calls) ----------
+// Two ways to connect:
+//   * Love Number: each phone gets an 8-digit number. Enter your partner's number once,
+//     they accept, and from then on both phones reconnect automatically.
+//   * Quick room code: 6 letters, no sign-up, for a one-off session.
+const API = (new URLSearchParams(location.search).get('api') || S.local.api || '').replace(/\/$/, '') || location.origin;
+const WS_BASE = API.replace(/^http/, 'ws');
+let ws = null, inbox = null;
+const net = { status: 'offline', code: '', host: false, room: '', peers: 0 };
 
-function peerOpts() {
-  const o = { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
-  const sig = new URLSearchParams(location.search).get('signal') || S.local.signal;
-  if (sig) {
-    try {
-      const u = new URL(sig.includes('://') ? sig : 'http://' + sig);
-      o.host = u.hostname; o.secure = u.protocol === 'https:';
-      o.port = Number(u.port) || (o.secure ? 443 : 80);
-      o.path = u.pathname || '/';
-    } catch { /* ignore bad value */ }
+async function post(path, data) {
+  const r = await fetch(API + '/api' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Network problem — try again');
+  return d;
+}
+const authBody = (x = {}) => ({ n: S.local.me?.number, t: S.local.me?.token, ...x });
+const fmtNum = (n) => String(n || '').replace(/(\d{4})(\d{4})/, '$1 $2');
+
+async function ensureNumber() {
+  if (S.local.me?.number) return S.local.me;
+  const d = await post('/register', { name: S.local.myName || S.shared.players.A.name });
+  S.local.me = { number: d.number, token: d.token }; save();
+  return S.local.me;
+}
+
+// A self-healing WebSocket to one room.
+function openSocket(room, handlers) {
+  let sock = null, closed = false, tries = 0, pingT;
+  const q = new URLSearchParams({ room });
+  if (S.local.me?.number && !room.startsWith('code:')) { q.set('n', S.local.me.number); q.set('t', S.local.me.token); }
+  const connect = () => {
+    sock = new WebSocket(`${WS_BASE}/api/ws?${q}`);
+    sock.onopen = () => { tries = 0; clearInterval(pingT); pingT = setInterval(() => { try { sock.send('ping'); } catch { /* */ } }, 25000); handlers.open?.(); };
+    sock.onmessage = (e) => { if (e.data === 'pong') return; try { handlers.message(JSON.parse(e.data)); } catch { /* ignore junk */ } };
+    sock.onclose = (e) => {
+      clearInterval(pingT); handlers.close?.(e);
+      if (closed) return;
+      if (e.code === 1006 && tries > 6) { handlers.fail?.(); return; }
+      setTimeout(connect, Math.min(15000, 800 * 2 ** tries++));
+    };
+  };
+  connect();
+  return {
+    send: (m) => { if (sock?.readyState === 1) sock.send(JSON.stringify(m)); },
+    close: () => { closed = true; clearInterval(pingT); try { sock?.close(); } catch { /* */ } },
+  };
+}
+
+function teardown() {
+  endCall(false);
+  ws?.close(); ws = null;
+  Object.assign(net, { status: 'offline', code: '', host: false, room: '', peers: 0 });
+}
+function joinRelay(room, host) {
+  teardown();
+  Object.assign(net, { room, host, status: 'joining', peers: 0 });
+  S.local.role = host ? 'A' : 'B';
+  render();
+  ws = openSocket(room, {
+    open: () => { if (!net.peers) net.status = 'waiting'; render(); },
+    message: onRelay,
+    close: () => { if (net.peers) { net.peers = 0; toast('Connection lost — reconnecting…'); } net.status = 'joining'; render(); },
+    fail: () => { toast('Can\'t reach the server. Check your internet.'); net.status = 'offline'; render(); },
+  });
+}
+function onRelay(m) {
+  switch (m.t) {
+    case '_welcome':
+      net.status = 'waiting'; net.peers = m.peers.length;
+      if (net.peers) partnerArrived();
+      render(); return;
+    case '_join': net.peers++; partnerArrived(); return;
+    case '_leave':
+      net.peers = Math.max(0, net.peers - 1);
+      if (!net.peers) { endCall(false); net.status = 'waiting'; toast('Partner went offline'); render(); }
+      return;
+    default: onData(m);
   }
-  if (S.local.turn) { try { const t = JSON.parse(S.local.turn); o.config.iceServers.push(...(Array.isArray(t) ? t : [t])); } catch { /* ignore */ } }
-  return o;
+}
+function partnerArrived() {
+  net.status = 'connected';
+  if (!net.host) send({ t: 'hello', name: S.local.myName || S.shared.players.A.name });
+  toast('Partner connected 💞'); render();
+}
+
+function createRoom() {
+  net.code = newCode();
+  joinRelay('code:' + net.code, true);
+  net.code = net.room.slice(5);
+}
+function joinRoom(code) {
+  code = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 6) return toast('Enter the 6-character room code');
+  joinRelay('code:' + code, false);
+  net.code = code;
 }
 function newCode() {
   const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   return Array.from({ length: 6 }, () => rnd(A)).join('');
 }
-function teardown() {
-  endCall(false);
-  try { conn?.close(); } catch { /* */ }
-  try { peer?.destroy(); } catch { /* */ }
-  peer = null; conn = null; net.status = 'offline'; net.code = ''; net.host = false;
+
+// Love Number pairing
+function pairRoomName(a, b) { return a < b ? `pair:${a}-${b}` : `pair:${b}-${a}`; }
+function connectPartner() {
+  const me = S.local.me, p = S.local.partner;
+  if (!me?.number || !p?.number) return;
+  joinRelay(pairRoomName(me.number, p.number), me.number < p.number);
 }
-function peerErrors(p) {
-  p.on('error', (err) => {
-    const t = err?.type;
-    if (t === 'unavailable-id') { toast('That room code is busy — creating a new one'); teardown(); createRoom(); return; }
-    if (t === 'peer-unavailable') toast('Room not found. Check the code and that your partner\'s room is open.');
-    else if (t === 'network' || t === 'server-error' || t === 'socket-error') toast('Can\'t reach the connection server. Check your internet.');
-    else if (t === 'browser-incompatible') toast('This browser does not support live play. Try Chrome or Safari.');
-    else toast('Connection problem: ' + (t || 'unknown'));
-    if (!online()) { net.status = net.host && p.open ? 'waiting' : 'offline'; render(); }
+function openInbox() {
+  if (inbox || !S.local.me?.number) return;
+  inbox = openSocket('inbox:' + S.local.me.number, {
+    message: (m) => {
+      if (m.t === 'ring') showRing(m.from, m.name);
+      if (m.t === 'accepted') paired(m.by, m.name);
+    },
   });
-  p.on('disconnected', () => { if (!p.destroyed) setTimeout(() => { try { p.reconnect(); } catch { /* */ } }, 1500); });
-  p.on('call', onIncomingCall);
+  post('/requests', authBody()).then((d) => { const r = d.requests?.[0]; if (r && !S.local.partner) showRing(r.from, r.name); }).catch(() => {});
 }
-function createRoom() {
-  if (typeof Peer === 'undefined') return toast('Live play failed to load. Refresh the page.');
-  teardown();
-  net.code = newCode(); net.host = true; net.status = 'starting'; render();
-  peer = new Peer(ROOM_PREFIX + net.code, peerOpts());
-  peerErrors(peer);
-  peer.on('open', () => { net.status = 'waiting'; render(); });
-  peer.on('connection', (c) => { if (online()) { c.on('open', () => c.close()); return; } wireConn(c); });
+function showRing(from, name) {
+  modal(`<div class="center"><div class="logo-big">💌</div><h3>${esc(name)} wants to connect</h3>
+    <p class="muted">Love Number ${esc(fmtNum(from))}. Accept only if this is your partner.</p>
+    <div class="row center"><button class="btn ghost" data-a="ringNo" data-from="${esc(from)}">Decline</button><button class="btn" data-a="ringYes" data-from="${esc(from)}">Accept 💞</button></div></div>`);
 }
-function joinRoom(code) {
-  code = String(code || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (code.length !== 6) return toast('Enter the 6-character room code');
-  if (typeof Peer === 'undefined') return toast('Live play failed to load. Refresh the page.');
-  teardown();
-  net.code = code; net.host = false; net.status = 'joining'; render();
-  peer = new Peer(peerOpts());
-  peerErrors(peer);
-  peer.on('open', () => wireConn(peer.connect(ROOM_PREFIX + code, { reliable: true })));
+function paired(number, name) {
+  S.local.partner = { number: String(number), name: String(name || 'Partner').slice(0, 30) }; save();
+  closeModal(); toast(`💞 Paired with ${S.local.partner.name}`);
+  connectPartner();
 }
-function wireConn(c) {
-  conn = c;
-  c.on('open', () => {
-    net.status = 'connected';
-    if (!net.host) send({ t: 'hello', name: S.local.myName || S.shared.players.A.name });
-    toast('Partner connected 💞'); render();
-  });
-  c.on('data', onData);
-  c.on('close', () => {
-    if (conn === c) conn = null;
-    endCall(false);
-    net.status = net.host && peer && !peer.destroyed ? 'waiting' : 'offline';
-    toast('Partner disconnected'); render();
-  });
+async function ringPartner(to) {
+  try {
+    await ensureNumber(); openInbox();
+    const d = await post('/ring', authBody({ to: String(to).replace(/\D/g, '') }));
+    if (d.paired) { paired(String(to).replace(/\D/g, ''), S.shared.players.B.name); return; }
+    toast(d.delivered ? 'Request sent — waiting for your partner to accept 💌' : 'Request sent. Your partner will see it when they open the app.', 4000);
+    ui.ringing = true; render();
+  } catch (e) { toast(e.message, 4000); }
 }
-function send(msg) { if (online()) { try { conn.send(msg); } catch { /* */ } } }
+
+function send(msg) { if (online()) ws.send(msg); }
 
 function onData(m) {
   if (!m || typeof m !== 'object') return;
@@ -251,8 +316,7 @@ function onData(m) {
       break;
     }
     case 'react': if (typeof m.e === 'string' && m.e.length <= 8) floatEmoji(m.e); break;
-    case 'hangup': endCall(false); break;
-    case 'decline': toast('Call declined'); endCall(false); break;
+    case 'call': case 'call-ok': case 'rtc': case 'decline': case 'busy': case 'hangup': onCallMsg(m); break;
   }
 }
 // Do not wipe what someone is typing when the partner's update arrives.
@@ -264,8 +328,13 @@ function softRender() {
 }
 document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender) { pendingRender = false; softRender(); } }, 50));
 
-// ---------- voice & video calls ----------
-let call = null, localStream = null, callStart = 0, callTimer = null;
+// ---------- voice & video calls (WebRTC, signalled through the room) ----------
+let call = null, localStream = null, callStart = 0, callTimer = null, pendingCall = null, iceCache = null, ringTimer = null;
+async function iceServers() {
+  if (iceCache) return iceCache;
+  try { const r = await fetch(API + '/api/ice'); iceCache = (await r.json()).iceServers; } catch { iceCache = [{ urls: 'stun:stun.l.google.com:19302' }]; }
+  return iceCache;
+}
 async function getMedia(video) {
   if (!navigator.mediaDevices?.getUserMedia) { toast('Calls need HTTPS and a modern browser'); return null; }
   try {
@@ -280,48 +349,86 @@ async function startCall(video) {
   if (call) return;
   localStream = await getMedia(video);
   if (!localStream) return;
-  wireCall(peer.call(conn.peer, localStream, { metadata: { video } }), video);
+  call = { video, caller: true, pc: null, queue: [] };
+  showCallUI('Calling…');
+  send({ t: 'call', video });
+  ringTimer = setTimeout(() => { if (call && !callStart) { toast('No answer'); endCall(true); } }, 45000);
 }
-function onIncomingCall(c) {
-  const video = !!c.metadata?.video;
-  modal(`<h3>${video ? '📹 Video' : '📞 Voice'} call</h3><p>${nm(other(S.local.role))} is calling you…</p>
-    <div class="row"><button class="btn ghost" data-a="declineCall">Decline</button><button class="btn" data-a="acceptCall">Answer</button></div>`);
-  pendingCall = c;
+function onCallMsg(m) {
+  if (m.t === 'call') {
+    if (call || pendingCall) { send({ t: 'busy' }); return; }
+    pendingCall = { video: !!m.video };
+    modal(`<div class="center"><div class="logo-big">${m.video ? '📹' : '📞'}</div><h3>${nm(other(S.local.role))} is calling…</h3><p class="muted">${m.video ? 'Video' : 'Voice'} call</p>
+      <div class="row center"><button class="btn ghost" data-a="declineCall">Decline</button><button class="btn" data-a="acceptCall">Answer</button></div></div>`);
+    return;
+  }
+  if (m.t === 'call-ok' && call?.caller) { makeOffer(); return; }
+  if (m.t === 'rtc' && call) { onRtc(m); return; }
+  if (m.t === 'decline') { toast('Call declined'); endCall(false); }
+  if (m.t === 'busy') { toast('Your partner is busy'); endCall(false); }
+  if (m.t === 'hangup') { if (pendingCall) { pendingCall = null; closeModal(); } endCall(false); }
 }
-let pendingCall = null;
 async function acceptCall() {
-  const c = pendingCall; pendingCall = null; closeModal();
-  if (!c) return;
-  const video = !!c.metadata?.video;
-  localStream = await getMedia(video);
-  if (!localStream) { c.close(); send({ t: 'decline' }); return; }
-  c.answer(localStream);
-  wireCall(c, video);
+  const p = pendingCall; pendingCall = null; closeModal();
+  if (!p) return;
+  localStream = await getMedia(p.video);
+  if (!localStream) { send({ t: 'decline' }); return; }
+  call = { video: p.video, caller: false, pc: null, queue: [] };
+  showCallUI('Connecting…');
+  await makePc();
+  send({ t: 'call-ok' });
 }
-function wireCall(c, video) {
-  call = c;
+async function makePc() {
+  const pc = new RTCPeerConnection({ iceServers: await iceServers() });
+  call.pc = pc;
+  localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+  pc.onicecandidate = (e) => { if (e.candidate) send({ t: 'rtc', ice: e.candidate.toJSON() }); };
+  pc.ontrack = (e) => {
+    const v = $('#remote-video');
+    if (v.srcObject !== e.streams[0]) { v.srcObject = e.streams[0]; v.play?.().catch(() => {}); }
+    if (!callStart) {
+      callStart = Date.now(); clearTimeout(ringTimer);
+      callTimer = setInterval(() => { $('#call-status').textContent = '● ' + fmtDur(Date.now() - callStart); }, 1000);
+    }
+  };
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'failed') { toast('Call could not connect on this network'); endCall(true); }
+  };
+  return pc;
+}
+async function makeOffer() {
+  const pc = await makePc();
+  await pc.setLocalDescription(await pc.createOffer());
+  send({ t: 'rtc', sdp: pc.localDescription.toJSON() });
+}
+async function onRtc(m) {
+  const pc = call.pc;
+  if (!pc) return;
+  try {
+    if (m.sdp) {
+      await pc.setRemoteDescription(m.sdp);
+      if (m.sdp.type === 'offer') { await pc.setLocalDescription(await pc.createAnswer()); send({ t: 'rtc', sdp: pc.localDescription.toJSON() }); }
+      for (const c of call.queue.splice(0)) await pc.addIceCandidate(c).catch(() => {});
+    } else if (m.ice) {
+      if (pc.remoteDescription) await pc.addIceCandidate(m.ice).catch(() => {}); else call.queue.push(m.ice);
+    }
+  } catch { /* bad signalling message */ }
+}
+function showCallUI(status) {
   const box = $('#call');
-  box.hidden = false; box.className = video ? 'video' : 'voice';
-  $('#local-video').srcObject = video ? localStream : null;
+  box.hidden = false; box.className = call.video ? 'video' : 'voice';
+  $('#local-video').srcObject = call.video ? localStream : null;
   $('#call-name').textContent = S.shared.players[other(S.local.role)]?.name || 'Partner';
-  $('#call-status').textContent = 'Connecting…';
-  c.on('stream', (rs) => {
-    const v = $('#remote-video'); v.srcObject = rs; v.play?.().catch(() => {});
-    callStart = Date.now();
-    clearInterval(callTimer);
-    callTimer = setInterval(() => { $('#call-status').textContent = '● ' + fmtDur(Date.now() - callStart); }, 1000);
-  });
-  c.on('close', () => endCall(false));
-  c.on('error', () => endCall(false));
+  $('#call-status').textContent = status;
   updateCallButtons();
 }
 const fmtDur = (ms) => { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 function endCall(notify = true) {
-  if (notify) send({ t: 'hangup' });
-  try { call?.close(); } catch { /* */ }
+  if (notify && call) send({ t: 'hangup' });
+  try { call?.pc?.close(); } catch { /* */ }
   localStream?.getTracks().forEach((t) => t.stop());
-  call = null; localStream = null; clearInterval(callTimer);
-  const box = $('#call'); if (box) { box.hidden = true; $('#remote-video').srcObject = null; $('#local-video').srcObject = null; }
+  call = null; localStream = null; callStart = 0; clearInterval(callTimer); clearTimeout(ringTimer);
+  const box = $('#call'); if (box) { box.hidden = true; $('#remote-video').srcObject = null; $('#local-video').srcObject = null; box.classList.remove('mini'); }
 }
 function toggleTrack(kind) {
   const tr = localStream?.getTracks().filter((t) => t.kind === kind);
@@ -339,6 +446,7 @@ function updateCallButtons() {
 // ---------- games ----------
 const GAMES = [
   { id: 'tod', name: 'Truth or Dare', icon: '🎭', desc: 'The classic, with 4 heat levels' },
+  { id: 'talk', name: 'Spicy Talk', icon: '🗣️', desc: 'Talk dirty — every 🔥 from your partner scores' },
   { id: 'desire', name: 'Desire Match', icon: '💞', desc: 'Swipe privately — only mutual yeses show' },
   { id: 'dice', name: 'Sexy Dice', icon: '🎲', desc: 'Roll an action, a spot and a time' },
   { id: 'dates', name: 'Naughty Date Dares', icon: '🌙', desc: 'Missions for home, out, or long distance' },
@@ -346,12 +454,13 @@ const GAMES = [
   { id: 'rather', name: 'Would You Rather', icon: '⚖️', desc: 'Pick in secret — match for points' },
   { id: 'hotseat', name: 'Hot Seat', icon: '⏱️', desc: '60 seconds of rapid-fire questions' },
   { id: 'fantasy', name: 'Fantasy Builder', icon: '✨', desc: 'Build tonight\'s scenario together' },
+  { id: 'tips', name: 'Sex Tips', icon: '📚', desc: 'Better intimacy, health & long distance' },
 ];
 const gameName = (id) => GAMES.find((g) => g.id === id)?.name || 'a game';
 
 function openGame(id) {
   ui.tab = 'games'; ui.game = id;
-  if (id === 'desire') return render();
+  if (id === 'desire' || id === 'talk' || id === 'tips') return render();
   const g = S.shared.game?.kind === id ? S.shared.game : { kind: id, turn: 'A', card: null };
   if (S.shared.game?.kind !== id) set(['game'], g); else render();
 }
@@ -433,8 +542,11 @@ function homeView() {
       <div><b>✨ ${both}</b><span>positions you both want</span></div>
     </div>
     <div class="card spark"><div class="muted small">Today's spark</div><p>${esc(spark)}</p></div>
+    <div class="card talkhome" data-a="game" data-id="talk">${(() => { const sc = talkScores(), l = talkLeader(); return `<div class="row between"><b>🗣️ Spicy Talk</b><span class="small">${l === 'A' || l === 'B' ? `👑 ${nm(l)}` : l === 'tie' ? 'Tied!' : 'Start talking →'}</span></div>
+      <div class="small muted">${nm('A')} ${sc.A.score} · ${nm('B')} ${sc.B.score} — every 🔥 from your partner is +10</div>`; })()}</div>
     <h3>Play now</h3>
     <div class="grid">${GAMES.slice(0, 4).map(gameTile).join('')}</div>
+    <div class="card" data-a="game" data-id="tips"><div class="muted small">📚 Tip of the day</div><p class="small">${esc(tipOfDay())}</p></div>
     <div class="card"><div class="muted small">Bucket list</div>
       <div class="bar"><i style="width:${bucketAll ? Math.round((bucketDone / bucketAll) * 100) : 0}%"></i></div>
       <div class="small">${bucketDone} of ${bucketAll} hot experiences done <a href="#" data-a="plan" data-sub="bucket">Open →</a></div></div>
@@ -448,7 +560,7 @@ function gamesView() {
       <div class="grid">${GAMES.map(gameTile).join('')}</div></section>`;
   }
   const back = `<button class="back" data-a="back">‹ Games</button>`;
-  const fn = { tod: todView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
+  const fn = { tod: todView, talk: talkView, tips: tipsView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
   return `<section>${back}${fn ? fn() : ''}</section>`;
 }
 
@@ -479,7 +591,7 @@ function desireMatches() {
     .filter((x) => (x.a === 'yes' || x.a === 'maybe') && (x.b === 'yes' || x.b === 'maybe'));
 }
 function swiperBar() {
-  if (online()) return `<p class="muted small center">You are voting as <b>${nm(S.local.role)}</b>. Your partner votes on their phone.</p>`;
+  if (online()) return `<p class="muted small center">You are playing as <b>${nm(S.local.role)}</b>. Your partner plays on their phone.</p>`;
   return `<div class="swiper">Voting: ${['A', 'B'].map((r) => `<button class="chip ${S.local.swiper === r ? 'on' : ''}" data-a="swiper" data-r="${r}">${nm(r)}</button>`).join('')}<small class="muted">Pass the phone · no peeking 🙈</small></div>`;
 }
 function desireView() {
@@ -498,6 +610,54 @@ function desireView() {
     <p class="muted small">Only things you <b>both</b> said yes or maybe to appear. A "no" is never revealed.</p>
     <div class="list">${m.map((x) => `<div class="li"><span>${esc(x.text)}</span><span class="tag">${x.a === 'yes' && x.b === 'yes' ? '💚 Both yes' : '🤔 Worth a chat'}</span></div>`).join('') || '<p class="muted small">No matches yet — keep swiping!</p>'}</div>
     <button class="btn ghost sm" data-a="desireReset">Redo my answers</button>`;
+}
+
+function talkScores() {
+  const sc = { A: { sent: 0, likes: 0 }, B: { sent: 0, likes: 0 } };
+  for (const m of Object.values(S.shared.talk || {})) {
+    if (!m || !sc[m.from]) continue;
+    sc[m.from].sent++;
+    if (m.likes && typeof m.likes === 'object' && m.likes[other(m.from)]) sc[m.from].likes++;
+  }
+  for (const r of ['A', 'B']) sc[r].score = sc[r].likes * 10 + sc[r].sent * 2;
+  return sc;
+}
+function talkLeader() {
+  const sc = talkScores();
+  if (!sc.A.score && !sc.B.score) return null;
+  return sc.A.score === sc.B.score ? 'tie' : sc.A.score > sc.B.score ? 'A' : 'B';
+}
+function talkView() {
+  const r = me(), sc = talkScores(), lead = talkLeader();
+  const msgs = Object.entries(S.shared.talk || {}).filter(([, m]) => m && typeof m.text === 'string' && (m.from === 'A' || m.from === 'B'))
+    .sort((a, b) => num(b[1].ts) - num(a[1].ts));
+  const starters = C.TALK_STARTERS.filter((x) => x[0] <= S.shared.heat);
+  return `<h2>🗣️ Spicy Talk</h2>
+    <p class="muted small">Say what you're thinking about each other. Every 🔥 your partner gives your message = <b>+10</b>. Every message = +2. Who's the bigger talker?</p>
+    <div class="talkboard">${['A', 'B'].map((x) => `<div class="${lead === x ? 'lead' : ''}">${lead === x ? '<span class="crown">👑</span>' : ''}<b>${nm(x)}</b><div class="big-score">${sc[x].score}</div><small>${sc[x].sent} messages · ${sc[x].likes} 🔥</small></div>`).join('')}</div>
+    ${lead && lead !== 'tie' ? `<p class="center small"><b>${nm(lead)}</b> is the Spicy Talker 👑 — ${nm(other(lead))}, your move.</p>` : ''}
+    ${swiperBar()}
+    <div class="chips">${starters.map((x) => `<button class="chip" data-a="starter" data-t="${esc(x[1])}">${esc(x[1])}</button>`).join('')}</div>
+    <form class="card" data-form="talk"><textarea name="m" rows="3" maxlength="500" required placeholder="${nm(r)}, tell ${nm(other(r))} what's on your mind…">${esc(ui.talkDraft || '')}</textarea>
+      <div class="row between"><small class="muted">Writing as ${nm(r)}</small><button class="btn">Send 🔥</button></div></form>
+    <div class="talkfeed">${msgs.map(([id, m]) => {
+      const liked = m.likes && m.likes[other(m.from)];
+      const canLike = m.from !== r && (online() ? r === S.local.role : true);
+      return `<div class="tmsg ${m.from === r ? 'mine' : ''}"><small>${nm(m.from)}</small><p>${esc(m.text)}</p>
+        <div class="row between"><span class="small muted">${liked ? `🔥 ${nm(other(m.from))} loved this` : ''}</span>${canLike ? `<button class="chip ${liked ? 'on' : ''}" data-a="talkLike" data-id="${esc(id)}">${liked ? '🔥 Loved' : '🔥 Love it'}</button>` : ''}</div></div>`;
+    }).join('') || '<p class="muted small center">No messages yet. Pick a starter above 👆</p>'}</div>`;
+}
+function tipsView() {
+  const cat = C.TIPS.find((c) => c.cat === ui.tipCat) || C.TIPS[0];
+  return `<h2>📚 Sex Tips for Couples</h2>
+    <div class="card spark"><div class="muted small">Tip of the day</div><p>${esc(tipOfDay())}</p></div>
+    <div class="chips">${C.TIPS.map((c) => `<button class="chip ${c === cat ? 'on' : ''}" data-a="tipCat" data-c="${esc(c.cat)}">${c.icon} ${esc(c.cat)}</button>`).join('')}</div>
+    <div class="list">${cat.items.map((t) => `<div class="li">${cat.icon} ${esc(t)}</div>`).join('')}</div>
+    <p class="muted small">General wellness information, not medical advice. If something hurts or worries you, see a doctor.</p>`;
+}
+function tipOfDay() {
+  const all = C.TIPS.flatMap((c) => c.items);
+  return all[(Math.floor(Date.now() / 864e5) * 7) % all.length];
 }
 
 function diceView() {
@@ -667,35 +827,46 @@ function bucketView() {
 
 function connectView() {
   const link = net.code ? `${location.origin}${location.pathname}#join=${net.code}` : '';
-  const st = { offline: 'Not connected', starting: 'Opening room…', waiting: 'Waiting for your partner…', joining: 'Joining…', connected: 'Connected' }[online() ? 'connected' : net.status] || net.status;
+  const st = { offline: 'Not connected', joining: 'Connecting…', waiting: 'Waiting for your partner…', connected: 'Connected' }[online() ? 'connected' : net.status] || net.status;
+  const me = S.local.me, p = S.local.partner;
+  if (!me && !ui.numberAsked) { ui.numberAsked = true; ensureNumber().then(() => { openInbox(); softRender(); }).catch(() => softRender()); }
+  const numLink = me ? `${location.origin}${location.pathname}#love=${me.number}` : '';
   return `<section><h2>Connect</h2>
-    <div class="card status ${online() ? 'live' : ''}"><div><b>${online() ? '🟢' : net.status === 'offline' ? '⚪' : '🟡'} ${st}</b>${online() ? `<p class="small muted">Live with ${nm(other(S.local.role))}. Everything syncs.</p>` : ''}</div>
+    <div class="card status ${online() ? 'live' : ''}"><div><b>${online() ? '🟢' : net.status === 'offline' ? '⚪' : '🟡'} ${st}</b>${online() ? `<p class="small muted">Live with ${nm(other(S.local.role))}. Everything syncs.</p>` : net.room.startsWith('pair:') ? '<p class="small muted">You\'ll connect as soon as your partner opens the app.</p>' : ''}</div>
       ${net.status !== 'offline' || online() ? '<button class="btn sm ghost" data-a="leave">Leave</button>' : ''}</div>
     ${online() ? `
       <div class="row call-row"><button class="btn big" data-a="call" data-video="1">📹 Video call</button><button class="btn big ghost" data-a="call" data-video="0">📞 Voice call</button></div>
       <div class="react-row">${['❤️', '😘', '🔥', '😈', '🥵', '💦'].map((e) => `<button class="mini big" data-a="react" data-e="${e}">${e}</button>`).join('')}</div>
       <div class="card chat"><div class="msgs" id="msgs">${S.local.chat.map((c) => `<div class="msg ${c.from === S.local.role ? 'mine' : ''}">${esc(c.text)}</div>`).join('') || '<p class="muted small center">Say something sweet… or naughty.</p>'}</div>
-      <form class="row" data-form="chat"><input name="m" maxlength="1000" autocomplete="off" placeholder="Message ${nm(other(S.local.role))}"><button class="btn sm">Send</button></form></div>`
-    : net.host && net.code ? `
-      <div class="card center"><div class="muted small">Your room code</div><div class="code">${esc(net.code)}</div>
+      <form class="row" data-form="chat"><input name="m" maxlength="1000" autocomplete="off" placeholder="Message ${nm(other(S.local.role))}"><button class="btn sm">Send</button></form></div>` : ''}
+    <div class="card love">
+      <b>💞 Love Number</b>
+      ${p ? `<p>Paired with <b>${esc(p.name)}</b> · ${esc(fmtNum(p.number))}</p><p class="small muted">Your phones reconnect automatically whenever you both open the app.</p>
+        <div class="row">${net.room.startsWith('pair:') ? '' : '<button class="btn sm" data-a="reconnect">Reconnect</button>'}<button class="btn sm ghost" data-a="unpair">Unpair</button></div>`
+      : `<p class="small muted">Like a phone number for your relationship. Give yours to your partner, or enter theirs. Connect once — reconnect forever.</p>
+        <div class="muted small">Your Love Number</div>
+        ${me ? `<div class="code num">${esc(fmtNum(me.number))}</div><div class="row"><button class="btn sm" data-a="share" data-link="${esc(numLink)}" data-text="Connect with me on Intimacy for Couples 💞 My Love Number: ${esc(fmtNum(me.number))}">📤 Share my number</button><button class="btn sm ghost" data-a="copy" data-link="${esc(me.number)}">Copy</button></div>`
+          : '<div class="row"><button class="btn sm" data-a="getNumber">Get my Love Number</button></div>'}
+        <form class="row" data-form="ring"><input name="to" inputmode="numeric" maxlength="9" placeholder="Partner's Love Number" value="${esc(ui.ringTo || '')}"><button class="btn">Connect</button></form>
+        ${ui.ringing ? '<p class="small muted">💌 Request sent. It shows on your partner\'s phone — they tap Accept.</p>' : ''}`}
+    </div>
+    ${online() || p ? '' : net.host && net.code ? `
+      <div class="card center"><div class="muted small">Quick room code</div><div class="code">${esc(net.code)}</div>
       <p class="small">Send this to your partner. They tap <b>Join</b> and enter it.</p>
-      <div class="row center"><button class="btn sm" data-a="share" data-link="${esc(link)}">📤 Share invite</button><button class="btn sm ghost" data-a="copy" data-link="${esc(link)}">Copy link</button></div></div>`
+      <div class="row center"><button class="btn sm" data-a="share" data-link="${esc(link)}" data-text="Join me on Intimacy for Couples 💞 Room code: ${esc(net.code)}">📤 Share invite</button><button class="btn sm ghost" data-a="copy" data-link="${esc(link)}">Copy link</button></div></div>`
     : `
-      <div class="card"><b>Long distance? Play live.</b><p class="small muted">One of you creates a room, the other joins with the code. Then you get synced games, chat, voice and video calls.</p>
-      <button class="btn wide" data-a="create">💌 Create a room</button>
+      <div class="card"><b>⚡ Quick room</b><p class="small muted">No number needed — one of you creates a room, the other joins with the code. Good for a one-off session.</p>
+      <button class="btn ghost wide" data-a="create">Create a room</button>
       <form class="row" data-form="join"><input name="code" maxlength="6" placeholder="Room code" value="${esc(ui.joinCode || '')}" style="text-transform:uppercase"><button class="btn ghost">Join</button></form></div>`}
     <h3>Settings</h3>
     <form class="card" data-form="settings">
       <div class="row"><label>Player 1<input name="a" maxlength="30" value="${esc(S.shared.players.A.name)}"></label><label>Player 2<input name="b" maxlength="30" value="${esc(S.shared.players.B.name)}"></label></div>
       <label>Safe word<input name="safe" maxlength="20" value="${esc(S.shared.safeWord)}"></label>
       <label>App lock PIN <small class="muted">(4–8 digits, blank = off)</small><input name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" placeholder="${S.local.pin ? '•••• (set)' : 'Off'}"></label>
-      <details><summary class="small">Advanced: own connection server</summary>
-        <label>Signaling server (PeerJS) <small class="muted">blank = free public server</small><input name="signal" placeholder="https://peer.yourdomain.com" value="${esc(S.local.signal)}"></label>
-        <label>TURN server JSON <small class="muted">for strict mobile networks</small><input name="turn" placeholder='{"urls":"turn:turn.example.com:3478","username":"u","credential":"p"}' value="${esc(S.local.turn)}"></label></details>
       <button class="btn">Save settings</button>
     </form>
     <div class="row"><button class="btn ghost sm" data-a="export">⬇ Backup</button><label class="btn ghost sm">⬆ Restore<input type="file" accept="application/json" data-a="import" hidden></label><button class="btn ghost sm" data-a="unhide">Unhide cards</button><button class="btn danger sm" data-a="reset">Erase everything</button></div>
-    <p class="muted small">🔒 No accounts, no tracking. Data lives on this phone. Live play is peer-to-peer and encrypted by WebRTC; a public server only introduces the two phones. Press Esc or 🙈 to hide the app instantly.</p></section>`;
+    <p class="muted small">🔒 No email, no phone number, no tracking. Games, answers and chats stay on your phones — the server only passes live messages between you and never stores them. Voice and video go directly phone-to-phone. Press Esc or 🙈 to hide the app instantly. <a href="/privacy/">Privacy</a></p></section>`;
 }
 
 function renderPause() {
@@ -773,6 +944,16 @@ const A = {
   fzNew: () => setGame({ fantasy: Object.fromEntries(Object.entries(C.FANTASY).map(([k, v]) => [k, rnd(v)])) }),
   fzSwap: (el) => { const f = { ...G().fantasy }; const k = el.dataset.k; const opts = C.FANTASY[k].filter((x) => x !== f[k]); f[k] = rnd(opts); setGame({ fantasy: f }); },
   fzSave: () => { const f = G().fantasy; appendNote(`✨ Fantasy: ${f.setting}, as ${f.roles}, ${f.mood}. Rule: ${f.rule}.`); },
+  starter: (el) => { ui.talkDraft = el.dataset.t + ' '; render(); const t = $('form[data-form="talk"] textarea'); t?.focus(); t?.setSelectionRange(t.value.length, t.value.length); },
+  tipCat: (el) => { ui.tipCat = el.dataset.c; render(); },
+  talkLike: (el) => {
+    const id = el.dataset.id, m = S.shared.talk?.[id]; if (!m) return;
+    const r = me(); if (m.from === r) return;
+    const on = !(m.likes && m.likes[r]);
+    set(['talk', id, 'likes', r], on ? 1 : null, { quiet: true });
+    if (on) { addPoints(m.from, 10); floatEmoji('🔥'); toast(`+10 for ${S.shared.players[m.from]?.name || 'your partner'} 🔥`); }
+    render();
+  },
   posFilter: (el) => { ui.posFilter = el.dataset.f; render(); },
   posVote: (el) => {
     const r = me(), id = el.dataset.id, cur = S.shared.pos?.[id]?.[r];
@@ -804,13 +985,24 @@ const A = {
   futureDel: (el, e) => { e.preventDefault(); set(['future'], (S.shared.future || []).filter((f) => f.id !== el.dataset.id)); },
   bucket: (el) => { set(['bucket', el.dataset.id], el.checked ? { done: true, date: localDate() } : null); if (el.checked) { floatEmoji('🔥'); bumpStreak(); } },
   create: () => createRoom(),
+  getNumber: () => ensureNumber().then(() => { openInbox(); render(); }).catch((e) => toast(e.message)),
+  ringYes: async (el) => {
+    try { const d = await post('/accept', authBody({ from: el.dataset.from })); paired(d.partner.number, d.partner.name); } catch (e) { toast(e.message); closeModal(); }
+  },
+  ringNo: (el) => { post('/decline', authBody({ from: el.dataset.from })).catch(() => {}); closeModal(); },
+  reconnect: () => connectPartner(),
+  unpair: async () => {
+    if (!confirm('Unpair from your partner? You can connect again any time with their Love Number.')) return;
+    const p = S.local.partner; S.local.partner = null; save(); teardown();
+    post('/unpair', authBody({ partner: p.number })).catch(() => {}); render();
+  },
   leave: () => { teardown(); render(); },
   share: async (el) => {
     const url = el.dataset.link;
-    if (navigator.share) { try { await navigator.share({ title: 'Intimacy for Couples', text: `Join me 💞 Room code: ${net.code}`, url }); return; } catch { /* cancelled */ } }
+    if (navigator.share) { try { await navigator.share({ title: 'Intimacy for Couples', text: el.dataset.text || 'Join me 💞', url }); return; } catch { /* cancelled */ } }
     A.copy(el);
   },
-  copy: async (el) => { try { await navigator.clipboard.writeText(el.dataset.link); toast('Invite link copied'); } catch { prompt('Copy this link', el.dataset.link); } },
+  copy: async (el) => { try { await navigator.clipboard.writeText(el.dataset.link); toast('Copied'); } catch { prompt('Copy this link', el.dataset.link); } },
   call: (el) => startCall(el.dataset.video === '1'),
   acceptCall: () => acceptCall(),
   declineCall: () => { try { pendingCall?.close(); } catch { /* */ } pendingCall = null; send({ t: 'decline' }); closeModal(); },
@@ -886,10 +1078,20 @@ document.addEventListener('submit', (e) => {
       S.local.setup = true; S.local.myName = d.me.trim(); S.local.swiper = 'A';
       S.shared.players = { A: { name: d.me.trim() }, B: { name: d.partner.trim() } };
       S.shared.heat = Number(d.heat) || 2; S.shared.safeWord = d.safe.trim() || 'Pineapple';
-      save(); ui.tab = ui.joinCode ? 'connect' : 'home'; render();
+      save(); ui.tab = ui.joinCode || ui.ringTo ? 'connect' : 'home'; render();
       if (ui.joinCode) joinRoom(ui.joinCode);
       break;
+    case 'talk': {
+      const text = (d.m || '').trim(); if (!text) return;
+      const id = Date.now().toString(36) + uid().slice(0, 4);
+      set(['talk', id], { from: me(), text: text.slice(0, 500), ts: Date.now(), likes: {} }, { quiet: true });
+      const all = Object.entries(S.shared.talk || {}).sort((a, b) => num(a[1]?.ts) - num(b[1]?.ts));
+      if (all.length > 150) set(['talk', all[0][0]], null, { quiet: true });
+      ui.talkDraft = ''; addPoints(me(), 2); render();
+      break;
+    }
     case 'join': ui.joinCode = d.code; joinRoom(d.code); break;
+    case 'ring': ui.ringTo = d.to; ringPartner(d.to); break;
     case 'chat': {
       const text = (d.m || '').trim(); if (!text || !online()) return;
       send({ t: 'chat', text }); S.local.chat.push({ from: S.local.role, text, ts: Date.now() }); S.local.chat = S.local.chat.slice(-200); save(); render();
@@ -905,7 +1107,7 @@ document.addEventListener('submit', (e) => {
       if (online()) S.local.myName = (S.local.role === 'A' ? d.a : d.b).trim() || S.local.myName; else S.local.myName = d.a.trim() || S.local.myName;
       if (d.safe.trim()) set(['safeWord'], d.safe.trim(), { quiet: true });
       if (/^\d{4,8}$/.test(d.pin)) { S.local.pin = d.pin; toast('PIN lock on'); } else if (d.pin === '' && S.local.pin && confirm('Turn off the PIN lock?')) S.local.pin = '';
-      S.local.signal = d.signal.trim(); S.local.turn = d.turn.trim();
+      if (S.local.me) post('/name', authBody({ name: S.local.myName })).catch(() => {});
       save(); toast('Saved'); render();
       break;
     }
@@ -934,6 +1136,8 @@ $('#lock form').addEventListener('submit', (e) => {
 
 // invite links: #join=CODE
 function readHash() {
+  const love = location.hash.match(/love=(\d{8})/);
+  if (love) { ui.ringTo = love[1]; ui.tab = 'connect'; history.replaceState(null, '', location.pathname + location.search); if (S.local.setup) render(); return; }
   const m = location.hash.match(/join=([A-Za-z0-9]{6})/);
   if (!m) return;
   ui.joinCode = m[1].toUpperCase(); history.replaceState(null, '', location.pathname + location.search);
@@ -945,5 +1149,7 @@ window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, 
 sanitize();
 readHash();
 render();
+if (S.local.setup && S.local.me) openInbox();
+if (S.local.setup && S.local.partner) connectPartner();
 showLock();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => {});

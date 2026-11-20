@@ -4,7 +4,14 @@ A private, 18+ game for couples. One app for the things couples actually do toge
 flirting, playing, planning the next meet-up, planning the future, and staying close
 when they're apart.
 
-Run it: open `intimacy/index.html` over HTTPS (or `localhost`). There's no build step.
+Live: https://intimacycouple.xeenox-in.workers.dev · Deploy and domain guide: [`DEPLOY.md`](DEPLOY.md)
+
+```
+intimacy/
+  app/        the game (served at /play/) — plain HTML/CSS/JS, no framework
+  site/       build.mjs: landing page + SEO guides + sitemap, generated from app/content.js
+  worker/     Cloudflare Worker: website, API, Durable Object rooms, D1 schema
+```
 
 ---
 
@@ -53,46 +60,49 @@ Cards come from the chosen heat 70% of the time and from lower heats 30% of the 
 so the mood builds. Both phones always share the same heat. Lowering it is one tap,
 including from the pause screen.
 
-## 4. Games (8)
+## 4. Games (10)
 
-1. **Truth or Dare** — turns, +5 for a truth, +10 for a dare, free skip, hide forever.
-2. **Desire Match** — private Yes/Maybe/No swipes, mutual matches only.
-3. **Sexy Dice** — action × body spot × duration.
-4. **Naughty Date Dares** — missions for home, going out, or long distance. Save to the meet-up.
-5. **Never Have I Ever** — both answer secretly, then reveal together.
-6. **Would You Rather** — secret picks. Matching picks = +5 each.
-7. **Hot Seat** — 60-second rapid fire, 2 points per answer.
-8. **Fantasy Builder** — setting, roles, mood and rule. Re-roll any part, then save to the plan.
+1. **Truth or Dare**: 55 truths and 54 dares. +5 for a truth, +10 for a dare. Free skip, or hide a card forever.
+2. **Spicy Talk**: each partner writes what they're thinking. Every 🔥 from the partner = **+10**,
+   every message = +2. A live scoreboard crowns the "Spicy Talker 👑", which rewards the partner
+   who talks more and better about sex. You can't like your own message.
+3. **Desire Match**: private Yes/Maybe/No swipes (38 items). Only mutual matches show.
+4. **Sexy Dice**: action × body spot × duration.
+5. **Naughty Date Dares**: missions for home, going out, or long distance. Save one to the meet-up plan.
+6. **Never Have I Ever**: both answer secretly, then reveal together.
+7. **Would You Rather**: secret picks. Matching picks = +5 each.
+8. **Hot Seat**: 60-second rapid fire, 2 points per answer.
+9. **Fantasy Builder**: setting, roles, mood and rule. Re-roll any part, then save to the plan.
+10. **Sex Tips**: 34 practical tips in 7 categories (talk, foreplay, pleasure, long distance,
+    keeping the spark, health and safety, aftercare), plus a tip of the day on Home.
 
-## 5. Multiplayer
+Plus the **Position Planner** (40 positions with private Want/Pass votes), the meet-up planner,
+the future board and the bucket list.
 
-- **Same phone**: pass and play. Private screens (Desire Match, positions) have a "who is
-  voting" switch with a "no peeking" reminder.
-- **Two phones**: one partner taps *Create a room* and shares the 6-letter code or invite
-  link. The other partner joins. The phones connect directly with WebRTC (PeerJS). Game
-  state, chat, reactions, the pause signal, voice and video all travel over that link.
-  When one partner opens a game, the other phone follows.
-- The room creator's board is the shared copy. Changes are sent as small path updates,
-  so both partners can vote at the same time without overwriting each other.
-- Values from the partner's phone are treated as untrusted. Text is HTML-escaped, numbers
-  are converted to numbers, and only known keys are accepted.
+## 5. Multiplayer: Love Numbers
 
-## 6. Production checklist (before a public launch)
+- **Same phone**: pass and play. Private screens have a "who is playing" switch.
+- **Love Number (permanent)**: each phone gets an 8-digit number, with no email or phone number
+  needed. Partner A enters B's number, and B gets a request ("Arjun wants to connect") and taps Accept.
+  The pair is saved, and from then on **both phones reconnect automatically** whenever the app opens.
+  Requests are rate-limited (1 every 20 s, 15 an hour), and only paired numbers can join a
+  couple's room.
+- **Quick room**: a 6-letter code for a one-off session, no number needed.
+- **Live sync**: game moves, chat, reactions and the safe-word pause relay through the couple's
+  room (a Cloudflare Durable Object, WebSocket). The room creator, or the lower Love Number,
+  holds the shared copy of the board. Changes are small path updates, so both partners can act at once.
+- **Voice and video**: native WebRTC, signalled through the room. Media goes phone-to-phone, with
+  STUN by default and a Cloudflare TURN relay when configured.
+- **Security**: partner data is untrusted. Text is HTML-escaped, numbers are converted to numbers,
+  and only known keys are accepted. Love Number secrets are stored only as SHA-256 hashes.
 
-- **Signaling server**: the default is the free public PeerJS server. For reliability, run
-  your own (`npx peerjs --port 9000`, or deploy the `peer` npm package) and enter it under
-  Connect → Advanced, or pass `?signal=https://your-server` in the URL.
-- **TURN server**: about 10–20% of mobile networks block direct peer-to-peer connections.
-  Add a TURN server (coturn, Cloudflare Calls TURN or Twilio) under Connect → Advanced so
-  calls connect everywhere.
-- **Hosting**: any static HTTPS host (Vercel, Netlify, Cloudflare Pages). Camera and
-  microphone access needs HTTPS.
-- **App stores**: Google Play and the App Store allow sexual-wellness and couples apps but
-  ban explicit sexual content. Keep the copy suggestive, not graphic (as it is now), mark
-  the app 18+/Mature, and add a privacy policy. A store build can wrap this folder with
-  Capacitor, which the repo already uses for EasyWay.
-- **Legal**: add an age confirmation (done), terms, a privacy policy, and a grievance
-  officer for Indian IT Rules if the app collects any data later.
+## 6. Backend and data
+
+| Stored on the server (D1) | Never stored |
+| --- | --- |
+| Love Number, first name, hashed secret, pairs, pending requests (7-day window) | Games, answers, votes, chats, plans, photos, audio or video |
+
+See [`DEPLOY.md`](DEPLOY.md) for the domain, TURN, GitHub deploys, the SEO checklist and scaling.
 
 ## 7. Monetisation ideas
 

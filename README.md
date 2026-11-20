@@ -144,9 +144,14 @@ Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm 
 
 ## Intimacy for Couples (18+)
 
-A private game for couples in [`intimacy/`](intimacy/): Truth or Dare with 4 heat levels, Desire Match,
-Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather, Hot Seat, Fantasy Builder, a position
-planner, a next meet-up planner with countdown, future planning and a hot-experiences bucket list.
-Long-distance couples connect two phones with a room code for synced games, chat, voice and video calls
-(peer-to-peer WebRTC). No accounts and no server database. It's a static site, so open `intimacy/index.html` over HTTPS.
-Design and 2026–27 trend analysis: [`intimacy/DESIGN.md`](intimacy/DESIGN.md).
+**Live: https://intimacycouple.xeenox-in.workers.dev** · code in [`intimacy/`](intimacy/)
+
+A private game for couples: Truth or Dare (4 heat levels, 100+ cards), Spicy Talk (every 🔥 your partner
+gives your message scores), Desire Match, Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather,
+Hot Seat, Fantasy Builder, Sex Tips, a 40-position planner, a meet-up planner with countdown, future planning
+and a bucket list. Partners connect two phones once with an 8-digit **Love Number**, then play live with
+synced games, chat, voice and video calls.
+
+Runs on one Cloudflare Worker: the website with SEO guide pages, `/play` app, API, Durable Object rooms and a D1 database.
+`npm run dev:intimacy` to run locally, `npm run deploy:intimacy` to publish. Domain, SEO and launch steps:
+[`intimacy/DEPLOY.md`](intimacy/DEPLOY.md). Design and 2026–27 trends: [`intimacy/DESIGN.md`](intimacy/DESIGN.md).

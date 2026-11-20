@@ -290,3 +290,20 @@ details summary { cursor: pointer; color: var(--muted); margin: 10px 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Spicy Talk */
+.talkboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+.talkboard > div { position: relative; text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 8px; }
+.talkboard > div.lead { border-color: var(--gold); background: rgba(245, 194, 122, 0.1); }
+.crown { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 1.4rem; }
+.big-score { font-size: 2.2rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.talkboard small { color: var(--muted); font-size: 0.75rem; }
+.talkfeed { display: flex; flex-direction: column; gap: 8px; }
+.tmsg { background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 10px 14px; max-width: 92%; }
+.tmsg.mine { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: rgba(255, 61, 127, 0.12); }
+.tmsg small { color: var(--gold); font-size: 0.75rem; }
+.tmsg p { margin: 4px 0; white-space: pre-wrap; word-wrap: break-word; }
+.tmsg .row { margin: 4px 0 0; }
+.talkhome, [data-a="game"].card { cursor: pointer; }
+.code.num { letter-spacing: 0.12em; }
+.love { border-color: rgba(245, 194, 122, 0.35); }
