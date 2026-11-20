@@ -60,7 +60,7 @@ ${crumbs && path !== '/' ? `<nav class="crumbs" aria-label="Breadcrumb"><a href=
 ${intro ? `<p class="lead">${intro}</p>` : ''}
 ${body}
 ${faq.length ? `<section><h2>Frequently asked questions</h2>${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</section>` : ''}
-<section class="band"><h2>Play it together — free</h2><p>Truth or dare, desire match, spicy talk, sex dice, a position planner and date plans in one private app. Same phone or miles apart with live video.</p><a class="cta" href="/play/">Start playing 💞</a></section>
+<section class="band"><h2>Play it together — free</h2><p>Truth or dare, desire match, hot chat, sex dice, a position planner and date plans in one private app. Same phone or miles apart with live video.</p><a class="cta" href="/play/">Start playing 💞</a></section>
 ${related(path)}
 </main>
 <footer><p><b>${BRAND}</b> is for consenting adults 18+. No sign-up, no tracking; your games stay on your phones.</p>
@@ -135,12 +135,12 @@ GUIDES.push({
 GUIDES.push({
   path: '/couple-games-online/',
   title: 'Couple Games Online: Free Romantic & Spicy Games for Two',
-  description: 'Free online couple games: truth or dare, spicy talk, desire match, sex dice, never have I ever, would you rather and more. Play on one phone or two.',
+  description: 'Free online couple games: truth or dare, hot chat, desire match, sex dice, never have I ever, would you rather and more. Play on one phone or two.',
   h1: 'Couple Games Online',
   intro: 'Ten games built for two people who like each other a lot. Play on one phone, or connect two phones anywhere in the world.',
   body: `<section><h2>The games</h2><div class="pos">${[
     ['🎭 Truth or Dare', `${C.TRUTHS.length + C.DARES.length} cards across four heat levels, with turns and love points.`],
-    ['🗣️ Spicy Talk', 'Write what you are thinking about each other. Every 🔥 from your partner is +10 points — find out who the bigger talker is.'],
+    ['🔥 Hot Chat', 'Write what you are thinking about each other. Every 🔥 from your partner is +10 Hot Score — find out who the hottest talker is.'],
     ['💞 Desire Match', 'Swipe yes, maybe or no in private. Only things you both want are revealed.'],
     ['🎲 Sexy Dice', 'Roll an action, a body spot and a time.'],
     ['🌙 Naughty Date Dares', 'Missions for at home, a night out or long distance.'],
@@ -157,7 +157,7 @@ GUIDES.push({
 GUIDES.push({
   path: '/long-distance-relationship-games/',
   title: 'Long Distance Relationship Games to Play Over Video Call',
-  description: 'Games for long distance couples to play over video call: synced truth or dare, spicy talk, desire match and date missions — free, with built-in video chat.',
+  description: 'Games for long distance couples to play over video call: synced truth or dare, hot chat, desire match and date missions — free, with built-in video chat.',
   h1: 'Long Distance Relationship Games',
   intro: 'Miles apart should not mean nothing to do on a call. Connect two phones with Love Numbers and play the same game at the same time, with a video or voice call running.',
   body: `<section><h2>How it works</h2><ol><li>Open the app on both phones. Each of you gets an 8-digit Love Number.</li><li>One of you enters the other's number; the other taps Accept.</li><li>From then on your phones reconnect automatically — start a video call and play.</li></ol></section>
@@ -208,13 +208,58 @@ GUIDES.push({
 <section><h2>🔮 Future-planning questions</h2>${cardList(C.FUTURE_PROMPTS)}</section>`,
 });
 
+// In-app guides become SEO pages too.
+const LEARN_SEO = {
+  'make-partner-happy': ['/how-to-make-your-partner-happy-in-bed/', 'How to Make Your Partner Happy in Bed: 20 Simple Habits', 'How to make your partner happy in bed — communication, foreplay, making it about them, keeping it new and aftercare. Practical tips for couples.'],
+  'what-men-like': ['/what-men-like-in-bed/', 'What Men Like in Bed: What Many Men Say They Love', 'What many men say they love in bed — feeling desired, visual and verbal turn-ons, favourite touch and variety. Use it to start a conversation.'],
+  'what-women-like': ['/what-women-like-in-bed/', 'What Women Like in Bed: What Many Women Say They Love', 'What many women say they love in bed — feeling safe and wanted, more foreplay, favourite positions and atmosphere. Use it to start a conversation.'],
+  'sex-toys-gadgets': ['/sex-toys-for-couples/', 'Sex Toys & Gadgets for Couples: A Beginner\'s Guide', 'The best sex toys and gadgets for couples: where to start, toys for two, long-distance toys, sensation play and safety.'],
+  'hot-positions-guide': ['/hottest-sex-positions/', 'Hottest Sex Positions to Try This Month', 'The hottest sex positions to try this month — for passion, for deep connection and for something new.'],
+};
+for (const g of C.LEARN) {
+  const seo = LEARN_SEO[g.id]; if (!seo) continue;
+  GUIDES.push({
+    path: seo[0], title: seo[1], description: seo[2], h1: g.title, intro: esc(g.intro), adult: true,
+    body: g.sections.map(([h, items]) => `<section><h2>${esc(h)}</h2><ul class="cards">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></section>`).join('')
+      + '<p class="note">Every person is different — the best guide is your partner. Ask, listen, and enjoy.</p>',
+  });
+}
+
+function adminPage() {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+<title>Admin — ${BRAND}</title><link rel="stylesheet" href="/site.css"></head><body><main>
+<h1>Community review</h1><p class="lead">Approve or reject stories before they go live. Reported stories (3+ reports) come back here.</p>
+<form id="k"><input id="key" type="password" placeholder="Admin key" style="padding:12px;border-radius:12px;width:100%;max-width:360px" autocomplete="current-password"> <button class="cta sm">Open</button></form>
+<p id="stats" class="note"></p><div id="list"></div></main>
+<script>
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let key = sessionStorage.getItem('ak') || '';
+async function call(path, extra = {}) {
+  const r = await fetch('/api/admin/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key, ...extra }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Error');
+  return r.json();
+}
+async function load() {
+  try {
+    const d = await call('pending');
+    sessionStorage.setItem('ak', key);
+    document.getElementById('stats').textContent = d.stats.users + ' Love Numbers · ' + d.stats.couples + ' couples · ' + d.stats.live + ' live stories · ' + d.stories.length + ' waiting';
+    document.getElementById('list').innerHTML = d.stories.map((s) => '<article style="border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;margin:10px 0"><p class="note">#' + s.id + ' · ' + esc(s.handle) + ' · ' + esc(s.topic) + ' · ' + new Date(s.created).toLocaleString() + (s.reports ? ' · ⚑ ' + s.reports + ' reports' : '') + '</p><p style="white-space:pre-wrap">' + esc(s.text) + '</p><button class="cta sm" data-id="' + s.id + '" data-act="approve">Approve</button> <button class="cta sm" style="background:#5a1023" data-id="' + s.id + '" data-act="reject">Reject</button></article>').join('') || '<p>Nothing waiting. 🎉</p>';
+  } catch (e) { document.getElementById('stats').textContent = e.message; }
+}
+document.getElementById('k').onsubmit = (e) => { e.preventDefault(); key = document.getElementById('key').value; load(); };
+document.getElementById('list').onclick = async (e) => { const b = e.target.closest('button[data-id]'); if (!b) return; b.disabled = true; await call('moderate', { id: Number(b.dataset.id), action: b.dataset.act }).catch((x) => alert(x.message)); load(); };
+if (key) load();
+</script></body></html>`;
+}
+
 // ---------- landing ----------
 function landing() {
-  const games = ['🎭 Truth or Dare', '🗣️ Spicy Talk', '💞 Desire Match', '🎲 Sexy Dice', '🌙 Date Dares', '🙈 Never Have I Ever', '⚖️ Would You Rather', '⏱️ Hot Seat', '✨ Fantasy Builder', '📚 Sex Tips'];
+  const games = ['🎭 Truth or Dare', '🔥 Hot Chat', '💞 Desire Match', '🎲 Sexy Dice', '🌙 Date Dares', '🙈 Never Have I Ever', '⚖️ Would You Rather', '⏱️ Hot Seat', '✨ Fantasy Builder', '📚 Sex Tips'];
   return page({
     path: '/',
     title: 'Intimacy for Couples — Spicy Couple Games, Truth or Dare & Date Planner',
-    description: 'The private game for couples: truth or dare, spicy talk, desire match, sex positions planner, date nights and live video calls for long distance. Free, 18+.',
+    description: 'The private game for couples: truth or dare, hot chat, desire match, sex positions planner, date nights and live video calls for long distance. Free, 18+.',
     h1: 'Get closer. Play together. 💞',
     intro: 'Intimacy for Couples is a free, private game for two: flirty and spicy games, a sex-position planner, meet-up countdowns and future plans — on one phone or across the world with live video.',
     crumbs: false,
@@ -228,11 +273,13 @@ function landing() {
 <section class="features">
 <article><h3>🎲 10 couple games</h3><p>${games.join(' · ')}</p></article>
 <article><h3>🌡️ 4 heat levels</h3><p>Sweet, Flirty, Spicy and Wild. Either partner can turn it down any time.</p></article>
-<article><h3>🗣️ Spicy Talk scores</h3><p>Every message your partner loves earns you points. Who is the bigger talker?</p></article>
+<article><h3>🔥 Hot Chat & Hot Score</h3><p>Every sexy message your partner loves raises your Hot Score. Who is the hottest talker?</p></article>
 <article><h3>🌙 Position planner</h3><p>${C.POSITIONS.length} positions with private Want/Pass votes. Only mutual matches show.</p></article>
 <article><h3>📅 Meet-up planner</h3><p>Countdown, plans, outfit, checklist and tonight's playlist — straight into your calendar.</p></article>
 <article><h3>📹 Video & voice</h3><p>Long distance? Swap Love Numbers once and play live with built-in calls.</p></article>
 <article><h3>🔮 Future & bucket list</h3><p>Plan travel, home, money and family — and tick off hot experiences together.</p></article>
+<article><h3>🔥 Community</h3><p>Real couples share experiences anonymously. Trending hot topics, reviewed before they go live.</p></article>
+<article><h3>📖 Sex guides</h3><p>What men love, what women love, toys for couples and how to make your partner happy.</p></article>
 <article><h3>🔒 Private by design</h3><p>No email or phone number. A safe word, PIN lock and one-tap hide.</p></article>
 </section>
 <section><h2>How it works</h2><ol><li>Open <a href="/play/">the game</a> and enter your names.</li><li>Play on one phone — or share your Love Number and connect two phones.</li><li>Play, plan your next night together, and keep your streak alive.</li></ol></section>
@@ -292,6 +339,7 @@ export function build() {
   if (existsSync(join(ROOT, 'site', 'og.jpg'))) copyFileSync(join(ROOT, 'site', 'og.jpg'), join(OUT, 'og.jpg'));
   write('/', landing());
   for (const g of GUIDES) write(g.path, page(g));
+  write('/admin/', adminPage());
   write('/privacy/', legal('/privacy/', 'Privacy Policy', `
 <p>Last updated ${TODAY}.</p>
 <h2>What we collect</h2><ul>
@@ -313,7 +361,7 @@ export function build() {
   writeFileSync(join(OUT, '404.html'), page({ path: '/404', title: `Page not found — ${BRAND}`, description: 'Page not found.', h1: 'Lost? 💔', intro: 'That page does not exist. Try the game or one of the guides below.', body: '', crumbs: false }).replace('<link rel="canonical"', '<meta name="robots" content="noindex">\n<link rel="x-canonical"'));
   const urls = ['/', ...GUIDES.map((g) => g.path), '/privacy/', '/terms/'];
   writeFileSync(join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc><lastmod>${TODAY}</lastmod><priority>${u === '/' ? '1.0' : u === '/privacy/' || u === '/terms/' ? '0.3' : '0.8'}</priority></url>`).join('\n')}\n</urlset>\n`);
-  writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
   bundle();
   return { pages: urls.length, out: OUT };
 }

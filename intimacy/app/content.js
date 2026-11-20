@@ -66,6 +66,18 @@ export const TRUTHS = [
   [4, 'Do you like it louder or quieter — and why?'],
   [4, 'What toy, accessory or prop would you add to our nights?'],
   [4, 'What would you do with me in a hotel room with a big mirror?'],
+  [3, 'What is the one thing I do in bed that you would never want me to stop?'],
+  [3, 'Where do you love being touched that most people would not guess?'],
+  [3, 'What is your favourite thing to wear (or not wear) to bed with me?'],
+  [3, 'When did you last think about sex with me — and where were you?'],
+  [3, 'Quickie or all night? Defend your answer.'],
+  [3, 'What compliment about your body would you love to hear more?'],
+  [4, 'What is the hottest thing you have ever done with me — in your opinion?'],
+  [4, 'What position do you secretly want us to try tonight?'],
+  [4, 'Do you want to be in charge next time, or be taken charge of?'],
+  [4, 'Describe exactly how you like to be kissed when we are getting started.'],
+  [4, 'Which fantasy of yours feels a little too naughty to say — say it anyway.'],
+  [4, 'What do you want me to whisper in your ear right before?'],
 ];
 
 export const DARES = [
@@ -123,6 +135,18 @@ export const DARES = [
   [4, 'Send me a voice note moaning my name.'],
   [4, 'Shower together right now — the game continues in there.'],
   [4, 'Whisper exactly how you want to finish tonight.'],
+  [3, 'Give me a hickey somewhere only I will see.'],
+  [3, 'Undo one button or zip of mine — slowly — and kiss the skin you find.'],
+  [3, 'Massage my inner thighs for one minute without going higher.'],
+  [3, 'Whisper the three things you want to do to me tonight, in order.'],
+  [4, 'Take my hand and show me exactly where you want it.'],
+  [4, 'Pick a position from the planner — we try it for 60 seconds, clothes optional.'],
+  [4, 'Tease me with your lips for 2 minutes — anywhere but the obvious.'],
+  [4, 'Put on some music and give me a strip show to the chorus.'],
+  [4, 'Use only your breath and lips on my neck for one minute.'],
+  [4, 'Choose any toy or object in the room and make it part of the next dare.'],
+  [4, 'Tell me what you want me to do to you, then let me decide whether to obey.'],
+  [4, 'Get on top and stay there until the next round.'],
 ];
 
 export const NEVER = [
@@ -257,6 +281,21 @@ export const POSITIONS = [
   { id: 'p38', name: 'Hot Seat', heat: 4, diff: 1, intimacy: 2, energy: 2, desc: 'One sits on a chair, the other sits on their lap facing away. Hands free to explore the front.' },
   { id: 'p39', name: 'The Rocking Horse', heat: 3, diff: 2, intimacy: 3, energy: 2, desc: 'One sits cross-legged leaning back on their hands, the other straddles. A rocking rhythm, lots of eye contact.' },
   { id: 'p40', name: 'Tantric Breath', heat: 3, diff: 1, intimacy: 3, energy: 1, desc: 'Any seated face-to-face position, moving barely at all and syncing your breathing. Slow, deep connection.' },
+  { id: 'p41', name: 'The G-Whiz', heat: 4, diff: 2, intimacy: 2, energy: 2, desc: 'Receiving partner on their back with legs resting on the other\'s chest. Steep angle, very targeted.' },
+  { id: 'p42', name: 'Seated Scissors', heat: 4, diff: 2, intimacy: 2, energy: 2, desc: 'Both sitting facing each other, legs interlaced, leaning back on hands. Grind-heavy and playful.' },
+  { id: 'p43', name: 'The Cat Stretch', heat: 4, diff: 1, intimacy: 2, energy: 2, desc: 'Rear-entry with the receiving partner\'s chest down on the bed and hips up. Deep and intense.' },
+  { id: 'p44', name: 'Leg Up Spoon', heat: 3, diff: 1, intimacy: 3, energy: 1, desc: 'Spooning with the front partner\'s top leg lifted back over the other\'s. Easy access for hands.' },
+  { id: 'p45', name: 'The Elevator', heat: 4, diff: 3, intimacy: 3, energy: 3, desc: 'Standing and lifting: one partner wraps legs around the other, back against a wall for support.' },
+  { id: 'p46', name: 'Downward Dog', heat: 4, diff: 2, intimacy: 1, energy: 3, desc: 'Receiving partner in a yoga downward-dog pose, the other standing behind. Flexible couples only.' },
+  { id: 'p47', name: 'The Love Seat', heat: 3, diff: 1, intimacy: 3, energy: 2, desc: 'One sits on the bed edge, the other sits on their lap facing out, leaning back into their chest.' },
+  { id: 'p48', name: 'Bodyguard', heat: 4, diff: 2, intimacy: 2, energy: 2, desc: 'Both standing, one behind the other, wrapped in a full-body hug. Hands free to explore the front.' },
+  { id: 'p49', name: 'The Swing', heat: 4, diff: 2, intimacy: 2, energy: 2, desc: 'Reverse riding while the lower partner sits up with legs extended. The top partner leans forward and swings.' },
+  { id: 'p50', name: 'Tantric Yab-Yum', heat: 3, diff: 2, intimacy: 3, energy: 1, desc: 'Classic tantric seat: one sits cross-legged, the other sits on top wrapping legs around. Breathe together.' },
+  { id: 'p51', name: 'The Pinball Wizard', heat: 4, diff: 3, intimacy: 2, energy: 2, desc: 'Receiving partner in a bridge on their shoulders, the other kneeling. Advanced — support the hips.' },
+  { id: 'p52', name: 'Lazy Sunday', heat: 3, diff: 1, intimacy: 3, energy: 1, desc: 'Side-by-side face-to-face with one leg over the partner\'s hip. Slow, sleepy, lots of kissing.' },
+  { id: 'p53', name: 'Over the Edge', heat: 4, diff: 2, intimacy: 1, energy: 2, desc: 'Receiving partner lies face-down over the edge of the bed, feet on the floor. The other stands.' },
+  { id: 'p54', name: 'The Squat', heat: 4, diff: 2, intimacy: 2, energy: 3, desc: 'On-top partner squats instead of kneeling, feet flat. Total control of speed and depth.' },
+  { id: 'p55', name: 'Oral Throne Reverse', heat: 4, diff: 1, intimacy: 2, energy: 1, desc: 'One lies back, the other kneels over their face facing the feet. Mutual teasing within reach.' },
 ];
 
 // Hot experiences bucket list.
@@ -346,6 +385,12 @@ export const TALK_STARTERS = [
   [4, 'I want you to take control and…'],
   [4, 'Next time, I want to try…'],
   [4, 'The sound you make that drives me crazy is…'],
+  [3, 'The outfit I want to see you in next is…'],
+  [3, 'Tonight, the first place I am kissing you is…'],
+  [4, 'The position I keep imagining us in is…'],
+  [4, 'If you were in my bed right now, you would be…'],
+  [4, 'The thing I want you to do to me slowly is…'],
+  [4, 'My hottest memory of us is…'],
 ];
 
 // Couple intimacy tips — practical, inclusive, health-aware.
@@ -398,4 +443,54 @@ export const TIPS = [
     'Say one thing you loved. It makes the next time even better.',
     'After intense play, check in the next day too.',
   ] },
+];
+
+// In-app guides (also published as SEO pages). Everyone is different — these are starting points
+// for a conversation, not rules about any gender.
+export const LEARN = [
+  { id: 'make-partner-happy', icon: '💝', title: 'How to make your partner happy in bed', intro: 'Great sex is less about tricks and more about attention. These habits make the biggest difference.', sections: [
+    ['Ask, then listen', ['Ask what they love, what they want more of and what they are curious about — outside the bedroom first.', 'Use Desire Match in the app to find mutual yeses without awkwardness.', 'Notice their breathing, sounds and movements. Their body tells you what is working.']],
+    ['Slow down the start', ['Spend longer on kissing and touching than you think you need.', 'Tease: get close to the obvious spots, then move away. Anticipation builds desire.', 'Undress each other slowly instead of rushing.']],
+    ['Make it about them', ['Take turns: one night is all about one partner\'s pleasure.', 'Ask "faster, slower, harder, softer?" — simple questions, huge results.', 'Praise them specifically: their body, their sounds, what they did.']],
+    ['Keep it new', ['Try a new position, place or time once a week.', 'Plan a meet-up together and build anticipation with Hot Chat.', 'Add a toy, oil, blindfold or music.']],
+    ['Finish with care', ['Cuddle, kiss and talk afterwards.', 'Ask what they loved most. Remember it.']],
+  ] },
+  { id: 'what-men-like', icon: '🧔', title: 'What many men love in bed', intro: 'Common things men say they enjoy. Every man is different — use this to start a conversation, then ask your partner.', sections: [
+    ['Feeling desired', ['Being told they are wanted — out loud, in texts, in voice notes.', 'Their partner initiating sometimes, instead of always waiting.', 'Enthusiasm: sounds, eye contact, and saying what feels good.']],
+    ['Visual & verbal', ['Lingerie, an outfit surprise, lights on or a mirror.', 'Dirty talk and being told exactly what their partner wants.', 'Watching their partner enjoy themselves.']],
+    ['Touch they often love', ['Slow teasing before direct touch.', 'Kisses on the neck, ears, chest and inner thighs.', 'Oral pleasure — and a partner who clearly enjoys giving it.', 'Their partner taking control and setting the pace on top.']],
+    ['Variety', ['Trying new positions and places.', 'Quickies sometimes, long nights other times.', 'Playful competition — Hot Chat scores, dice, dares.']],
+    ['After', ['Honest feedback and appreciation, not silence.', 'Reassurance — many men worry about performance more than they say.']],
+  ] },
+  { id: 'what-women-like', icon: '👩', title: 'What many women love in bed', intro: 'Common things women say they enjoy. Every woman is different — use this to start a conversation, then ask your partner.', sections: [
+    ['Feeling safe and wanted', ['Emotional connection and feeling desired, not just "used for sex".', 'Flirting and compliments through the day — foreplay starts hours before.', 'A partner who listens and checks in.']],
+    ['More foreplay', ['Much longer kissing and touching before anything else.', 'Attention to the whole body: neck, ears, back, inner thighs, breasts.', 'Clitoral stimulation — most women need it to orgasm; add hands or a toy to any position.']],
+    ['Positions women often rate highly', ['Being on top and controlling the pace and angle.', 'The Slow Grind (coital alignment) and Missionary Plus with a pillow.', 'Spooning and Lazy Sunday for slow, close sex.']],
+    ['Atmosphere', ['A clean room, soft light, music, a warm shower or massage first.', 'No rushing — and no pressure to finish.']],
+    ['After', ['Cuddles, kisses and being told what was loved.', 'Asking "what would make it even better next time?"']],
+  ] },
+  { id: 'sex-toys-gadgets', icon: '🎁', title: 'Hot gadgets & toys for couples', intro: 'Toys are not a replacement for a partner — they add to what you already do together. Start simple.', sections: [
+    ['Start here', ['Good lubricant (water-based works with everything).', 'Massage oil or a massage candle.', 'A silk blindfold and soft ties.']],
+    ['For two', ['Couples vibrators worn during sex.', 'Bullet vibrators — small, quiet, easy to add to any position.', 'Vibrating rings for extra stimulation during intercourse.']],
+    ['Long distance', ['App-controlled toys your partner can control from anywhere.', 'Pair them with a video call in the app.']],
+    ['Sensation play', ['Feathers, ice cubes, warm and cold.', 'Sensual card games and dice (like Sexy Dice in this app).']],
+    ['Safety', ['Buy body-safe silicone from reputable shops.', 'Clean before and after every use; use condoms on shared toys.', 'Silicone lube can damage silicone toys — use water-based.']],
+  ] },
+  { id: 'hot-positions-guide', icon: '🔥', title: 'Hottest positions to try this month', intro: 'A short list from the planner, chosen for maximum pleasure and fun. Vote on them privately in the Positions tab.', sections: [
+    ['For intense passion', ['The Squat — total control on top.', 'Over the Edge — easy and deep.', 'The Elevator — if you are strong and spontaneous.']],
+    ['For deep connection', ['Tantric Yab-Yum — breathe together.', 'Lazy Sunday — slow and kissable.', 'The Slow Grind — built for pleasure.']],
+    ['For something new', ['The Swing', 'Seated Scissors', 'Mirror Mirror']],
+  ] },
+];
+
+// Hot topics for the community board (prompts, not posts).
+export const HOT_TOPICS = [
+  { id: 'first', icon: '💫', name: 'First time with your partner' },
+  { id: 'wild', icon: '😈', name: 'Wildest place' },
+  { id: 'ldr', icon: '📱', name: 'Long-distance intimacy' },
+  { id: 'spark', icon: '🔥', name: 'Bringing the spark back' },
+  { id: 'toys', icon: '🎁', name: 'Toys & gadgets' },
+  { id: 'positions', icon: '🌙', name: 'Favourite positions' },
+  { id: 'talk', icon: '💬', name: 'Talking about sex' },
+  { id: 'advice', icon: '🙋', name: 'Ask for advice' },
 ];

@@ -80,6 +80,19 @@ They take effect immediately. Never paste these into chats or commit them to Git
 **Paid-card option:** Cloudflare Realtime TURN (1,000 GB/month free, but it requires a card on file).
 Set `TURN_KEY_ID` and `TURN_KEY_API_TOKEN` instead.
 
+## 3b. Community review (required for stories to appear)
+
+Every community story waits for your approval before anyone can see it, and stories reported 3 times come back for review.
+
+1. Make up a long admin key of at least 16 characters, e.g. a sentence with numbers. Keep it private.
+2. In Cloudflare → Workers & Pages → `intimacycouple` (Worker) → Settings → Variables and Secrets → Add
+   **Secret** `ADMIN_KEY` = your key.
+3. Open **https://intimacycouple.pages.dev/admin/**, enter the key, then approve or reject stories. The page also shows how
+   many Love Numbers, couples and live stories you have.
+
+The server automatically blocks posts with phone numbers, links, social handles and "offers", and anything
+mentioning minors. You are still responsible for what you approve, so check every post.
+
 ## 4. Automatic deploys from GitHub
 
 `.github/workflows/intimacy-cloudflare.yml` runs the tests, builds the site and deploys on every

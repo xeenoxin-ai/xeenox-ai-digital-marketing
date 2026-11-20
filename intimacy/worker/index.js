@@ -15,7 +15,7 @@ const bad = (msg, status = 400) => json({ error: msg }, status);
 
 const NUM_RE = /^\d{8}$/;
 const CODE_RE = /^[A-Z0-9]{6}$/;
-const MAX_MSG = 64 * 1024;
+const MAX_MSG = 512 * 1024; // room for two profile photos in a state sync
 
 async function sha256(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -94,8 +94,12 @@ async function api(req, env, url) {
     return roomStub(env, room).fetch(new Request(fwd, req));
   }
 
+  if (path === '/community' && req.method === 'GET') return communityList(env, url);
+
   if (req.method !== 'POST') return bad('Use POST', 405);
   const b = await body(req);
+
+  if (path.startsWith('/admin/')) return admin(env, path, b);
 
   if (path === '/register') {
     const name = cleanName(b.name);
@@ -164,15 +168,102 @@ async function api(req, env, url) {
     return json({ ok: true });
   }
 
+  if (path === '/community/post') return communityPost(env, me, b);
+  if (path === '/community/like' || path === '/community/report') return communityVote(env, me, b, path.endsWith('like') ? 'like' : 'report');
+  if (path === '/community/mine') {
+    const { results } = await env.DB.prepare('SELECT id, topic, text, status, likes, created FROM stories WHERE n = ? ORDER BY created DESC LIMIT 20').bind(me.number).all();
+    return json({ stories: results || [] });
+  }
+
   if (path === '/delete-account') {
     await env.DB.batch([
       env.DB.prepare('DELETE FROM pairs WHERE a = ? OR b = ?').bind(me.number, me.number),
       env.DB.prepare('DELETE FROM requests WHERE from_n = ? OR to_n = ?').bind(me.number, me.number),
+      env.DB.prepare('DELETE FROM stories WHERE n = ?').bind(me.number),
+      env.DB.prepare('DELETE FROM story_likes WHERE n = ?').bind(me.number),
       env.DB.prepare('DELETE FROM users WHERE number = ?').bind(me.number),
     ]);
     return json({ ok: true });
   }
 
+  return bad('Not found', 404);
+}
+
+// ---------- community ----------
+const TOPICS = new Set(['first', 'wild', 'ldr', 'spark', 'toys', 'positions', 'talk', 'advice']);
+// Keep the board about couples' own experiences: no contact details (solicitation), nothing involving minors.
+const BLOCK_CONTACT = /(https?:\/\/|www\.|\.(com|in|net|org|me|ly)\b|@[a-z0-9_]{3,}|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|(\d[\s-]?){8,}|whats\s?app|telegram|snapchat|insta(gram)?|kik\b|onlyfans|escort)/i;
+const BLOCK_MINOR = /\b(minor|under\s?age|underage|teen(ager)?s?|school\s?(girl|boy)|child|children|kid|kids|1[0-7]\s?(yo|y\/o|years?\s?old)|class\s?\d{1,2})\b/i;
+
+async function communityList(env, url) {
+  const sort = url.searchParams.get('sort') === 'new' ? 'new' : 'trending';
+  const topic = url.searchParams.get('topic') || '';
+  const t = now();
+  const where = topic && TOPICS.has(topic) ? 'AND topic = ?' : '';
+  const order = sort === 'new' ? 'created DESC' : `(likes + 1) * 1.0 / (((${t} - created) / 3600000.0 + 2) * ((${t} - created) / 3600000.0 + 2)) DESC`;
+  const stmt = env.DB.prepare(`SELECT id, handle, topic, text, likes, created FROM stories WHERE status = 'live' ${where} ORDER BY ${order} LIMIT 50`);
+  const { results } = await (where ? stmt.bind(topic) : stmt).all();
+  const counts = await env.DB.prepare("SELECT topic, COUNT(*) AS c, SUM(likes) AS l FROM stories WHERE status = 'live' AND created > ? GROUP BY topic").bind(t - 7 * 864e5).all();
+  return new Response(JSON.stringify({ stories: results || [], topics: counts.results || [] }), { headers: { ...JSON_HEADERS, 'cache-control': 'public, max-age=30' } });
+}
+
+async function communityPost(env, me, b) {
+  const text = String(b.text || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').trim();
+  const handle = cleanName(b.handle).slice(0, 24);
+  const topic = String(b.topic || '');
+  if (!TOPICS.has(topic)) return bad('Pick a topic');
+  if (text.length < 30) return bad('Tell us a little more (at least 30 characters)');
+  if (text.length > 2000) return bad('Please keep it under 2000 characters');
+  if (BLOCK_CONTACT.test(text) || BLOCK_CONTACT.test(handle)) return bad('No phone numbers, links, social handles or offers — this space is for sharing experiences only.');
+  if (BLOCK_MINOR.test(text)) return bad('Posts must only involve consenting adults (18+).');
+  const recent = await env.DB.prepare('SELECT COUNT(*) AS c FROM stories WHERE n = ? AND created > ?').bind(me.number, now() - 864e5).first();
+  if (recent && recent.c >= 3) return bad('You can share up to 3 stories a day', 429);
+  await env.DB.prepare("INSERT INTO stories (n, handle, topic, text, status, created) VALUES (?, ?, ?, ?, 'pending', ?)").bind(me.number, handle, topic, text, now()).run();
+  return json({ ok: true, status: 'pending' });
+}
+
+async function communityVote(env, me, b, kind) {
+  const id = Number(b.id);
+  if (!Number.isInteger(id)) return bad('Bad request');
+  const story = await env.DB.prepare("SELECT id, n FROM stories WHERE id = ? AND status = 'live'").bind(id).first();
+  if (!story) return bad('Not found', 404);
+  if (kind === 'like') {
+    if (story.n === me.number) return bad('You cannot like your own story');
+    const had = await env.DB.prepare('SELECT 1 FROM story_likes WHERE story_id = ? AND n = ?').bind(id, me.number).first();
+    if (had) {
+      await env.DB.batch([env.DB.prepare('DELETE FROM story_likes WHERE story_id = ? AND n = ?').bind(id, me.number), env.DB.prepare('UPDATE stories SET likes = MAX(0, likes - 1) WHERE id = ?').bind(id)]);
+      return json({ ok: true, liked: false });
+    }
+    await env.DB.batch([env.DB.prepare('INSERT INTO story_likes (story_id, n) VALUES (?, ?)').bind(id, me.number), env.DB.prepare('UPDATE stories SET likes = likes + 1 WHERE id = ?').bind(id)]);
+    return json({ ok: true, liked: true });
+  }
+  const r = await env.DB.prepare('INSERT OR IGNORE INTO story_reports (story_id, n) VALUES (?, ?)').bind(id, me.number).run();
+  if (r.meta?.changes) {
+    await env.DB.prepare('UPDATE stories SET reports = reports + 1 WHERE id = ?').bind(id).run();
+    // Three reports take a story down until the admin reviews it again.
+    await env.DB.prepare("UPDATE stories SET status = 'pending' WHERE id = ? AND reports >= 3").bind(id).run();
+  }
+  return json({ ok: true });
+}
+
+async function admin(env, path, b) {
+  const key = String(b.key || '');
+  if (!env.ADMIN_KEY || env.ADMIN_KEY.length < 16 || key.length !== env.ADMIN_KEY.length) return bad('Not allowed', 403);
+  let diff = 0; for (let i = 0; i < key.length; i++) diff |= key.charCodeAt(i) ^ env.ADMIN_KEY.charCodeAt(i);
+  if (diff) return bad('Not allowed', 403);
+  if (path === '/admin/pending') {
+    const { results } = await env.DB.prepare("SELECT id, handle, topic, text, reports, created FROM stories WHERE status = 'pending' ORDER BY reports DESC, created ASC LIMIT 100").all();
+    const stats = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM pairs) AS couples, (SELECT COUNT(*) FROM stories WHERE status = 'live') AS live").first();
+    return json({ stories: results || [], stats });
+  }
+  if (path === '/admin/moderate') {
+    const id = Number(b.id);
+    if (b.action === 'approve') await env.DB.prepare("UPDATE stories SET status = 'live', reports = 0 WHERE id = ?").bind(id).run();
+    else if (b.action === 'reject') await env.DB.prepare("UPDATE stories SET status = 'rejected' WHERE id = ?").bind(id).run();
+    else return bad('Unknown action');
+    if (b.action === 'approve') await env.DB.prepare('DELETE FROM story_reports WHERE story_id = ?').bind(id).run();
+    return json({ ok: true });
+  }
   return bad('Not found', 404);
 }
 

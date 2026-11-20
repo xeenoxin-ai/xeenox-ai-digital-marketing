@@ -146,9 +146,9 @@ Print / PDF uses the browser's print dialog (choose *Save as PDF*). Tests: `npm 
 
 **Live: https://intimacycouple.pages.dev** · code in [`intimacy/`](intimacy/)
 
-A private game for couples: Truth or Dare (4 heat levels, 100+ cards), Spicy Talk (every 🔥 your partner
-gives your message scores), Desire Match, Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather,
-Hot Seat, Fantasy Builder, Sex Tips, a 40-position planner, a meet-up planner with countdown, future planning
+A private game for couples: Truth or Dare (4 heat levels, 130+ cards), Hot Chat (every 🔥 your partner
+gives your message raises your Hot Score), sex guides, a moderated anonymous community with trending topics, couple profiles with photos and moods, Desire Match, Sexy Dice, Naughty Date Dares, Never Have I Ever, Would You Rather,
+Hot Seat, Fantasy Builder, Sex Tips, a 55-position planner, a meet-up planner with countdown, future planning
 and a bucket list. Partners connect two phones once with an 8-digit **Love Number**, then play live with
 synced games, chat, voice and video calls.
 

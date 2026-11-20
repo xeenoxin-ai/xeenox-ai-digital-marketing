@@ -24,7 +24,7 @@ function defaultShared() {
   };
 }
 function defaultLocal() {
-  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null };
+  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null, liked: {} };
 }
 function load() {
   try {
@@ -35,7 +35,7 @@ function load() {
 }
 const S = load();
 
-const ui = { tab: 'home', game: null, planTab: 'meetup', posFilter: 'all', place: 'home', idea: null, locked: !!S.local.pin, hidden: false };
+const ui = { tab: 'home', game: null, usTab: 'profile', planTab: 'meetup', comm: { sort: 'trending', topic: '', data: null, mine: null, compose: false }, posFilter: 'all', place: 'home', idea: null, locked: !!S.local.pin, hidden: false };
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -72,6 +72,7 @@ const online = () => !!ws && net.peers > 0;
 const me = () => (online() ? S.local.role : S.local.swiper);
 const canAct = (r) => !online() || r === S.local.role;
 const heatInfo = (h) => C.HEAT[h - 1] || C.HEAT[1];
+const MOODS = ['😈 In the mood', '🔥 Thinking of you', '🫦 Tease me', '🥰 Cuddly', '💭 Missing you', '😴 Tired tonight'];
 const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 // Values from the partner's phone are data: coerce anything rendered as a number.
 function sanitize() {
@@ -82,7 +83,12 @@ function sanitize() {
   for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
   for (const k of ['plan', 'future', 'customBucket']) if (!Array.isArray(sh[k])) sh[k] = [];
   if (!Array.isArray(sh.meetup.bring)) sh.meetup.bring = [];
-  for (const r of ['A', 'B']) if (!sh.players[r] || typeof sh.players[r] !== 'object') sh.players[r] = { name: r === 'A' ? 'Player 1' : 'Player 2' };
+  for (const r of ['A', 'B']) {
+    if (!sh.players[r] || typeof sh.players[r] !== 'object') sh.players[r] = { name: r === 'A' ? 'Player 1' : 'Player 2' };
+    const pl = sh.players[r];
+    if (pl.photo !== undefined && !(typeof pl.photo === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(pl.photo) && pl.photo.length < 120000)) delete pl.photo;
+    if (pl.mood !== undefined && !MOODS.includes(pl.mood)) delete pl.mood;
+  }
 }
 
 function bumpStreak() {
@@ -311,7 +317,7 @@ function onData(m) {
       const text = String(m.text || '').slice(0, 1000);
       S.local.chat.push({ from: other(S.local.role), text, ts: Date.now() });
       S.local.chat = S.local.chat.slice(-200);
-      if (ui.tab !== 'connect') { S.local.unread++; toast(`💬 ${nm(other(S.local.role))}: ${text.slice(0, 60)}`); }
+      if (!(ui.tab === 'us' && ui.usTab === 'connect')) { S.local.unread++; toast(`💬 ${nm(other(S.local.role))}: ${text.slice(0, 60)}`); }
       save(); softRender();
       break;
     }
@@ -446,7 +452,7 @@ function updateCallButtons() {
 // ---------- games ----------
 const GAMES = [
   { id: 'tod', name: 'Truth or Dare', icon: '🎭', desc: 'The classic, with 4 heat levels' },
-  { id: 'talk', name: 'Spicy Talk', icon: '🗣️', desc: 'Talk dirty — every 🔥 from your partner scores' },
+  { id: 'talk', name: 'Hot Chat', icon: '🔥', desc: 'Sexy messages — every 🔥 from your partner raises your Hot Score' },
   { id: 'desire', name: 'Desire Match', icon: '💞', desc: 'Swipe privately — only mutual yeses show' },
   { id: 'dice', name: 'Sexy Dice', icon: '🎲', desc: 'Roll an action, a spot and a time' },
   { id: 'dates', name: 'Naughty Date Dares', icon: '🌙', desc: 'Missions for home, out, or long distance' },
@@ -454,13 +460,14 @@ const GAMES = [
   { id: 'rather', name: 'Would You Rather', icon: '⚖️', desc: 'Pick in secret — match for points' },
   { id: 'hotseat', name: 'Hot Seat', icon: '⏱️', desc: '60 seconds of rapid-fire questions' },
   { id: 'fantasy', name: 'Fantasy Builder', icon: '✨', desc: 'Build tonight\'s scenario together' },
+  { id: 'learn', name: 'Sex Guides', icon: '📖', desc: 'What men & women love, toys, pleasing your partner' },
   { id: 'tips', name: 'Sex Tips', icon: '📚', desc: 'Better intimacy, health & long distance' },
 ];
 const gameName = (id) => GAMES.find((g) => g.id === id)?.name || 'a game';
 
 function openGame(id) {
   ui.tab = 'games'; ui.game = id;
-  if (id === 'desire' || id === 'talk' || id === 'tips') return render();
+  if (['desire', 'talk', 'tips', 'learn'].includes(id)) { ui.guide = null; return render(); }
   const g = S.shared.game?.kind === id ? S.shared.game : { kind: id, turn: 'A', card: null };
   if (S.shared.game?.kind !== id) set(['game'], g); else render();
 }
@@ -486,13 +493,16 @@ function render() {
   const tabs = $('#tabs');
   if (!S.local.setup) { tabs.hidden = true; view.innerHTML = setupView(); return; }
   tabs.hidden = false;
+  if (ui.tab === 'connect') { ui.tab = 'us'; ui.usTab = 'connect'; }
+  if (ui.tab === 'plans') { ui.tab = 'us'; ui.usTab = ui.planTab; }
   tabs.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
-  const badge = tabs.querySelector('[data-tab="connect"] .badge');
-  if (ui.tab === 'connect') S.local.unread = 0;
+  const badge = tabs.querySelector('[data-tab="us"] .badge');
+  if (ui.tab === 'us' && ui.usTab === 'connect') S.local.unread = 0;
   badge.textContent = S.local.unread || ''; badge.hidden = !S.local.unread;
-  const v = { home: homeView, games: gamesView, positions: positionsView, plans: plansView, connect: connectView }[ui.tab] || homeView;
+  if (ui.tab === 'community' && !ui.comm.data && !ui.comm.loading) loadCommunity();
+  const v = { home: homeView, games: gamesView, positions: positionsView, community: communityView, us: usView }[ui.tab] || homeView;
   view.innerHTML = v();
-  $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game;
+  $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game || ['learn', 'tips'].includes(ui.game);
   renderPause();
   tick();
 }
@@ -522,12 +532,12 @@ function homeView() {
   const bucketDone = Object.values(sh.bucket || {}).filter((b) => b?.done).length;
   const spark = C.DAILY_SPARK[Math.floor(Date.now() / 864e5) % C.DAILY_SPARK.length];
   return `<section>
-    <div class="couple"><span>${nm('A')}</span><b class="heart">❤</b><span>${nm('B')}</span></div>
+    ${coupleHeader()}
     <div class="card status ${online() ? 'live' : ''}">
       ${online() ? `<div><b>🟢 Live with ${nm(other(S.local.role))}</b><p class="muted small">Games, plans and chat sync instantly.</p></div>
         <div class="row"><button class="btn sm" data-a="call" data-video="1">📹 Video</button><button class="btn sm ghost" data-a="call" data-video="0">📞 Voice</button></div>`
         : `<div><b>Together or miles apart?</b><p class="muted small">Play on one phone now, or connect two phones for long-distance play with video.</p></div>
-        <button class="btn sm" data-a="tab" data-tab="connect">Connect 💌</button>`}
+        <button class="btn sm" data-a="us" data-sub="connect">Connect 💌</button>`}
     </div>
     <div class="card meetup-card" data-a="plan" data-sub="meetup">
       <div class="muted small">Next meet-up</div>
@@ -542,14 +552,18 @@ function homeView() {
       <div><b>✨ ${both}</b><span>positions you both want</span></div>
     </div>
     <div class="card spark"><div class="muted small">Today's spark</div><p>${esc(spark)}</p></div>
-    <div class="card talkhome" data-a="game" data-id="talk">${(() => { const sc = talkScores(), l = talkLeader(); return `<div class="row between"><b>🗣️ Spicy Talk</b><span class="small">${l === 'A' || l === 'B' ? `👑 ${nm(l)}` : l === 'tie' ? 'Tied!' : 'Start talking →'}</span></div>
+    <div class="card talkhome" data-a="game" data-id="talk">${(() => { const sc = talkScores(), l = talkLeader(); return `<div class="row between"><b>🔥 Hot Chat · Hot Score</b><span class="small">${l === 'A' || l === 'B' ? `👑 ${nm(l)}` : l === 'tie' ? 'Tied!' : 'Start talking →'}</span></div>
       <div class="small muted">${nm('A')} ${sc.A.score} · ${nm('B')} ${sc.B.score} — every 🔥 from your partner is +10</div>`; })()}</div>
     <h3>Play now</h3>
     <div class="grid">${GAMES.slice(0, 4).map(gameTile).join('')}</div>
+    <h3>Learn together</h3>
+    <div class="hscroll">${C.LEARN.map((g) => `<button class="guide-chip" data-a="openGuide" data-id="${g.id}"><span>${g.icon}</span>${esc(g.title)}</button>`).join('')}</div>
+    <div class="card community-teaser" data-a="tab" data-tab="community"><div class="row between"><b>🔥 Community</b><span class="small">Hot topics →</span></div>
+      <div class="small muted">Real couples share experiences, anonymously. Read, like, and share yours.</div></div>
     <div class="card" data-a="game" data-id="tips"><div class="muted small">📚 Tip of the day</div><p class="small">${esc(tipOfDay())}</p></div>
     <div class="card"><div class="muted small">Bucket list</div>
       <div class="bar"><i style="width:${bucketAll ? Math.round((bucketDone / bucketAll) * 100) : 0}%"></i></div>
-      <div class="small">${bucketDone} of ${bucketAll} hot experiences done <a href="#" data-a="plan" data-sub="bucket">Open →</a></div></div>
+      <div class="small">${bucketDone} of ${bucketAll} hot experiences done <a href="#" data-a="us" data-sub="bucket">Open →</a></div></div>
   </section>`;
 }
 const gameTile = (g) => `<button class="tile" data-a="game" data-id="${g.id}"><span class="ico">${g.icon}</span><b>${g.name}</b><small>${g.desc}</small></button>`;
@@ -559,8 +573,8 @@ function gamesView() {
     return `<section><h2>Games</h2><p class="muted">Heat is ${heatInfo(S.shared.heat).icon} <b>${heatInfo(S.shared.heat).name}</b>. Cards up to this heat appear. <a href="#" data-a="heat">Change</a></p>
       <div class="grid">${GAMES.map(gameTile).join('')}</div></section>`;
   }
-  const back = `<button class="back" data-a="back">‹ Games</button>`;
-  const fn = { tod: todView, talk: talkView, tips: tipsView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
+  const back = ui.game === 'learn' && ui.guide ? '<button class="back" data-a="guide" data-id="">‹ Guides</button>' : `<button class="back" data-a="back">‹ Play</button>`;
+  const fn = { tod: todView, talk: talkView, tips: tipsView, learn: learnView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
   return `<section>${back}${fn ? fn() : ''}</section>`;
 }
 
@@ -632,10 +646,10 @@ function talkView() {
   const msgs = Object.entries(S.shared.talk || {}).filter(([, m]) => m && typeof m.text === 'string' && (m.from === 'A' || m.from === 'B'))
     .sort((a, b) => num(b[1].ts) - num(a[1].ts));
   const starters = C.TALK_STARTERS.filter((x) => x[0] <= S.shared.heat);
-  return `<h2>🗣️ Spicy Talk</h2>
-    <p class="muted small">Say what you're thinking about each other. Every 🔥 your partner gives your message = <b>+10</b>. Every message = +2. Who's the bigger talker?</p>
-    <div class="talkboard">${['A', 'B'].map((x) => `<div class="${lead === x ? 'lead' : ''}">${lead === x ? '<span class="crown">👑</span>' : ''}<b>${nm(x)}</b><div class="big-score">${sc[x].score}</div><small>${sc[x].sent} messages · ${sc[x].likes} 🔥</small></div>`).join('')}</div>
-    ${lead && lead !== 'tie' ? `<p class="center small"><b>${nm(lead)}</b> is the Spicy Talker 👑 — ${nm(other(lead))}, your move.</p>` : ''}
+  return `<h2>🔥 Hot Chat</h2>
+    <p class="muted small">Talk hot. Every 🔥 your partner gives your message = <b>+10 Hot Score</b>, every message = +2. Who's the hottest talker?</p>
+    <div class="talkboard">${['A', 'B'].map((x) => `<div class="${lead === x ? 'lead' : ''}">${lead === x ? '<span class="crown">👑</span>' : ''}<b>${nm(x)}</b>${avatar(x, 'av-sm')}<div class="big-score">${sc[x].score}</div><small>Hot Score</small><br><small>${sc[x].sent} messages · ${sc[x].likes} 🔥</small></div>`).join('')}</div>
+    ${lead && lead !== 'tie' ? `<p class="center small"><b>${nm(lead)}</b> is the Hottest Talker 👑 — ${nm(other(lead))}, your move.</p>` : ''}
     ${swiperBar()}
     <div class="chips">${starters.map((x) => `<button class="chip" data-a="starter" data-t="${esc(x[1])}">${esc(x[1])}</button>`).join('')}</div>
     <form class="card" data-form="talk"><textarea name="m" rows="3" maxlength="500" required placeholder="${nm(r)}, tell ${nm(other(r))} what's on your mind…">${esc(ui.talkDraft || '')}</textarea>
@@ -769,10 +783,97 @@ function positionsView() {
     <p class="muted small">Your partner only sees "Both want" — a pass stays private. Communicate, go slow, stop anytime.</p></section>`;
 }
 
-function plansView() {
-  const subs = [['meetup', '📅 Meet-up'], ['dates', '🍷 Date ideas'], ['future', '🔮 Future'], ['bucket', '🔥 Bucket list']];
-  const fn = { meetup: meetupView, dates: ideasView, future: futureView, bucket: bucketView }[ui.planTab];
-  return `<section><h2>Plans</h2><div class="chips">${subs.map(([k, l]) => `<button class="chip ${ui.planTab === k ? 'on' : ''}" data-a="plan" data-sub="${k}">${l}</button>`).join('')}</div>${fn()}</section>`;
+function usView() {
+  const subs = [['profile', '💑 Profile'], ['connect', '💌 Connect'], ['meetup', '📅 Meet-up'], ['dates', '🍷 Date ideas'], ['future', '🔮 Future'], ['bucket', '🔥 Bucket list']];
+  const fn = { profile: profileView, connect: connectView, meetup: meetupView, dates: ideasView, future: futureView, bucket: bucketView }[ui.usTab] || profileView;
+  return `<section><div class="chips sticky-chips">${subs.map(([k, l]) => `<button class="chip ${ui.usTab === k ? 'on' : ''}" data-a="us" data-sub="${k}">${l}${k === 'connect' && S.local.unread ? ' •' : ''}</button>`).join('')}</div>${ui.usTab === 'connect' ? fn() : `<div>${fn()}</div>`}</section>`;
+}
+
+function avatar(r, cls = '') {
+  const p = S.shared.players[r] || {};
+  if (p.photo) return `<span class="avatar ${cls}"><img src="${esc(p.photo)}" alt=""></span>`;
+  return `<span class="avatar ${cls} initial i${r}">${esc((p.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>`;
+}
+function coupleHeader() {
+  const mine = me(), partner = other(mine), pm = S.shared.players[partner]?.mood;
+  return `<div class="couple-hero" data-a="us" data-sub="profile">
+    <div class="pair">${avatar('A', 'av-lg')}<span class="heart-badge">❤</span>${avatar('B', 'av-lg')}</div>
+    <div class="names">${nm('A')} <span>&</span> ${nm('B')}</div>
+    ${pm ? `<div class="mood-pill">${nm(partner)} is <b>${esc(pm)}</b></div>` : '<div class="mood-pill dim">Tap to add your photos & mood</div>'}
+  </div>`;
+}
+function profileView() {
+  const card = (r) => {
+    const p = S.shared.players[r] || {}, editable = canAct(r);
+    return `<div class="card profile-card">
+      <div class="row">${avatar(r, 'av-xl')}<div><b class="pname">${nm(r)}</b>${p.mood ? `<div class="mood-pill">${esc(p.mood)}</div>` : ''}
+        ${editable ? `<div class="row"><label class="btn sm">📷 ${p.photo ? 'Change' : 'Add'} photo<input type="file" accept="image/*" data-a="photo" data-r="${r}" hidden></label>${p.photo ? `<button class="btn sm ghost" data-a="photoDel" data-r="${r}">Remove</button>` : ''}</div>` : '<p class="small muted">Edited on their phone</p>'}</div></div>
+      ${editable ? `<div class="muted small">Mood right now</div><div class="chips wrap">${MOODS.map((m) => `<button class="chip ${p.mood === m ? 'on' : ''}" data-a="mood" data-r="${r}" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
+    </div>`;
+  };
+  const sc = talkScores();
+  return `<h2>Our profile</h2>
+    ${card(online() ? S.local.role : 'A')}${card(online() ? other(S.local.role) : 'B')}
+    <div class="stats">
+      <div><b>🔥 ${num(S.shared.streak?.count)}</b><span>day streak</span></div>
+      <div><b>${num(S.shared.points?.A) + num(S.shared.points?.B)}</b><span>love points</span></div>
+      <div><b>${sc.A.score + sc.B.score}</b><span>Hot Score</span></div>
+      <div><b>💞 ${desireMatches().length}</b><span>matches</span></div>
+    </div>
+    <p class="muted small">🔒 Photos are shrunk on your phone and shared only with your partner's phone. They are never uploaded to our server.</p>`;
+}
+
+function learnView() {
+  if (ui.guide) {
+    const g = C.LEARN.find((x) => x.id === ui.guide);
+    if (g) return `<div class="guide"><div class="guide-head"><span>${g.icon}</span><h2>${esc(g.title)}</h2><p class="muted">${esc(g.intro)}</p></div>
+      ${g.sections.map(([h, items]) => `<div class="card"><h3>${esc(h)}</h3><ul class="ticks">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}
+      <div class="row"><button class="btn" data-a="game" data-id="desire">💞 Find out together in Desire Match</button><button class="btn ghost" data-a="tab" data-tab="positions">🌙 Positions</button></div>
+      <p class="muted small">Every person is different. The best guide is your partner — ask, listen and enjoy.</p></div>`;
+  }
+  return `<h2>📖 Sex Guides</h2><p class="muted">Short, honest guides to make sex better for both of you.</p>
+    <div class="guide-list">${C.LEARN.map((g) => `<button class="guide-card" data-a="guide" data-id="${g.id}"><span class="gi">${g.icon}</span><b>${esc(g.title)}</b><small>${esc(g.intro)}</small></button>`).join('')}
+    <button class="guide-card" data-a="game" data-id="tips"><span class="gi">📚</span><b>Sex tips for couples</b><small>34 quick tips: talk, foreplay, pleasure, long distance, health, aftercare.</small></button></div>`;
+}
+
+// ---------- community ----------
+const ago = (t) => { const m = Math.floor((Date.now() - t) / 6e4); return m < 1 ? 'now' : m < 60 ? m + 'm' : m < 1440 ? Math.floor(m / 60) + 'h' : Math.floor(m / 1440) + 'd'; };
+async function loadCommunity() {
+  ui.comm.loading = true;
+  try {
+    const q = new URLSearchParams({ sort: ui.comm.sort }); if (ui.comm.topic) q.set('topic', ui.comm.topic);
+    const r = await fetch(`${API}/api/community?${q}`);
+    ui.comm.data = await r.json();
+  } catch { ui.comm.data = { stories: [], topics: [], error: true }; }
+  ui.comm.loading = false;
+  if (S.local.me) post('/community/mine', authBody()).then((d) => { ui.comm.mine = d.stories; if (ui.tab === 'community') softRender(); }).catch(() => {});
+  if (ui.tab === 'community') softRender();
+}
+function communityView() {
+  const d = ui.comm.data || { stories: [], topics: [] };
+  const topicName = (id) => C.HOT_TOPICS.find((t) => t.id === id);
+  const counts = Object.fromEntries((d.topics || []).map((t) => [t.topic, num(t.c) + num(t.l)]));
+  const topics = [...C.HOT_TOPICS].sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
+  const mine = (ui.comm.mine || []).filter((x) => x.status !== 'live');
+  return `<section><div class="comm-head"><h2>🔥 Community</h2><button class="btn sm" data-a="compose">✍️ Share yours</button></div>
+    <p class="muted small">Real couples, real experiences — anonymous and reviewed before they go live. 18+ only.</p>
+    <h3>Hot topics this week</h3>
+    <div class="chips wrap"><button class="chip ${!ui.comm.topic ? 'on' : ''}" data-a="topic" data-t="">All</button>${topics.map((t, i) => `<button class="chip ${ui.comm.topic === t.id ? 'on' : ''}" data-a="topic" data-t="${t.id}">${i < 3 && counts[t.id] ? '📈 ' : ''}${t.icon} ${t.name}</button>`).join('')}</div>
+    ${ui.comm.compose ? `<form class="card compose" data-form="story">
+      <b>Share your experience</b>
+      <div class="row"><select name="topic">${C.HOT_TOPICS.map((t) => `<option value="${t.id}" ${ui.comm.topic === t.id ? 'selected' : ''}>${t.icon} ${t.name}</option>`).join('')}</select>
+      <input name="handle" maxlength="24" placeholder="Nickname (not your real name)" required></div>
+      <textarea name="text" rows="5" minlength="30" maxlength="2000" required placeholder="What happened, what you loved, what you learned…"></textarea>
+      <ul class="rules small muted"><li>Only consenting adults (18+). Never real names.</li><li>No phone numbers, links, social handles or offers.</li><li>Every story is reviewed before it is published.</li></ul>
+      <label class="check small"><input type="checkbox" required> I agree to the community rules.</label>
+      <div class="row"><button class="btn">Send for review</button><button type="button" class="btn ghost" data-a="compose">Cancel</button></div></form>` : ''}
+    ${mine.length ? `<div class="card"><b>Your stories</b>${mine.map((x) => `<div class="li"><span>${esc(String(x.text).slice(0, 70))}…</span><span class="tag">${x.status === 'pending' ? '⏳ In review' : '✕ Not approved'}</span></div>`).join('')}</div>` : ''}
+    <div class="seg"><button class="${ui.comm.sort === 'trending' ? 'on' : ''}" data-a="sort" data-s="trending">📈 Trending</button><button class="${ui.comm.sort === 'new' ? 'on' : ''}" data-a="sort" data-s="new">🆕 New</button></div>
+    <div class="feed">${ui.comm.loading && !ui.comm.data ? '<p class="muted center">Loading…</p>' : d.error ? '<p class="muted center">Can\'t load right now. Check your internet.</p>'
+      : (d.stories || []).map((x) => { const t = topicName(x.topic); const liked = S.local.liked?.[x.id]; return `<article class="story">
+        <div class="row between"><span class="story-meta"><b>${esc(x.handle)}</b> · ${ago(x.created)}</span>${t ? `<span class="tag">${t.icon} ${t.name}</span>` : ''}</div>
+        <p>${esc(x.text)}</p>
+        <div class="row between"><button class="chip ${liked ? 'on' : ''}" data-a="storyLike" data-id="${num(x.id)}">🔥 ${num(x.likes)}</button><button class="mini" data-a="storyReport" data-id="${num(x.id)}">⚑ Report</button></div></article>`; }).join('') || `<div class="card center"><p><b>No stories here yet.</b></p><p class="muted small">Be the first couple to share — tap ✍️ Share yours.</p></div>`}</div></section>`;
 }
 
 function meetupView() {
@@ -901,10 +1002,31 @@ function hotseatOver() {
 
 // ---------- actions ----------
 const A = {
-  tab: (el) => { ui.tab = el.dataset.tab; if (ui.tab !== 'games') ui.game = null; render(); window.scrollTo(0, 0); },
+  tab: (el) => { ui.tab = el.dataset.tab; if (ui.tab !== 'games') ui.game = null; if (ui.tab === 'community') ui.comm.data = null; render(); window.scrollTo(0, 0); },
   game: (el) => openGame(el.dataset.id),
   back: () => { ui.game = null; render(); },
-  plan: (el) => { ui.tab = 'plans'; ui.planTab = el.dataset.sub; render(); },
+  plan: (el) => { ui.tab = 'us'; ui.usTab = el.dataset.sub; render(); window.scrollTo(0, 0); },
+  us: (el) => { ui.tab = 'us'; ui.usTab = el.dataset.sub; ui.game = null; render(); window.scrollTo(0, 0); },
+  guide: (el) => { ui.guide = el.dataset.id || null; render(); window.scrollTo(0, 0); },
+  openGuide: (el) => { ui.tab = 'games'; ui.game = 'learn'; ui.guide = el.dataset.id; render(); window.scrollTo(0, 0); },
+  mood: (el) => { const r = el.dataset.r; if (!canAct(r)) return; const cur = S.shared.players[r]?.mood; set(['players', r, 'mood'], cur === el.dataset.m ? null : el.dataset.m); },
+  photoDel: (el) => { if (canAct(el.dataset.r)) set(['players', el.dataset.r, 'photo'], null); },
+  compose: () => { ui.comm.compose = !ui.comm.compose; render(); },
+  topic: (el) => { ui.comm.topic = el.dataset.t; ui.comm.data = null; render(); },
+  sort: (el) => { ui.comm.sort = el.dataset.s; ui.comm.data = null; render(); },
+  storyLike: async (el) => {
+    try {
+      await ensureNumber();
+      const id = Number(el.dataset.id), d = await post('/community/like', authBody({ id }));
+      S.local.liked = S.local.liked || {}; if (d.liked) S.local.liked[id] = 1; else delete S.local.liked[id]; save();
+      const st = ui.comm.data?.stories?.find((x) => x.id === id); if (st) st.likes = num(st.likes) + (d.liked ? 1 : -1);
+      if (d.liked) floatEmoji('🔥'); render();
+    } catch (e) { toast(e.message); }
+  },
+  storyReport: async (el) => {
+    if (!confirm('Report this story? It will be hidden for review if others report it too.')) return;
+    try { await ensureNumber(); await post('/community/report', authBody({ id: Number(el.dataset.id) })); toast('Thanks — reported'); } catch (e) { toast(e.message); }
+  },
   heat: () => modal(`<h3>Choose the heat</h3><div class="heat-pick">${C.HEAT.map((h) => `<button class="heat-opt btnlike ${S.shared.heat === h.level ? 'on' : ''}" data-a="setHeat" data-h="${h.level}"><span>${h.icon}<b>${h.name}</b><small>${h.hint}</small></span></button>`).join('')}</div><p class="muted small">Both of you see the same heat. Anyone can turn it down anytime.</p><button class="btn ghost wide" data-a="close">Close</button>`),
   setHeat: (el) => { closeModal(); set(['heat'], Number(el.dataset.h)); toast(`Heat: ${heatInfo(Number(el.dataset.h)).icon} ${heatInfo(Number(el.dataset.h)).name}`); },
   close: closeModal,
@@ -1066,6 +1188,7 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.matches('input[type=checkbox][data-a]')) { A[el.dataset.a]?.(el, e); return; }
   if (el.matches('input[type=file][data-a="import"]')) { importFile(el.files[0]); return; }
+  if (el.matches('input[type=file][data-a="photo"]')) { setPhoto(el.dataset.r, el.files[0]); return; }
   const f = el.closest('form[data-form="meetup"]');
   if (f && el.name) set(['meetup', el.name], el.value, { quiet: el.name !== 'when' });
 });
@@ -1088,6 +1211,13 @@ document.addEventListener('submit', (e) => {
       const all = Object.entries(S.shared.talk || {}).sort((a, b) => num(a[1]?.ts) - num(b[1]?.ts));
       if (all.length > 150) set(['talk', all[0][0]], null, { quiet: true });
       ui.talkDraft = ''; addPoints(me(), 2); render();
+      break;
+    }
+    case 'story': {
+      const btn = f.querySelector('button'); btn.disabled = true;
+      ensureNumber().then(() => post('/community/post', authBody({ topic: d.topic, handle: d.handle, text: d.text })))
+        .then(() => { ui.comm.compose = false; toast('💌 Sent! It appears after a quick review.', 4000); loadCommunity(); })
+        .catch((e) => { toast(e.message, 5000); btn.disabled = false; });
       break;
     }
     case 'join': ui.joinCode = d.code; joinRoom(d.code); break;
@@ -1113,6 +1243,20 @@ document.addEventListener('submit', (e) => {
     }
   }
 });
+// Shrink a photo on the phone (square, 320px JPEG) before it is shared with the partner.
+async function setPhoto(r, file) {
+  if (!file || !canAct(r)) return;
+  try {
+    const bmp = await createImageBitmap(file);
+    const side = Math.min(bmp.width, bmp.height), size = 320;
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, size, size);
+    let q = 0.82, url = c.toDataURL('image/jpeg', q);
+    while (url.length > 90000 && q > 0.4) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
+    set(['players', r, 'photo'], url); toast('Photo updated 💗');
+  } catch { toast('Could not read that photo — try another'); }
+}
+
 function importFile(file) {
   if (!file) return;
   file.text().then((t) => {
