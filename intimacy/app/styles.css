@@ -438,3 +438,15 @@ body { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
 .pl-n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: .75rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
 .mini-pose { width: 72px; }
 @media (min-width: 640px) { .positions { display: grid; grid-template-columns: 1fr 1fr; } }
+
+/* truth or dare replies */
+.reply textarea, .ask-own textarea { margin: 0 0 8px; }
+.answer-bubble { margin: 4px 0 12px; padding: 14px 16px; border-radius: 18px 18px 18px 6px; background: linear-gradient(140deg, rgba(185,140,255,.2), rgba(255,61,127,.14)); border: 1px solid rgba(243,201,139,.25); animation: deal .3s ease; }
+.answer-bubble small { color: var(--gold); font-weight: 600; }
+.answer-bubble p { margin: 6px 0 10px; font-size: 1.1rem; white-space: pre-wrap; word-wrap: break-word; }
+.ask-own summary { font-weight: 600; color: var(--text); margin: 0; }
+.ask-own form { margin-top: 10px; }
+.ask-own .seg { margin: 0 0 10px; }
+.ask-own .seg label { margin: 0; text-align: center; padding: 8px; border-radius: 999px; color: var(--text); cursor: pointer; }
+.ask-own .seg label:has(input:checked) { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+.ask-own .seg input { display: none; }

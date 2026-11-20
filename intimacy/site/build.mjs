@@ -335,7 +335,12 @@ function bundle() {
 export function build() {
   rmSync(OUT, { recursive: true, force: true });
   mkdirSync(OUT, { recursive: true });
-  copyDir(join(ROOT, 'app'), join(OUT, 'play'), (t) => t.replaceAll('https://intimacycouple.com', SITE_URL));
+  // Version tag on every app file so phones never mix an old cached file with a new one.
+  const VER = Date.now().toString(36);
+  copyDir(join(ROOT, 'app'), join(OUT, 'play'), (t) => t.replaceAll('https://intimacycouple.com', SITE_URL)
+    .replace(/(from '\.\/[a-z]+\.js)'/g, `$1?v=${VER}'`)
+    .replace(/(src|href)="(app\.js|styles\.css)"/g, `$1="$2?v=${VER}"`)
+    .replace("const CACHE = 'ifc-v3';", `const CACHE = 'ifc-${VER}';`));
   copyFileSync(join(ROOT, 'site', 'site.css'), join(OUT, 'site.css'));
   if (existsSync(join(ROOT, 'site', 'og.jpg'))) copyFileSync(join(ROOT, 'site', 'og.jpg'), join(OUT, 'og.jpg'));
   write('/', landing());

@@ -475,7 +475,7 @@ function openGame(id) {
 const G = () => S.shared.game || {};
 function setGame(patch) { set(['game'], { ...G(), ...patch }); }
 
-function nextTurn() { setGame({ turn: other(G().turn || 'A'), card: null, ans: {}, roll: null }); }
+function nextTurn() { setGame({ turn: other(G().turn || 'A'), card: null, ans: {}, roll: null, answer: null, loved: false, done: false }); }
 
 function todDraw(type) {
   const kind = type === 'random' ? (Math.random() < 0.5 ? 'truth' : 'dare') : type;
@@ -588,14 +588,31 @@ function cardHtml(card, label) {
 }
 
 function todView() {
-  const g = G(), t = g.turn || 'A', card = g.card;
+  const g = G(), t = g.turn || 'A', o = other(t), card = g.card, ans = g.answer;
+  const truth = card?.type === 'truth';
+  let body;
+  if (!card) {
+    body = `<div class="row big-choices"><button class="choice truth" data-a="tod" data-type="truth">Truth</button><button class="choice dare" data-a="tod" data-type="dare">Dare</button></div>
+      <button class="btn ghost wide" data-a="tod" data-type="random">🎲 Surprise me</button>
+      ${canAct(o) ? `<details class="card ask-own" ${ui.askOpen ? 'open' : ''}><summary>✍️ ${nm(o)}, ask ${nm(t)} your own question</summary>
+        <form data-form="todAsk"><div class="seg"><label><input type="radio" name="type" value="truth" checked> Truth</label><label><input type="radio" name="type" value="dare"> Dare</label></div>
+        <textarea name="q" rows="2" maxlength="300" required placeholder="Ask anything… or dare them to do something 😈"></textarea><button class="btn wide">Send to ${nm(t)}</button></form></details>` : ''}`;
+  } else {
+    const answerBox = canAct(t)
+      ? `<form class="card reply" data-form="todAnswer"><textarea name="a" rows="3" maxlength="1000" required placeholder="${truth ? `Type your honest answer for ${nm(o)}…` : `Tell ${nm(o)} how it went (optional)…`}"></textarea>
+         <button class="btn wide">${truth ? 'Send answer 💬 +5' : 'Send 🔥'}</button></form>`
+      : `<p class="center muted small">⏳ Waiting for ${nm(t)} to ${truth ? 'answer' : 'do the dare'}…</p>`;
+    const answered = ans ? `<div class="answer-bubble"><small>${nm(t)} ${truth ? 'answered' : 'said'}:</small><p>${esc(ans.text)}</p>
+        ${canAct(o) ? `<button class="chip ${g.loved ? 'on' : ''}" data-a="todLove" ${g.loved ? 'disabled' : ''}>${g.loved ? `🔥 You loved this (+5 for ${nm(t)})` : '🔥 Love this answer (+5)'}</button>` : g.loved ? `<span class="small">🔥 ${nm(o)} loved your answer!</span>` : ''}</div>` : '';
+    body = cardHtml(card, card.custom ? `${truth ? 'TRUTH' : 'DARE'} FROM ${nm(o).toUpperCase()}` : truth ? 'TRUTH' : 'DARE') + answered
+      + (!ans && (truth || canAct(t)) ? answerBox : '')
+      + `<div class="row">${!truth && !g.done ? `<button class="btn" data-a="todDone">Dare done +10</button>` : ''}
+        <button class="btn ${ans || g.done ? '' : 'ghost'}" data-a="todNext">${ans || g.done ? `Next: ${nm(o)}'s turn →` : 'Skip'}</button>
+        ${card.custom ? '' : `<button class="btn ghost" data-a="hide" data-id="${esc(card.id)}" title="Never show again">🚫</button>`}</div>`;
+  }
   return `<h2>🎭 Truth or Dare</h2>${turnBar()}
-    <p class="center"><b>${nm(t)}</b>, ${card ? (card.type === 'truth' ? 'answer honestly 👇' : 'your dare 👇') : 'truth or dare?'}</p>
-    ${card ? cardHtml(card, card.type === 'truth' ? 'TRUTH' : 'DARE') + `
-      <div class="row"><button class="btn" data-a="todDone">${card.type === 'truth' ? 'Answered +5' : 'Done +10'}</button>
-      <button class="btn ghost" data-a="todSkip">Skip</button><button class="btn ghost" data-a="hide" data-id="${esc(card.id)}" title="Never show again">🚫</button></div>`
-    : `<div class="row big-choices"><button class="choice truth" data-a="tod" data-type="truth">Truth</button><button class="choice dare" data-a="tod" data-type="dare">Dare</button></div>
-       <button class="btn ghost wide" data-a="tod" data-type="random">🎲 Surprise me</button>`}
+    <p class="center"><b>${nm(t)}</b>, ${card ? (truth ? 'answer honestly 👇' : 'your dare 👇') : 'truth or dare?'}</p>
+    ${body}
     <p class="muted small center">Skipping is always free. 🚫 removes a card for good.</p>`;
 }
 
@@ -757,11 +774,7 @@ function fantasyView() {
 
 function positionsView() {
   const sh = S.shared, r = me();
-  if (sh.heat < 3) {
-    return `<section><h2>Positions</h2><div class="card center"><p>🔒 The position planner unlocks at <b>🌶️ Spicy</b> heat.</p>
-      <button class="btn" data-a="setHeat" data-h="3">Turn up to Spicy</button></div></section>`;
-  }
-  const list = C.POSITIONS.filter((p) => p.heat <= sh.heat).filter((p) => {
+  const list = C.POSITIONS.filter((p) => {
     const v = sh.pos?.[p.id] || {};
     return ui.posFilter === 'both' ? v.A === 'want' && v.B === 'want' : ui.posFilter === 'tried' ? v.tried : ui.posFilter === 'new' ? !v[r] : true;
   });
@@ -1032,8 +1045,10 @@ const A = {
   setHeat: (el) => { closeModal(); set(['heat'], Number(el.dataset.h)); toast(`Heat: ${heatInfo(Number(el.dataset.h)).icon} ${heatInfo(Number(el.dataset.h)).name}`); },
   close: closeModal,
   tod: (el) => todDraw(el.dataset.type),
-  todDone: () => { const g = G(); addPoints(g.turn || 'A', g.card?.type === 'truth' ? 5 : 10); floatEmoji(g.card?.type === 'truth' ? '💬' : '🔥'); nextTurn(); },
+  todDone: () => { const g = G(); if (g.done) return; addPoints(g.turn || 'A', 10); floatEmoji('🔥'); setGame({ done: true }); },
+  todNext: () => nextTurn(),
   todSkip: () => nextTurn(),
+  todLove: () => { const g = G(); if (g.loved || !g.answer || !canAct(other(g.turn || 'A'))) return; addPoints(g.turn || 'A', 5); floatEmoji('🔥'); setGame({ loved: true }); },
   hide: (el) => { set(['hidden', el.dataset.id], true, { quiet: true }); toast('Card removed for good'); setGame({ card: null, ans: {} }); },
   unhide: () => { set(['hidden'], {}); toast('All hidden cards are back'); },
   swiper: (el) => { S.local.swiper = el.dataset.r; save(); render(); },
@@ -1092,8 +1107,8 @@ const A = {
   },
   planAdd: (el) => { closeModal(); if (!(S.shared.plan || []).includes(el.dataset.id)) set(['plan'], [...(S.shared.plan || []), el.dataset.id]); toast('Added to tonight\'s playlist 🌙'); },
   surprise: () => {
-    const both = C.POSITIONS.filter((p) => p.heat <= S.shared.heat && S.shared.pos?.[p.id]?.A === 'want' && S.shared.pos?.[p.id]?.B === 'want');
-    const pool = both.length ? both : C.POSITIONS.filter((p) => p.heat <= S.shared.heat && S.shared.pos?.[p.id]?.A !== 'no' && S.shared.pos?.[p.id]?.B !== 'no');
+    const both = C.POSITIONS.filter((p) => S.shared.pos?.[p.id]?.A === 'want' && S.shared.pos?.[p.id]?.B === 'want');
+    const pool = both.length ? both : C.POSITIONS.filter((p) => S.shared.pos?.[p.id]?.A !== 'no' && S.shared.pos?.[p.id]?.B !== 'no');
     if (!pool.length) return toast('Vote on some positions first');
     const p = rnd(pool);
     modal(`<div class="center"><div class="muted small">${both.length ? 'From the ones you both want' : 'Something new'}</div><div class="pose-wrap">${poseSvg(p.id)}</div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p>
@@ -1219,6 +1234,18 @@ document.addEventListener('submit', (e) => {
       ensureNumber().then(() => post('/community/post', authBody({ topic: d.topic, handle: d.handle, text: d.text })))
         .then(() => { ui.comm.compose = false; toast('💌 Sent! It appears after a quick review.', 4000); loadCommunity(); })
         .catch((e) => { toast(e.message, 5000); btn.disabled = false; });
+      break;
+    }
+    case 'todAnswer': {
+      const text = (d.a || '').trim(); const g = G(); if (!text || !g.card || !canAct(g.turn || 'A')) return;
+      if (g.card.type === 'truth') addPoints(g.turn || 'A', 5);
+      setGame({ answer: { text: text.slice(0, 1000) } }); floatEmoji('💬');
+      break;
+    }
+    case 'todAsk': {
+      const q = (d.q || '').trim(); if (!q) return;
+      ui.askOpen = false;
+      setGame({ card: { id: 'custom', custom: true, heat: S.shared.heat, type: d.type === 'dare' ? 'dare' : 'truth', text: q.slice(0, 300) }, answer: null, loved: false, done: false });
       break;
     }
     case 'join': ui.joinCode = d.code; joinRoom(d.code); break;
