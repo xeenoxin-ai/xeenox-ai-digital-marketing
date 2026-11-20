@@ -232,6 +232,30 @@ for (const g of C.LEARN) {
   });
 }
 
+// Romantic (heat 1-2) Intimacy Originals become public story pages for search traffic.
+// Steamier stories stay inside the app.
+const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+export const PUBLIC_STORIES = C.STORIES.filter((x) => x.heat <= 2);
+function storyPage(st) {
+  const cat = C.STORY_CATS.find((c) => c.id === st.cat);
+  return page({
+    path: `/stories/${slug(st.title)}/`, h1: esc(st.title),
+    title: `${st.title} — a ${cat.name.toLowerCase()} love story`,
+    description: esc(st.body[0].slice(0, 150)),
+    intro: `<span class="note">${cat.icon} ${cat.name} · ${st.mins} min read · an Intimacy Originals story (fiction)</span>`,
+    schema: [{ '@context': 'https://schema.org', '@type': 'ShortStory', name: st.title, genre: 'Romance', author: { '@type': 'Organization', name: 'Intimacy for Couples' }, isFamilyFriendly: true }],
+    body: st.body.map((p) => `<p class="story-p">${esc(p)}</p>`).join('') + `<section class="band"><h2>Hotter stories inside the app</h2><p>More love stories, first nights and steamy honeymoon stories — plus games to play with your partner.</p><a class="cta" href="/play/">Read more in the app 💞</a></section>`,
+  });
+}
+function storiesIndex() {
+  return page({
+    path: '/stories/', h1: 'Love Stories for Couples', title: 'Love Stories for Couples: Proposals, First Kisses & Romance',
+    description: 'Short romantic love stories for couples — proposal stories, first kisses and long-distance love. Read together, then share your own.',
+    intro: 'Short romantic stories to read together — proposals, first kisses and long-distance love. Steamier stories are inside the app.',
+    body: `<div class="pos">${PUBLIC_STORIES.map((st) => `<article><h3><a href="/stories/${slug(st.title)}/">${esc(st.title)}</a></h3><p>${esc(st.body[0].slice(0, 120))}…</p></article>`).join('')}</div>`,
+  });
+}
+
 function adminPage() {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
 <title>Admin — ${BRAND}</title><link rel="stylesheet" href="/site.css"></head><body><main>
@@ -288,6 +312,7 @@ function landing() {
 <article><h3>🔥 Community</h3><p>Real couples share experiences anonymously. Trending hot topics, reviewed before they go live.</p></article>
 <article><h3>📖 Sex guides</h3><p>What men love, what women love, toys for couples and how to make your partner happy.</p></article>
 <article><h3>💌 Wishes & turn-ons</h3><p>Tell your partner what drives you wild — black lace, candles, oil massage — and send one-tap wishes for tonight.</p></article>
+<article><h3>📖 Love stories</h3><p>Proposals, first nights and honeymoon stories — <a href="/stories/">read some free</a>.</p></article>
 <article><h3>🔒 Private by design</h3><p>No email or phone number. A safe word, PIN lock and one-tap hide.</p></article>
 </section>
 <section><h2>How it works</h2><ol><li>Open <a href="/play/">the game</a> and enter your names.</li><li>Play on one phone — or share your Love Number and connect two phones.</li><li>Play, plan your next night together, and keep your streak alive.</li></ol></section>
@@ -353,6 +378,8 @@ export function build() {
   write('/', landing());
   for (const g of GUIDES) write(g.path, page(g));
   write('/admin/', adminPage());
+  write('/stories/', storiesIndex());
+  for (const st of PUBLIC_STORIES) write(`/stories/${slug(st.title)}/`, storyPage(st));
   write('/privacy/', legal('/privacy/', 'Privacy Policy', `
 <p>Last updated ${TODAY}.</p>
 <h2>What we collect</h2><ul>
@@ -372,7 +399,7 @@ export function build() {
 <li>The service is provided "as is", free of charge, without warranties. We may change or stop it at any time.</li>
 <li>Do not misuse the service: no harassment, spam, or attempts to access other people's rooms or numbers.</li></ul>`));
   writeFileSync(join(OUT, '404.html'), page({ path: '/404', title: `Page not found — ${BRAND}`, description: 'Page not found.', h1: 'Lost? 💔', intro: 'That page does not exist. Try the game or one of the guides below.', body: '', crumbs: false }).replace('<link rel="canonical"', '<meta name="robots" content="noindex">\n<link rel="x-canonical"'));
-  const urls = ['/', ...GUIDES.map((g) => g.path), '/privacy/', '/terms/'];
+  const urls = ['/', '/stories/', ...PUBLIC_STORIES.map((st) => `/stories/${slug(st.title)}/`), ...GUIDES.map((g) => g.path), '/privacy/', '/terms/'];
   writeFileSync(join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE_URL}${u}</loc><lastmod>${TODAY}</lastmod><priority>${u === '/' ? '1.0' : u === '/privacy/' || u === '/terms/' ? '0.3' : '0.8'}</priority></url>`).join('\n')}\n</urlset>\n`);
   writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
   bundle();

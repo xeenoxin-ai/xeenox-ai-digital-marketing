@@ -43,11 +43,16 @@ test('X-Rated cards stay inside the app, off public pages', async () => {
   assert.ok(!html.includes(x.replace(/'/g, '&#39;')) && !html.includes(x));
 });
 
-test('story library stays inside the app', async () => {
-  assert.ok(C.STORIES.length >= 12);
+test('only romantic stories are public; steamy ones stay in the app', async () => {
+  assert.ok(C.STORIES.length >= 20);
+  const index = await (await get('/stories/')).text();
+  for (const st of C.STORIES) {
+    const listed = index.includes(st.title.replace(/'/g, '&#39;')) || index.includes(st.title);
+    assert.equal(listed, st.heat <= 2, st.title);
+  }
   for (const path of ['/', '/sex-tips-for-couples/', '/date-night-ideas/']) {
     const html = await (await get(path)).text();
-    for (const st of C.STORIES) assert.ok(!html.includes(st.title), st.title + ' leaked to ' + path);
+    for (const st of C.STORIES.filter((x) => x.heat > 2)) assert.ok(!html.includes(st.title), st.title + ' leaked to ' + path);
   }
 });
 

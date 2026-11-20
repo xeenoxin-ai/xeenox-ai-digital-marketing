@@ -148,8 +148,8 @@ function floatEmoji(e) {
   }
 }
 function modal(html) {
-  const m = $('#modal');
-  m.innerHTML = `<div class="sheet">${html}</div>`;
+  const m = $('#modal'), still = !m.hidden;
+  m.innerHTML = `<div class="sheet${still ? ' still' : ''}">${html}</div>`;
   m.hidden = false;
 }
 function closeModal() { $('#modal').hidden = true; $('#modal').innerHTML = ''; }
@@ -616,6 +616,8 @@ function homeView() {
       <button class="ex-row" data-a="us" data-sub="future"><span class="ex-ico g-future">🔮</span><span><b>Our future</b><small>Travel, home, family & dreams</small></span><i>›</i></button>
     </div>
     <div class="card tip" data-a="game" data-id="tips"><span class="eyebrow">Tip of the day</span><p>${esc(tipOfDay())}</p></div>
+    <div class="card share-card"><b>💞 Know a couple who'd love this?</b><small>Share the app — it's free and private.</small>
+      <div class="row"><button class="btn sm" data-a="shareApp">📤 Share with a couple</button>${installEvt ? '<button class="btn sm ghost" data-a="install">📲 Install app</button>' : ''}</div></div>
   </section>`;
 }
 const gameTile = (g) => `<button class="tile g-${g.id}" data-a="game" data-id="${g.id}"><span class="ico">${g.icon}</span><b>${g.name}</b><small>${g.desc}</small></button>`;
@@ -1035,7 +1037,7 @@ function wishCard() {
   const toMe = sh.requests?.[partner], fromMe = sh.requests?.[mine];
   const pt = (sh.turnons?.[partner] || []).slice(0, 6);
   return `<div class="card wish">
-    <div class="row between"><b>💌 Tonight's wish</b><button class="btn sm" data-a="wishOpen">Send a wish</button></div>
+    <div class="row between"><b>💌 Tonight's wish</b><span class="row" style="margin:0;gap:6px"><button class="btn sm ghost" data-a="dressOpen">👗 Dress me</button><button class="btn sm" data-a="wishOpen">Send a wish</button></span></div>
     ${toMe ? `<div class="wish-in"><small>${nm(partner)} wishes:</small><p>${esc(toMe.text)}</p>
       ${toMe.reply ? `<span class="tag ok">${toMe.reply === 'yes' ? '😘 You said yes' : '🙈 You said maybe'}</span>` : canAct(mine) ? `<div class="row"><button class="btn sm" data-a="wishReply" data-v="yes">😘 Yes, tonight</button><button class="btn sm ghost" data-a="wishReply" data-v="maybe">🙈 Maybe</button></div>` : ''}</div>` : ''}
     ${fromMe ? `<p class="small muted">You wished: <b>${esc(fromMe.text)}</b> — ${fromMe.reply === 'yes' ? '😘 they said YES' : fromMe.reply === 'maybe' ? '🙈 maybe…' : 'waiting…'}</p>` : ''}
@@ -1296,6 +1298,27 @@ const A = {
   progStart: (el) => { set(['program'], { id: el.dataset.id, start: localDate(), done: {} }); floatEmoji('🔥'); },
   progDay: (el) => { set(['program', 'done', el.dataset.i], el.checked ? true : null); if (el.checked) { addPoints(me(), 10); floatEmoji('🔥'); } },
   progQuit: () => { if (confirm('Leave this challenge?')) set(['program'], null); },
+  dressOpen: () => {
+    ui.dress = ui.dress || { cat: 'lingerie', picks: [] };
+    const d = ui.dress, cat = C.OUTFITS.find((c) => c.id === d.cat) || C.OUTFITS[0];
+    modal(`<h3>👗 Dress ${nm(other(me()))} for tonight</h3><p class="muted small">Pick an outfit and a look — it arrives as a wish they can say yes to.</p>
+      <div class="chips">${C.OUTFITS.map((c) => `<button class="chip ${c.id === d.cat ? 'on' : ''}" data-a="dressCat" data-c="${c.id}">${c.icon} ${c.name}</button>`).join('')}</div>
+      <div class="chips wrap">${cat.opts.map((o) => `<button class="chip ${d.picks.includes(o) ? 'on' : ''}" data-a="dressPick" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+      <div class="muted small" style="margin-top:8px">💄 Makeup, hair & grooming</div>
+      <div class="chips wrap">${C.MAKEUP.map((o) => `<button class="chip ${d.picks.includes(o) ? 'on' : ''}" data-a="dressPick" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+      <button class="btn wide" data-a="dressSend" ${d.picks.length ? '' : 'disabled'}>Send: ${d.picks.length ? esc(d.picks.join(' + ')) : 'pick something'} 💌</button>
+      <button class="btn ghost wide" data-a="close">Close</button>`);
+  },
+  dressCat: (el) => { ui.dress.cat = el.dataset.c; A.dressOpen(); },
+  dressPick: (el) => { const d = ui.dress, o = el.dataset.o; d.picks = d.picks.includes(o) ? d.picks.filter((x) => x !== o) : [...d.picks, o].slice(-4); A.dressOpen(); },
+  dressSend: () => { const d = ui.dress; if (!d?.picks.length) return; sendWish(`Wear tonight: ${d.picks.join(' + ')} 👗`); ui.dress = null; },
+  shareApp: async () => {
+    const url = location.origin + '/?ref=share';
+    const text = 'We found the hottest game for couples 🔥 Truth or dare, fantasies, positions & more — free and private. Try it with your partner:';
+    if (navigator.share) { try { await navigator.share({ title: 'Intimacy for Couples', text, url }); return; } catch { /* cancelled */ } }
+    window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank', 'noopener');
+  },
+  install: async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch { /* */ } installEvt = null; render(); },
   storyCat: (el) => { ui.storyCat = el.dataset.c; render(); },
   storyOpen: (el) => { ui.tab = 'games'; ui.game = 'stories'; ui.story = el.dataset.id || null; render(); window.scrollTo(0, 0); },
   storyAsk: (el) => { const st = C.STORIES.find((x) => x.id === el.dataset.id); ui.talkDraft = `Just read "${st.title}"… what part would you want to do with me? `; openGame('talk'); },
@@ -1675,6 +1698,8 @@ window.addEventListener('hashchange', readHash);
 window.addEventListener('beforeunload', () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* */ } });
 
 sanitize();
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (ui.tab === 'home') softRender(); });
 readHash();
 render();
 if (S.local.setup && S.local.me) openInbox();

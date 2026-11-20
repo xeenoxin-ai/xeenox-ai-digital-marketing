@@ -544,3 +544,8 @@ button.li { width: 100%; border: 0; color: var(--text); font: inherit; text-alig
 .program-card small { grid-column: 1; color: var(--muted); }
 .program-card .btn { grid-column: 2; grid-row: 1 / span 2; }
 .day.done span { text-decoration: line-through; opacity: .6; }
+.share-card { background: linear-gradient(150deg, color-mix(in srgb, var(--brand2) 18%, var(--surface)), var(--surface)); }
+.share-card b { display: block; }
+.share-card small { color: var(--muted); }
+.g-st-friends { background: linear-gradient(150deg, #00b894, #6c5ce7); }
+.sheet.still { animation: none; }

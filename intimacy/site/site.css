@@ -26,3 +26,4 @@ summary { cursor: pointer; font-weight: 600; }
 .note { color: var(--muted); font-size: .85rem; }
 footer { border-top: 1px solid var(--line); padding: 20px 16px 40px; text-align: center; color: var(--muted); font-size: .85rem; }
 .pos article svg { display: block; width: 100%; height: auto; border-radius: 12px; background: radial-gradient(120% 90% at 50% 100%, rgba(255,61,127,.16), rgba(0,0,0,.2) 70%); margin-bottom: 10px; }
+.story-p { font-size: 1.1rem; line-height: 1.8; color: #ece6f0; }

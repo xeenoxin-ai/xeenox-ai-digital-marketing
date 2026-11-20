@@ -703,7 +703,7 @@ LEARN.push(...LEARN_MORE);
 // cat: first | proposal | hot | ldr | honeymoon. Shown only up to the couple's heat level. In-app only.
 export const STORY_CATS = [
   { id: 'all', name: 'All', icon: '📚' }, { id: 'first', name: 'First time', icon: '💫' }, { id: 'proposal', name: 'Proposals', icon: '💍' },
-  { id: 'hot', name: 'Hot nights', icon: '🔥' }, { id: 'ldr', name: 'Long distance', icon: '📱' }, { id: 'honeymoon', name: 'Honeymoon', icon: '🌴' },
+  { id: 'friends', name: 'Friends to lovers', icon: '🤝' }, { id: 'hot', name: 'Hot nights', icon: '🔥' }, { id: 'ldr', name: 'Long distance', icon: '📱' }, { id: 'honeymoon', name: 'Honeymoon', icon: '🌴' },
 ];
 export const STORIES = [
   { id: 's1', cat: 'proposal', heat: 1, title: 'Under the Houseboat Lights', mins: 2, body: [
@@ -845,3 +845,66 @@ export const PROGRAMS = [
     'Day 7 — Plan your next big date in the app.',
   ] },
 ];
+
+STORIES.push(
+  { id: 's13', cat: 'proposal', heat: 1, title: 'Munnar, 6 a.m.', mins: 2, body: [
+    'Neel woke Tara at 5 a.m. "Trust me," he said, and drove her up through the tea estates in the dark, both of them wrapped in one blanket.',
+    'They reached the top of the hill just as the mist began to glow orange. Below them, the whole valley was a sea of cloud.',
+    'He had planned a speech. He forgot all of it. He just said, "I want every sunrise to be with you," and opened the box with shaking cold fingers.',
+    'She said yes into his scarf. Their chai went cold on the bonnet of the car, and neither of them noticed.',
+  ] },
+  { id: 's14', cat: 'proposal', heat: 1, title: 'The Flash Mob', mins: 2, body: [
+    'Shreya hated surprises. Aman knew this. He did it anyway.',
+    'In the middle of the mall on a Saturday, the music changed, and twenty strangers started dancing to the song from their first college fest — the one where they met.',
+    'She was about to walk away, mortified, when she saw her best friend among the dancers, then her brother, then her mother doing a terrible twirl.',
+    'Aman stepped out last, held out a ring, and said, "I know you hate surprises. Last one, I promise." She laughed so hard she cried, and said yes in front of three hundred people filming on their phones.',
+  ] },
+  { id: 's15', cat: 'friends', heat: 3, title: 'Best Friends, Finally', mins: 3, body: [
+    'Rhea and Kabir had been best friends for seven years — through exams, breakups, bad haircuts and one terrible road trip. Both single, both 29, both pretending not to notice what everyone else had noticed long ago.',
+    'It happened at her housewarming. Everyone had left. They were washing glasses, bumping shoulders, and she flicked water at him. He grabbed her wrists to stop her, laughing, and then they were very close and not laughing at all.',
+    '"If I kiss you," he said, "and it ruins everything—" She kissed him first.',
+    'It did not ruin anything. It fixed something. They stayed up until sunrise, talking and kissing and laughing at how long they had both been waiting.',
+  ] },
+  { id: 's16', cat: 'friends', heat: 5, title: 'The Rain Check', mins: 3, body: [
+    'Ananya and Dev had a running joke: "If we are both single at 30, we are giving this a try." On her thirtieth birthday he showed up at her door with cake, wine, and a raised eyebrow.',
+    'They lasted twenty minutes of pretending it was a normal evening. Then she took the wine glass out of his hand, sat in his lap and said, "So. Are we doing this or not?"',
+    'He kissed her like he had been thinking about it for years — because he had. Clothes came off on the way to the bedroom, between laughs and "finally"s.',
+    'He took his time with her, mouth moving down her body slowly, until she was gripping the sheets and begging him to stop teasing. When he finally slid into her, they both went still for a second, foreheads together, grinning like idiots — then she rolled him over and rode him until neither of them could think.',
+    'Afterwards, eating birthday cake in bed, she said, "We wasted so many years." He said, "Then we have a lot to catch up on."',
+  ] },
+  { id: 's17', cat: 'first', heat: 4, title: 'First Night at Her Flat', mins: 3, body: [
+    'They had been dating four months. Aditi invited Varun for dinner and said, very casually, "You can stay over if you want." He nearly dropped his phone.',
+    'Dinner was a blur. They kept catching each other\'s eyes and looking away, smiling. When she cleared the plates, he stood behind her at the sink and kissed the back of her neck, and the plates stayed in the sink.',
+    'She led him to her room by the hand. They undressed each other slowly, nervous and excited, stopping to kiss after every button. She whispered what she liked. He listened carefully.',
+    'They fell asleep tangled together at 3 a.m. In the morning she made him coffee wearing his shirt, and he decided right there that he was never leaving.',
+  ] },
+  { id: 's18', cat: 'hot', heat: 5, title: 'The Saree', mins: 3, body: [
+    'It was their first anniversary. Pooja wore the red silk saree — the one from the photo he kept as his phone wallpaper.',
+    'At the party, Nikhil could not stop looking at her. Every time she adjusted the pallu over her shoulder, he forgot what he was saying.',
+    'At home, she stood in front of the mirror and said, "Help me with this?" He came up behind her and found the first pin. Then the second. He unwrapped the saree slowly, fold by fold, kissing every inch of skin it revealed, until the silk lay in a red pool at her feet.',
+    'He laid her on the bed in only the blouse and petticoat, then took those off too, slowly, while she watched him with dark eyes. He kissed down her stomach and between her thighs until she was shaking, then made love to her slowly, deeply, her hands in his hair.',
+    '"Happy anniversary," she breathed. He said the saree was his favourite gift. She told him to unwrap it again next year.',
+  ] },
+  { id: 's19', cat: 'hot', heat: 5, title: 'Hotel Room 1208', mins: 3, body: [
+    'They had been married five years, with two jobs, one dog and no privacy. So Maya booked a hotel in their own city and texted Rohit only a room number: 1208.',
+    'He knocked. She opened the door in black lace and heels, pulled him in by his tie, and pushed him against the wall before the door had closed.',
+    'They did not make it to the bed the first time. The second time, they did — slower, her on top, his hands on her hips, the city lights through the window. The third time was in the shower, laughing, steam everywhere.',
+    'At checkout the receptionist asked if they had enjoyed their stay. Maya said, "Very much," and Rohit coughed so hard he had to sit down.',
+  ] },
+  { id: 's20', cat: 'honeymoon', heat: 4, title: 'Goa, Monsoon Season', mins: 2, body: [
+    'Everyone told them not to honeymoon in Goa during the monsoon. Sara and Kiran went anyway.',
+    'It rained for six days straight. They barely left the villa. They read books in bed, ordered too much food, danced in the rain on the balcony in their underwear, and made love to the sound of the storm.',
+    'On the last day the sun came out. They looked at the beach, looked at each other, and went back to bed.',
+  ] },
+);
+
+// ---------- Dress Me: pick your partner's look for tonight ----------
+export const OUTFITS = [
+  { id: 'lingerie', name: 'Lingerie', icon: '🖤', opts: ['Black lace bra & panty set', 'Red lace lingerie', 'White bridal lingerie', 'Silk babydoll', 'Bodysuit', 'Stockings & garter', 'Sheer robe'] },
+  { id: 'night', name: 'Nightwear', icon: '🌙', opts: ['Satin slip dress', 'Your shirt — nothing else', 'Silk pyjamas', 'Short night dress', 'Boxers only', 'Silk robe'] },
+  { id: 'traditional', name: 'Traditional', icon: '🪷', opts: ['Red silk saree', 'Black saree, sleeveless blouse', 'Lehenga', 'Kerala kasavu saree', 'Kurta & dhoti', 'Sherwani'] },
+  { id: 'party', name: 'Date night', icon: '🍸', opts: ['Little black dress', 'Red bodycon dress', 'Backless dress', 'Crisp white shirt & jeans', 'Black suit, no tie', 'Fitted black T-shirt'] },
+  { id: 'roleplay', name: 'Role-play', icon: '🎭', opts: ['Office look: shirt & pencil skirt', 'Nurse costume', 'Maid costume', 'Police costume', 'Doctor coat', 'Masquerade mask'] },
+  { id: 'him', name: 'For him', icon: '🕴️', opts: ['Tight boxer briefs', 'Grey sweatpants, no shirt', 'Unbuttoned white shirt', 'Towel only', 'Suit & loose tie', 'Kurta, sleeves rolled'] },
+];
+export const MAKEUP = ['Smoky eyes', 'Bold red lips', 'Nude & natural', 'Winged eyeliner', 'Glossy lips', 'Kohl-lined eyes', 'Hair open', 'Hair tied up', 'Your perfume', 'Fresh shave', 'Light stubble', 'Cologne I love'];
