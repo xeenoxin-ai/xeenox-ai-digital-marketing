@@ -215,6 +215,12 @@ const LEARN_SEO = {
   'what-men-like': ['/what-men-like-in-bed/', 'What Men Like in Bed: What Many Men Say They Love', 'What many men say they love in bed — feeling desired, visual and verbal turn-ons, favourite touch and variety. Use it to start a conversation.'],
   'what-women-like': ['/what-women-like-in-bed/', 'What Women Like in Bed: What Many Women Say They Love', 'What many women say they love in bed — feeling safe and wanted, more foreplay, favourite positions and atmosphere. Use it to start a conversation.'],
   'sex-toys-gadgets': ['/sex-toys-for-couples/', 'Sex Toys & Gadgets for Couples: A Beginner\'s Guide', 'The best sex toys and gadgets for couples: where to start, toys for two, long-distance toys, sensation play and safety.'],
+  'foreplay-masterclass': ['/foreplay-tips-for-couples/', 'Foreplay Tips for Couples: A Step-by-Step Masterclass', 'Foreplay tips for couples — how to build desire hours before, the first 10 minutes, and turning up the heat.'],
+  'oral-tips': ['/oral-sex-tips-for-couples/', 'Oral Sex Tips for Couples', 'Oral sex tips for couples: getting comfortable, technique, rhythm and making it better for both partners.'],
+  'dirty-talk': ['/dirty-talk-for-beginners/', 'Dirty Talk for Beginners: How to Start (Without Feeling Awkward)', 'Dirty talk for beginners — simple phrases to start, how to level up, and how to practise with your partner.'],
+  'sensual-massage': ['/sensual-massage-for-couples/', 'Sensual Massage for Couples: Step by Step', 'How to give a sensual massage to your partner — setting up, the massage, and the finish.'],
+  'last-longer': ['/how-to-last-longer-in-bed/', 'How to Last Longer in Bed (and Go Again)', 'Simple habits that help couples last longer in bed and enjoy round two.'],
+  'share-fantasies': ['/how-to-share-sexual-fantasies/', 'How to Share Your Sexual Fantasies With Your Partner', 'How to share sexual fantasies with your partner safely — making it safe, talking about it and making it real.'],
   'hot-positions-guide': ['/hottest-sex-positions/', 'Hottest Sex Positions to Try This Month', 'The hottest sex positions to try this month — for passion, for deep connection and for something new.'],
 };
 for (const g of C.LEARN) {

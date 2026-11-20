@@ -3,7 +3,7 @@
 // backend (worker/index.js): game messages relay through a room, voice and video go
 // phone-to-phone with WebRTC.
 import * as C from './content.js';
-import { poseSvg } from './poses.js';
+import { poseSvg, poseKind } from './poses.js';
 
 const KEY = 'ifc.v1';
 const ROOM_PREFIX = 'intimacy4c-';
@@ -21,11 +21,11 @@ function defaultShared() {
     points: { A: 0, B: 0 }, streak: { count: 0, last: '' },
     hidden: {}, desire: { A: {}, B: {} }, pos: {}, plan: [],
     meetup: { when: '', place: '', vibe: '', outfit: '', notes: '', bring: [] },
-    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {}, turnons: { A: [], B: [] }, requests: {},
+    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {}, turnons: { A: [], B: [] }, requests: {}, fantasies: {}, fantasyReact: {},
   };
 }
 function defaultLocal() {
-  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null, liked: {} };
+  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null, liked: {}, fantasyDraft: {} };
 }
 function load() {
   try {
@@ -81,9 +81,18 @@ function sanitize() {
   sh.heat = Math.min(5, Math.max(1, Math.round(num(sh.heat)) || 2));
   sh.points = { A: num(sh.points?.A), B: num(sh.points?.B) };
   sh.streak = { count: num(sh.streak?.count), last: String(sh.streak?.last || '') };
-  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk', 'turnons', 'requests']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
+  for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk', 'turnons', 'requests', 'fantasies', 'fantasyReact']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
   for (const k of ['plan', 'future', 'customBucket']) if (!Array.isArray(sh[k])) sh[k] = [];
   if (!Array.isArray(sh.meetup.bring)) sh.meetup.bring = [];
+  for (const r of ['A', 'B']) {
+    const f = sh.fantasies[r];
+    if (f === undefined) continue;
+    if (!f || typeof f !== 'object') { delete sh.fantasies[r]; continue; }
+    const picks = {};
+    for (const c of C.FANTASY_LAB) { const v = f.picks?.[c.id]; if (Array.isArray(v)) picks[c.id] = v.filter((x) => typeof x === 'string' && x.length <= 60).slice(0, 14); }
+    sh.fantasies[r] = { picks, text: typeof f.text === 'string' ? f.text.slice(0, 1500) : '', ts: num(f.ts) };
+    if (sh.fantasyReact[r] !== undefined && !['yes', 'talk', 'someday'].includes(sh.fantasyReact[r])) delete sh.fantasyReact[r];
+  }
   for (const r of ['A', 'B']) {
     const t = sh.turnons[r];
     sh.turnons[r] = Array.isArray(t) ? t.filter((x) => typeof x === 'string' && x.length <= 40).slice(0, 30) : [];
@@ -460,7 +469,7 @@ function updateCallButtons() {
 
 // ---------- games ----------
 const GAMES = [
-  { id: 'tod', name: 'Truth or Dare', icon: '🎭', desc: 'The classic, with 4 heat levels' },
+  { id: 'tod', name: 'Truth or Dare', icon: '🎭', desc: 'The classic, with 5 heat levels up to X-Rated' },
   { id: 'talk', name: 'Hot Chat', icon: '🔥', desc: 'Sexy messages — every 🔥 from your partner raises your Hot Score' },
   { id: 'desire', name: 'Desire Match', icon: '💞', desc: 'Swipe privately — only mutual yeses show' },
   { id: 'dice', name: 'Sexy Dice', icon: '🎲', desc: 'Roll an action, a spot and a time' },
@@ -471,10 +480,18 @@ const GAMES = [
   { id: 'fantasy', name: 'Fantasy Builder', icon: '✨', desc: 'Build tonight\'s scenario together' },
   { id: 'learn', name: 'Sex Guides', icon: '📖', desc: 'What men & women love, toys, pleasing your partner' },
   { id: 'tips', name: 'Sex Tips', icon: '📚', desc: 'Better intimacy, health & long distance' },
+  { id: 'community', name: 'Community', icon: '💬', desc: 'Real couples share hot experiences' },
 ];
 const gameName = (id) => GAMES.find((g) => g.id === id)?.name || 'a game';
+const PLAY_SECTIONS = [
+  ['Games for two', ['tod', 'never', 'rather', 'hotseat', 'dice']],
+  ['Talk & tease', ['talk', 'desire', 'fantasy', 'dates']],
+  ['Learn & share', ['learn', 'tips', 'community']],
+];
 
 function openGame(id) {
+  if (id === 'community') { ui.tab = 'community'; ui.comm.data = null; return render(); }
+  if (id === 'lab') { ui.tab = 'fantasy'; return render(); }
   ui.tab = 'games'; ui.game = id;
   if (['desire', 'talk', 'tips', 'learn'].includes(id)) { ui.guide = null; return render(); }
   const g = S.shared.game?.kind === id ? S.shared.game : { kind: id, turn: 'A', card: null };
@@ -504,15 +521,16 @@ function render() {
   tabs.hidden = false;
   if (ui.tab === 'connect') { ui.tab = 'us'; ui.usTab = 'connect'; }
   if (ui.tab === 'plans') { ui.tab = 'us'; ui.usTab = ui.planTab; }
-  tabs.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === ui.tab));
+  tabs.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === (ui.tab === 'community' ? 'home' : ui.tab)));
   const badge = tabs.querySelector('[data-tab="us"] .badge');
   if (ui.tab === 'us' && ui.usTab === 'connect') S.local.unread = 0;
   badge.textContent = S.local.unread || ''; badge.hidden = !S.local.unread;
   if (ui.tab === 'community' && !ui.comm.data && !ui.comm.loading) loadCommunity();
-  const v = { home: homeView, games: gamesView, positions: positionsView, community: communityView, us: usView }[ui.tab] || homeView;
+  const v = { home: homeView, games: gamesView, positions: positionsView, fantasy: labView, community: communityView, us: usView }[ui.tab] || homeView;
   view.innerHTML = v();
   $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game || ['learn', 'tips'].includes(ui.game);
   renderPause();
+  const pd = $('#modal .pos-detail'); if (pd && !$('#modal').hidden) $('#modal .sheet').innerHTML = posDetail(pd.dataset.pos);
   tick();
 }
 
@@ -533,55 +551,58 @@ function setupView() {
   </section>`;
 }
 
+function heroCard() {
+  const mine = me(), partner = other(mine), pm = S.shared.players[partner]?.mood;
+  return `<div class="hero-card">
+    <div class="hero-top"><span class="live-chip ${online() ? 'on' : ''}">${online() ? '● Live' : '○ Offline'}</span><button class="icon-pill" data-a="us" data-sub="profile">Edit</button></div>
+    <div class="pair" data-a="us" data-sub="profile">${avatar('A', 'av-lg')}<span class="heart-badge">❤</span>${avatar('B', 'av-lg')}</div>
+    <div class="names">${nm('A')} <span>&</span> ${nm('B')}</div>
+    ${pm ? `<div class="mood-pill">${nm(partner)} is <b>${esc(pm)}</b></div>` : ''}
+    <div class="hero-actions">${online()
+      ? '<button class="btn" data-a="call" data-video="1">📹 Video</button><button class="btn ghost" data-a="call" data-video="0">📞 Voice</button><button class="btn ghost" data-a="us" data-sub="connect">💬 Chat</button>'
+      : '<button class="btn" data-a="us" data-sub="connect">💌 Connect partner</button>'}</div>
+  </div>`;
+}
+const QUICK = [
+  ['tod', 'Truth or Dare', '🎭', 'g-tod'], ['talk', 'Hot Chat', '🔥', 'g-talk'], ['lab', 'Fantasy Lab', '✨', 'g-lab'],
+  ['positions', 'Positions', '🌙', 'g-pos'], ['dice', 'Sexy Dice', '🎲', 'g-dice'], ['desire', 'Desire Match', '💞', 'g-desire'],
+];
 function homeView() {
   const sh = S.shared, mu = sh.meetup || {};
   const both = Object.values(sh.pos || {}).filter((p) => p.A === 'want' && p.B === 'want').length;
-  const matches = desireMatches().length;
-  const bucketAll = C.BUCKET.length + (sh.customBucket || []).length;
-  const bucketDone = Object.values(sh.bucket || {}).filter((b) => b?.done).length;
-  const spark = C.DAILY_SPARK[Math.floor(Date.now() / 864e5) % C.DAILY_SPARK.length];
-  return `<section>
-    ${coupleHeader()}
-    <div class="card status ${online() ? 'live' : ''}">
-      ${online() ? `<div><b>🟢 Live with ${nm(other(S.local.role))}</b><p class="muted small">Games, plans and chat sync instantly.</p></div>
-        <div class="row"><button class="btn sm" data-a="call" data-video="1">📹 Video</button><button class="btn sm ghost" data-a="call" data-video="0">📞 Voice</button></div>`
-        : `<div><b>Together or miles apart?</b><p class="muted small">Play on one phone now, or connect two phones for long-distance play with video.</p></div>
-        <button class="btn sm" data-a="us" data-sub="connect">Connect 💌</button>`}
-    </div>
-    <div class="card meetup-card" data-a="plan" data-sub="meetup">
-      <div class="muted small">Next meet-up</div>
-      ${mu.when ? `<div class="count" data-countdown="${esc(mu.when)}">${countdown(mu.when)}</div>
-        <div class="small">${esc(new Date(mu.when).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}${mu.place ? ' · ' + esc(mu.place) : ''}</div>`
-        : '<div class="count dim">Not planned yet</div><div class="small">Tap to set a date, place and tonight\'s positions →</div>'}
+  const sc = talkScores();
+  return `<section class="home">
+    ${heroCard()}
+    ${wishCard()}
+    <div class="sec-head"><h3>Play tonight</h3><button class="link" data-a="tab" data-tab="games">See all</button></div>
+    <div class="quick">${QUICK.map(([id, name, ico, cls]) => `<button class="qtile ${cls}" ${id === 'positions' ? 'data-a="tab" data-tab="positions"' : `data-a="game" data-id="${id}"`}><span>${ico}</span><b>${name}</b></button>`).join('')}</div>
+    <div class="card meetup-card" data-a="us" data-sub="meetup">
+      <div class="row between"><span class="eyebrow">Next meet-up</span><span class="small">${mu.place ? esc(mu.place) : ''}</span></div>
+      ${mu.when ? `<div class="count" data-countdown="${esc(mu.when)}">${countdown(mu.when)}</div><div class="small muted">${esc(new Date(mu.when).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</div>`
+        : '<div class="count dim">Plan your next night</div><div class="small muted">Date, place, outfit and tonight\'s positions →</div>'}
     </div>
     <div class="stats">
-      <div><b>🔥 ${num(sh.streak?.count)}</b><span>day streak</span></div>
-      <div><b>${num(sh.points?.A)} · ${num(sh.points?.B)}</b><span>love points</span></div>
-      <div><b>💞 ${matches}</b><span>desire matches</span></div>
-      <div><b>✨ ${both}</b><span>positions you both want</span></div>
+      <div><b>${num(sh.streak?.count)}</b><span>🔥 Streak</span></div>
+      <div><b>${sc.A.score + sc.B.score}</b><span>Hot Score</span></div>
+      <div><b>${desireMatches().length}</b><span>💞 Matches</span></div>
+      <div><b>${both}</b><span>✨ Positions</span></div>
     </div>
-    ${wishCard()}
-    <div class="card spark"><div class="muted small">Today's spark</div><p>${esc(spark)}</p></div>
-    <div class="card talkhome" data-a="game" data-id="talk">${(() => { const sc = talkScores(), l = talkLeader(); return `<div class="row between"><b>🔥 Hot Chat · Hot Score</b><span class="small">${l === 'A' || l === 'B' ? `👑 ${nm(l)}` : l === 'tie' ? 'Tied!' : 'Start talking →'}</span></div>
-      <div class="small muted">${nm('A')} ${sc.A.score} · ${nm('B')} ${sc.B.score} — every 🔥 from your partner is +10</div>`; })()}</div>
-    <h3>Play now</h3>
-    <div class="grid">${GAMES.slice(0, 4).map(gameTile).join('')}</div>
-    <h3>Learn together</h3>
-    <div class="hscroll">${C.LEARN.map((g) => `<button class="guide-chip" data-a="openGuide" data-id="${g.id}"><span>${g.icon}</span>${esc(g.title)}</button>`).join('')}</div>
-    <div class="card community-teaser" data-a="tab" data-tab="community"><div class="row between"><b>🔥 Community</b><span class="small">Hot topics →</span></div>
-      <div class="small muted">Real couples share experiences, anonymously. Read, like, and share yours.</div></div>
-    <div class="card" data-a="game" data-id="tips"><div class="muted small">📚 Tip of the day</div><p class="small">${esc(tipOfDay())}</p></div>
-    <div class="card"><div class="muted small">Bucket list</div>
-      <div class="bar"><i style="width:${bucketAll ? Math.round((bucketDone / bucketAll) * 100) : 0}%"></i></div>
-      <div class="small">${bucketDone} of ${bucketAll} hot experiences done <a href="#" data-a="us" data-sub="bucket">Open →</a></div></div>
+    <div class="sec-head"><h3>Explore</h3></div>
+    <div class="explore">
+      <button class="ex-row" data-a="game" data-id="learn"><span class="ex-ico g-learn">📖</span><span><b>Sex guides</b><small>Foreplay, oral, dirty talk, what he & she love</small></span><i>›</i></button>
+      <button class="ex-row" data-a="tab" data-tab="community"><span class="ex-ico g-comm">💬</span><span><b>Community</b><small>Hot topics & real couples' stories</small></span><i>›</i></button>
+      <button class="ex-row" data-a="us" data-sub="bucket"><span class="ex-ico g-bucket">🔥</span><span><b>Bucket list</b><small>Hot experiences to tick off together</small></span><i>›</i></button>
+      <button class="ex-row" data-a="us" data-sub="future"><span class="ex-ico g-future">🔮</span><span><b>Our future</b><small>Travel, home, family & dreams</small></span><i>›</i></button>
+    </div>
+    <div class="card tip" data-a="game" data-id="tips"><span class="eyebrow">Tip of the day</span><p>${esc(tipOfDay())}</p></div>
   </section>`;
 }
-const gameTile = (g) => `<button class="tile" data-a="game" data-id="${g.id}"><span class="ico">${g.icon}</span><b>${g.name}</b><small>${g.desc}</small></button>`;
+const gameTile = (g) => `<button class="tile g-${g.id}" data-a="game" data-id="${g.id}"><span class="ico">${g.icon}</span><b>${g.name}</b><small>${g.desc}</small></button>`;
 
 function gamesView() {
   if (!ui.game) {
-    return `<section><h2>Games</h2><p class="muted">Heat is ${heatInfo(S.shared.heat).icon} <b>${heatInfo(S.shared.heat).name}</b>. Cards up to this heat appear. <a href="#" data-a="heat">Change</a></p>
-      <div class="grid">${GAMES.map(gameTile).join('')}</div></section>`;
+    return `<section><div class="page-head"><h2>Play</h2><button class="heat-btn" data-a="heat">${heatInfo(S.shared.heat).icon} ${heatInfo(S.shared.heat).name}</button></div>
+      ${PLAY_SECTIONS.map(([title, ids]) => `<h3>${title}</h3><div class="grid">${ids.map((id) => GAMES.find((g) => g.id === id)).filter(Boolean).map(gameTile).join('')}</div>`).join('')}</section>`;
   }
   const back = ui.game === 'learn' && ui.guide ? '<button class="back" data-a="guide" data-id="">‹ Guides</button>' : `<button class="back" data-a="back">‹ Play</button>`;
   const fn = { tod: todView, talk: talkView, tips: tipsView, learn: learnView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
@@ -642,7 +663,7 @@ function desireView() {
   const m = desireMatches();
   return `<h2>💞 Desire Match</h2>${swiperBar()}
     <div class="bar"><i style="width:${items.length ? (done / items.length) * 100 : 0}%"></i></div><p class="small muted center">${done}/${items.length} answered by ${nm(r)}</p>
-    ${next ? `<div class="playcard heat${next.heat} swipe"><div class="pc-top"><span>WOULD YOU…</span><span>${heatInfo(next.heat).icon}</span></div><p>${esc(next.text)}</p></div>
+    ${next ? `<div class="swipe-stage"><div class="playcard heat${next.heat} swipe-card" data-swipe="desire" data-id="${next.id}"><span class="stamp like">YES</span><span class="stamp nope">NO</span><div class="pc-top"><span>WOULD YOU…</span><span>${heatInfo(next.heat).icon}</span></div><p>${esc(next.text)}</p><small class="muted">Swipe right for yes, left for no</small></div></div>
       <div class="row votes"><button class="vote no" data-a="desire" data-id="${next.id}" data-v="no">❌<small>No</small></button>
       <button class="vote maybe" data-a="desire" data-id="${next.id}" data-v="maybe">🤔<small>Maybe</small></button>
       <button class="vote yes" data-a="desire" data-id="${next.id}" data-v="yes">💚<small>Yes</small></button></div>`
@@ -781,29 +802,108 @@ function fantasyView() {
     <p class="muted small center">Safe word: <b>${esc(S.shared.safeWord)}</b> — always ends the scene.</p>`;
 }
 
+const dots = (n, c) => c.repeat(n) + '<i>' + c.repeat(3 - n) + '</i>';
+function posBadge(p) {
+  const v = S.shared.pos?.[p.id] || {}, r = me();
+  if (v.A === 'want' && v.B === 'want') return '<span class="ribbon gold">✨ Both want</span>';
+  if (v.tried) return '<span class="ribbon">✓ Tried</span>';
+  if (v[r] === 'want') return '<span class="ribbon">👍 You want</span>';
+  return '';
+}
 function positionsView() {
   const sh = S.shared, r = me();
+  if (ui.posSwipe) return posSwipeView();
   const list = C.POSITIONS.filter((p) => {
     const v = sh.pos?.[p.id] || {};
-    return ui.posFilter === 'both' ? v.A === 'want' && v.B === 'want' : ui.posFilter === 'tried' ? v.tried : ui.posFilter === 'new' ? !v[r] : true;
+    return ui.posFilter === 'both' ? v.A === 'want' && v.B === 'want' : ui.posFilter === 'tried' ? v.tried : ui.posFilter === 'new' ? !v[r] : ui.posFilter === 'easy' ? p.diff === 1 : ui.posFilter === 'intimate' ? p.intimacy === 3 : true;
   });
   const plan = (sh.plan || []).map((id) => C.POSITIONS.find((p) => p.id === id)).filter(Boolean);
-  const dots = (n, c) => c.repeat(n) + '<i>' + c.repeat(3 - n) + '</i>';
-  return `<section><h2>Position Planner</h2>${swiperBar()}
-    <div class="card plan"><div class="row between"><b>🌙 Tonight's playlist</b><button class="btn sm" data-a="surprise">🎲 Surprise us</button></div>
-      ${plan.length ? `<div class="playlist">${plan.map((p, i) => `<div class="pl-item"><span class="pl-n">${i + 1}</span>${poseSvg(p.id, 'pose mini-pose')}<span>${esc(p.name)}</span><button class="mini" data-a="planToggle" data-id="${p.id}">✕</button></div>`).join('')}</div>` : '<p class="muted small">Add positions with ＋ to plan your next night together.</p>'}</div>
-    <div class="chips">${[['all', 'All'], ['both', '✨ Both want'], ['new', 'Not voted'], ['tried', '✓ Tried']].map(([k, l]) => `<button class="chip ${ui.posFilter === k ? 'on' : ''}" data-a="posFilter" data-f="${k}">${l}</button>`).join('')}</div>
-    <div class="positions">${list.map((p) => {
-      const v = sh.pos?.[p.id] || {}, both = v.A === 'want' && v.B === 'want', inPlan = (sh.plan || []).includes(p.id);
-      return `<div class="pos ${both ? 'match' : ''}"><div class="pose-wrap">${poseSvg(p.id)}</div><div class="row between"><b>${esc(p.name)}</b>${both ? '<span class="tag">✨ Both want</span>' : ''}${v.tried ? '<span class="tag ok">✓ Tried</span>' : ''}</div>
-        <p class="small">${esc(p.desc)}</p>
-        <div class="meters"><span>Difficulty ${dots(p.diff, '●')}</span><span>Intimacy ${dots(p.intimacy, '♥')}</span><span>Energy ${dots(p.energy, '⚡')}</span></div>
-        <div class="row"><button class="chip ${v[r] === 'want' ? 'on' : ''}" data-a="posVote" data-id="${p.id}" data-v="want">👍 Want</button>
-        <button class="chip ${v[r] === 'no' ? 'on' : ''}" data-a="posVote" data-id="${p.id}" data-v="no">👎 Pass</button>
-        <button class="chip ${v.tried ? 'on' : ''}" data-a="posTried" data-id="${p.id}">✓ Tried</button>
-        <button class="chip ${inPlan ? 'on' : ''}" data-a="planToggle" data-id="${p.id}">${inPlan ? '✓ In plan' : '＋ Plan'}</button></div></div>`;
-    }).join('') || '<p class="muted">Nothing here yet.</p>'}</div>
-    <p class="muted small">Your partner only sees "Both want" — a pass stays private. Communicate, go slow, stop anytime.</p></section>`;
+  return `<section><div class="page-head"><h2>Positions</h2><button class="btn sm" data-a="posSwipe">💘 Swipe mode</button></div>
+    ${swiperBar()}
+    ${plan.length ? `<div class="card plan"><div class="row between"><b>🌙 Tonight's playlist</b><button class="btn sm ghost" data-a="surprise">🎲 Surprise</button></div>
+      <div class="playlist">${plan.map((p, i) => `<div class="pl-item" data-a="posOpen" data-id="${p.id}"><span class="pl-n">${i + 1}</span>${poseSvg(p.id, 'pose mini-pose')}<span>${esc(p.name)}</span><button class="mini" data-a="planToggle" data-id="${p.id}">✕</button></div>`).join('')}</div></div>`
+      : '<button class="card plan-empty" data-a="surprise"><b>🎲 Surprise us</b><small>Pick a random position you both want — or tap any card to learn how.</small></button>'}
+    <div class="chips">${[['all', 'All'], ['both', '✨ Both want'], ['new', 'New for me'], ['easy', 'Easy'], ['intimate', '♥ Intimate'], ['tried', '✓ Tried']].map(([k, l]) => `<button class="chip ${ui.posFilter === k ? 'on' : ''}" data-a="posFilter" data-f="${k}">${l}</button>`).join('')}</div>
+    <div class="pgrid">${list.map((p) => `<button class="pcard" data-a="posOpen" data-id="${p.id}">${posBadge(p)}${poseSvg(p.id)}<span class="pc-name"><b>${esc(p.name)}</b><small>${'🔥'.repeat(p.heat - 2)} · ${['Easy', 'Medium', 'Hard'][p.diff - 1]}</small></span></button>`).join('') || '<p class="muted">Nothing here yet.</p>'}</div>
+    <p class="muted small center">Tap a position for step-by-step how-to. Your partner only sees "Both want" — a pass stays private.</p></section>`;
+}
+function posDetail(id) {
+  const p = C.POSITIONS.find((x) => x.id === id); if (!p) return '';
+  const v = S.shared.pos?.[p.id] || {}, r = me(), inPlan = (S.shared.plan || []).includes(p.id);
+  const steps = C.HOWTO[poseKind(p.id)] || [];
+  return `<div class="pos-detail" data-pos="${p.id}">
+    <div class="pd-art">${poseSvg(p.id)}</div>
+    <h2>${esc(p.name)}</h2>
+    <div class="meters"><span>Difficulty ${dots(p.diff, '●')}</span><span>Intimacy ${dots(p.intimacy, '♥')}</span><span>Energy ${dots(p.energy, '⚡')}</span></div>
+    <p>${esc(p.desc)}</p>
+    <h3>How to do it</h3><ol class="steps">${steps.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
+    <div class="vote-bar">
+      <button class="vbtn no ${v[r] === 'no' ? 'on' : ''}" data-a="posVote" data-id="${p.id}" data-v="no">✕<small>Pass</small></button>
+      <button class="vbtn plan ${inPlan ? 'on' : ''}" data-a="planToggle" data-id="${p.id}">★<small>${inPlan ? 'In plan' : 'Tonight'}</small></button>
+      <button class="vbtn tried ${v.tried ? 'on' : ''}" data-a="posTried" data-id="${p.id}">✓<small>Tried</small></button>
+      <button class="vbtn yes ${v[r] === 'want' ? 'on' : ''}" data-a="posVote" data-id="${p.id}" data-v="want">♥<small>Want</small></button>
+    </div>
+    <button class="btn ghost wide" data-a="close">Close</button></div>`;
+}
+function posSwipeView() {
+  const r = me(), next = C.POSITIONS.find((p) => !S.shared.pos?.[p.id]?.[r]);
+  const done = C.POSITIONS.filter((p) => S.shared.pos?.[p.id]?.[r]).length;
+  return `<section><div class="page-head"><h2>Swipe positions</h2><button class="btn sm ghost" data-a="posSwipe">Done</button></div>
+    ${swiperBar()}
+    <div class="bar"><i style="width:${(done / C.POSITIONS.length) * 100}%"></i></div><p class="small muted center">${done} / ${C.POSITIONS.length} · swipe right = want, left = pass</p>
+    ${next ? `<div class="swipe-stage"><div class="swipe-card" data-swipe="pos" data-id="${next.id}">
+        <span class="stamp like">WANT</span><span class="stamp nope">PASS</span>
+        <div class="sc-art">${poseSvg(next.id)}</div>
+        <div class="sc-body"><b>${esc(next.name)}</b><p>${esc(next.desc)}</p><button class="link" data-a="posOpen" data-id="${next.id}">How to do it ›</button></div></div></div>
+      <div class="votes"><button class="vote no" data-a="posVote" data-id="${next.id}" data-v="no">✕</button><button class="vote star" data-a="planToggle" data-id="${next.id}">★</button><button class="vote yes" data-a="posVote" data-id="${next.id}" data-v="want">♥</button></div>`
+    : '<div class="card center"><b>All swiped! 🎉</b><p class="muted small">Check "Both want" to see your matches.</p><button class="btn" data-a="posSwipe">See matches</button></div>'}</section>`;
+}
+
+// ---------- Fantasy Lab ----------
+function draftFor(r) {
+  S.local.fantasyDraft = S.local.fantasyDraft || {};
+  if (!S.local.fantasyDraft[r]) S.local.fantasyDraft[r] = S.shared.fantasies?.[r] ? JSON.parse(JSON.stringify(S.shared.fantasies[r])) : { picks: {}, text: '' };
+  return S.local.fantasyDraft[r];
+}
+function fantasyStory(f) {
+  return C.FANTASY_LAB.filter((c) => f.picks?.[c.id]?.length).map((c) => `<div class="fs-row"><span>${c.icon}</span><div><small>${esc(c.q)}</small><b>${f.picks[c.id].map(esc).join(' · ')}</b></div></div>`).join('')
+    + (f.text ? `<blockquote>“${esc(f.text)}”</blockquote>` : '');
+}
+function labView() {
+  const r = me(), p = other(r), tab = ui.labTab || 'mine';
+  const head = `<div class="page-head"><h2>Fantasy Lab</h2><button class="heat-btn" data-a="heat">${heatInfo(S.shared.heat).icon} ${heatInfo(S.shared.heat).name}</button></div>
+    <p class="muted small">Build your dream night in private. Reveal it when you're ready — then talk, match and make it real.</p>
+    ${swiperBar()}
+    <div class="seg three"><button class="${tab === 'mine' ? 'on' : ''}" data-a="labTab" data-t="mine">My fantasy</button><button class="${tab === 'theirs' ? 'on' : ''}" data-a="labTab" data-t="theirs">${nm(p)}'s</button><button class="${tab === 'talk' ? 'on' : ''}" data-a="labTab" data-t="talk">Talk</button></div>`;
+  if (tab === 'mine') {
+    const d = draftFor(r), revealed = S.shared.fantasies?.[r];
+    return `<section>${head}
+      ${C.FANTASY_LAB.map((c) => `<div class="card lab-q"><div class="lq-head"><span>${c.icon}</span><b>${c.q}</b>${c.multi ? '<small>pick any</small>' : ''}</div>
+        <div class="chips wrap">${c.opts.map((o) => `<button class="chip ${(d.picks[c.id] || []).includes(o) ? 'on' : ''}" data-a="labPick" data-c="${c.id}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}
+      <div class="card"><div class="lq-head"><span>📝</span><b>My dream, in my own words</b></div>
+        <textarea data-lab-text rows="4" maxlength="1500" placeholder="Describe it slowly… what happens first, what you want, how it ends.">${esc(d.text || '')}</textarea></div>
+      <button class="btn big wide" data-a="labReveal">${revealed ? 'Update my revealed fantasy 🔥' : `Reveal to ${nm(p)} 🔥`}</button>
+      <p class="muted small center">${revealed ? `✓ ${nm(p)} can see your fantasy.` : `Private until you tap reveal — ${nm(p)} sees nothing before that.`}</p></section>`;
+  }
+  if (tab === 'theirs') {
+    const f = S.shared.fantasies?.[p], mineF = S.shared.fantasies?.[r];
+    if (!f) return `<section>${head}<div class="card center empty-state"><div class="big-emoji">🔒</div><b>${nm(p)} hasn't revealed a fantasy yet</b><p class="muted small">Build yours first — or send a wish to tempt them.</p><button class="btn" data-a="labTab" data-t="mine">Build mine</button></div></section>`;
+    const matches = mineF ? C.FANTASY_LAB.flatMap((c) => (f.picks?.[c.id] || []).filter((o) => (mineF.picks?.[c.id] || []).includes(o)).map((o) => `${c.icon} ${o}`)) : [];
+    const react = S.shared.fantasyReact?.[r];
+    return `<section>${head}
+      <div class="card fantasy-story"><div class="row">${avatar(p, 'av-sm')}<b>${nm(p)}'s dream night</b></div>${fantasyStory(f)}</div>
+      ${matches.length ? `<div class="card match-card"><b>💞 You both want</b><div class="chips wrap">${matches.map((m) => `<span class="chip on">${esc(m)}</span>`).join('')}</div></div>` : ''}
+      ${canAct(r) ? `<div class="react-row3"><button class="rbtn ${react === 'yes' ? 'on' : ''}" data-a="labReact" data-v="yes">🔥<small>Let's do it</small></button><button class="rbtn ${react === 'talk' ? 'on' : ''}" data-a="labReact" data-v="talk">💬<small>Let's talk</small></button><button class="rbtn ${react === 'someday' ? 'on' : ''}" data-a="labReact" data-v="someday">⏳<small>Someday</small></button></div>` : ''}
+      <div class="row"><button class="btn" data-a="labPlan">📅 Plan it for our meet-up</button><button class="btn ghost" data-a="labTab" data-t="talk">💬 Talk about it</button></div></section>`;
+  }
+  const pool = C.FANTASY_TALK.filter((x) => x[0] <= Math.max(3, S.shared.heat));
+  const q = pool[(ui.labQ || 0) % pool.length];
+  const myF = S.shared.fantasies?.[r], theirReact = S.shared.fantasyReact?.[p];
+  return `<section>${head}
+    ${myF && theirReact ? `<div class="card match-card">${nm(p)} reacted to your fantasy: <b>${{ yes: '🔥 Let\'s do it!', talk: '💬 Let\'s talk', someday: '⏳ Someday' }[theirReact]}</b></div>` : ''}
+    <div class="playcard heat${q[0]}"><div class="pc-top"><span>FANTASY TALK</span><span>${heatInfo(q[0]).icon}</span></div><p>${esc(q[1])}</p></div>
+    <div class="row"><button class="btn" data-a="labAnswer" data-q="${esc(q[1])}">Answer in Hot Chat 🔥</button><button class="btn ghost" data-a="labNext">Next question</button></div>
+    <p class="muted small center">Answer out loud on a call, or write it in Hot Chat — your partner can 🔥 it.</p></section>`;
 }
 
 function usView() {
@@ -1063,6 +1163,29 @@ const A = {
     <button class="btn ghost wide" data-a="close">Close</button>`),
   wishSend: (el) => sendWish(el.dataset.t),
   wishReply: (el) => { const p = other(me()); if (!S.shared.requests?.[p]) return; set(['requests', p, 'reply'], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('😘'); },
+  posOpen: (el, e) => { if (e?.target?.closest('[data-a="planToggle"]') && el.dataset.a === 'posOpen') return; modal(posDetail(el.dataset.id)); },
+  posSwipe: () => { ui.posSwipe = !ui.posSwipe; render(); window.scrollTo(0, 0); },
+  labTab: (el) => { ui.labTab = el.dataset.t; render(); window.scrollTo(0, 0); },
+  labPick: (el) => {
+    const r = me(), d = draftFor(r), c = C.FANTASY_LAB.find((x) => x.id === el.dataset.c); if (!c) return;
+    const cur = d.picks[c.id] || [], o = el.dataset.o;
+    d.picks[c.id] = c.multi ? (cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]) : (cur.includes(o) ? [] : [o]);
+    save(); render();
+  },
+  labReveal: () => {
+    const r = me(), d = draftFor(r), ta = $('[data-lab-text]'); if (ta) d.text = ta.value.slice(0, 1500);
+    if (!Object.values(d.picks).some((v) => v.length) && !d.text.trim()) return toast('Pick a few things first 😉');
+    set(['fantasies', r], { picks: d.picks, text: d.text, ts: Date.now() }); save();
+    toast(`✨ Fantasy revealed to ${S.shared.players[other(r)]?.name || 'your partner'}`); floatEmoji('✨');
+  },
+  labReact: (el) => { set(['fantasyReact', me()], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('🔥'); },
+  labPlan: () => {
+    const f = S.shared.fantasies?.[other(me())]; if (!f) return;
+    const line = C.FANTASY_LAB.filter((c) => f.picks?.[c.id]?.length).map((c) => f.picks[c.id].join(', ')).join(' · ');
+    appendNote(`✨ ${S.shared.players[other(me())]?.name || 'Partner'}'s fantasy: ${line}`);
+  },
+  labNext: () => { ui.labQ = (ui.labQ || 0) + 1; render(); },
+  labAnswer: (el) => { ui.talkDraft = el.dataset.q + '\n'; openGame('talk'); },
   compose: () => { ui.comm.compose = !ui.comm.compose; render(); },
   topic: (el) => { ui.comm.topic = el.dataset.t; ui.comm.data = null; render(); },
   sort: (el) => { ui.comm.sort = el.dataset.s; ui.comm.data = null; render(); },
@@ -1345,6 +1468,39 @@ function importFile(file) {
     sanitize(); save(); if (net.host) send({ t: 'state', shared: S.shared }); toast('Backup restored'); render();
   }).catch(() => toast('That file is not a valid backup'));
 }
+
+// Tinder-style swipe cards: drag right = yes / want, left = no / pass.
+let drag = null;
+document.addEventListener('pointerdown', (e) => {
+  const c = e.target.closest('[data-swipe]');
+  if (!c || e.target.closest('button, a, input, textarea')) return;
+  drag = { c, x: e.clientX, y: e.clientY, dx: 0, id: e.pointerId };
+  c.style.transition = 'none';
+});
+document.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  drag.dx = e.clientX - drag.x;
+  if (Math.abs(drag.dx) > 6) { try { drag.c.setPointerCapture(e.pointerId); } catch { /* */ } }
+  drag.c.style.transform = `translateX(${drag.dx}px) rotate(${drag.dx / 16}deg)`;
+  drag.c.classList.toggle('to-like', drag.dx > 50); drag.c.classList.toggle('to-nope', drag.dx < -50);
+});
+const endDrag = (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { c, dx } = drag; drag = null;
+  c.style.transition = 'transform .3s ease';
+  if (Math.abs(dx) < 100) { c.style.transform = ''; c.classList.remove('to-like', 'to-nope'); return; }
+  const right = dx > 0;
+  c.style.transform = `translateX(${right ? 600 : -600}px) rotate(${right ? 30 : -30}deg)`;
+  setTimeout(() => {
+    if (c.dataset.swipe === 'desire') A.desire({ dataset: { id: c.dataset.id, v: right ? 'yes' : 'no' } });
+    if (c.dataset.swipe === 'pos') { set(['pos', c.dataset.id, me()], right ? 'want' : 'no'); const v = S.shared.pos?.[c.dataset.id] || {}; if (right && v.A === 'want' && v.B === 'want') { toast('✨ It\'s a match — you both want this!'); floatEmoji('💘'); } }
+  }, 220);
+};
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+document.addEventListener('input', (e) => {
+  if (e.target.matches('[data-lab-text]')) { draftFor(me()).text = e.target.value.slice(0, 1500); save(); }
+});
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !ui.hidden && S.local.setup) hideApp(); });
 $('#hide-title').addEventListener('dblclick', unhideApp);

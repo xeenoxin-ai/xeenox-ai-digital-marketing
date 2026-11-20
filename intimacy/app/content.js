@@ -609,3 +609,91 @@ export const REQUESTS = [
   'Let me undress you slowly', 'Massage first, then… 🔥', 'Wake me up with kisses ☀️', 'Candles, music and slow love 🕯️',
   'Wear nothing under your clothes today', 'Dirty talk all night 💬',
 ];
+
+// ---------- How-to steps per pose type (see poses.js POSE_KIND) ----------
+export const HOWTO = {
+  missionary: ['Receiver lies back, knees bent, a pillow under the hips.', 'Partner on top lowers between their legs, weight on forearms.', 'Start slow and close — kiss, hold eye contact, find the rhythm together.', 'Receiver wraps legs around the waist to pull deeper.'],
+  legsUp: ['Receiver lies back and lifts both legs up towards the partner\'s shoulders.', 'Partner kneels or leans forward, holding the legs or thighs for balance.', 'Go slowly — this angle is very deep.', 'Lower the legs a little if it gets too intense.'],
+  rider: ['Partner A lies flat on their back, head on a pillow.', 'Partner B straddles their hips, kneeling, facing them.', 'B sets the pace: rocking forward and back, or up and down.', 'A\'s hands are free — hips, chest, everywhere.'],
+  riderLean: ['Start in the Rider position.', 'The top partner leans all the way forward, chest to chest.', 'Move only the hips in small, slow circles.', 'Kiss the whole time — this one is all about closeness.'],
+  reverse: ['Partner A lies on their back.', 'Partner B straddles their hips facing their feet.', 'B leans slightly forward, hands on A\'s thighs or knees, and controls the rhythm.', 'A enjoys the view and can hold B\'s hips to guide.'],
+  spoon: ['Lie on your sides, both facing the same way, the back partner close behind.', 'The front partner bends their knees slightly and pushes their hips back.', 'Move slowly with small strokes — perfect for lazy mornings.', 'The back partner\'s hand reaches around the front.'],
+  lotus: ['Partner A sits cross-legged on the bed or floor.', 'Partner B sits in their lap facing them, legs wrapped around A\'s back.', 'Hold each other close and rock gently.', 'Sync your breathing and keep eye contact.'],
+  doggy: ['Receiver gets on hands and knees, back slightly arched.', 'Partner kneels behind, hands on the hips.', 'Start slow and talk about depth and speed.', 'Variation: receiver lowers chest to the bed for a deeper angle.'],
+  lazydog: ['Receiver lies flat on their stomach, a pillow under the hips.', 'Partner lies on top, supported on forearms.', 'Small, slow movements — lots of skin contact.', 'Kiss the neck and shoulders.'],
+  edge: ['Receiver lies on their back with hips right at the edge of the bed.', 'Partner stands (or kneels on a pillow) between their legs.', 'Partner holds the thighs for leverage.', 'Adjust the height with pillows under the receiver\'s hips.'],
+  butterfly: ['Receiver lies back at the bed\'s edge, hips raised on a pillow.', 'Partner stands and rests the receiver\'s legs on their shoulders.', 'Hold the thighs and move slowly — the angle is intense.', 'Receiver can touch themselves at the same time.'],
+  standing: ['Stand face to face, the receiver\'s back against a wall.', 'Receiver lifts one leg and wraps it around the partner\'s hip.', 'Partner supports the lifted leg with one hand.', 'Use a step or stair if you have a height difference.'],
+  lifted: ['Partner B stands with their back strong and knees slightly bent.', 'Partner A wraps arms around B\'s neck and legs around B\'s waist.', 'B supports A under the thighs; use a wall behind A for help.', 'Keep it short and safe — then move to the bed.'],
+  standRear: ['Receiver stands and bends forward, hands on the bed, a counter or the wall.', 'Partner stands behind, hands on the hips.', 'Find a height that works — a step or pillow helps.', 'Variation: receiver lies chest-down over the bed edge.'],
+  scissors: ['Lie on your sides facing each other.', 'Slide your legs between each other\'s, like scissors.', 'Grind together with small movements.', 'Hold hands or each other\'s hips to pull closer.'],
+  chairFacing: ['Partner A sits on a sturdy armless chair or sofa.', 'Partner B straddles their lap facing them, feet on the floor.', 'B controls the movement by pushing from their feet.', 'Arms around each other — kiss the whole time.'],
+  chairAway: ['Partner A sits on a sturdy chair or the bed edge.', 'Partner B sits on their lap facing away.', 'B leans forward slightly, hands on A\'s knees.', 'A\'s hands are free to explore the front.'],
+  bridge: ['Receiver lies back and lifts their hips into a bridge, feet flat.', 'Partner kneels between the legs and supports the hips with their hands.', 'Move slowly and keep the bridge short — rest often.', 'Pillows under the lower back make it easier.'],
+  oral69: ['One partner lies on their back (or both lie on their sides).', 'The other lies on top, head to toe.', 'Take turns or go together — slow and teasing.', 'Side-by-side is much more comfortable than stacked.'],
+  throne: ['Partner A sits on the bed edge or a chair, legs apart.', 'Partner B kneels in front on a pillow.', 'B uses lips, tongue and hands, slowly building up.', 'A guides with words and gentle hands.'],
+  kneel: ['Both kneel on the bed facing each other.', 'Get close: chest to chest, hands everywhere.', 'Perfect for kissing, touching and warming up.', 'Move into any other position when you are both ready.'],
+  wheelbarrow: ['Receiver starts on hands and knees.', 'Standing partner lifts the receiver\'s thighs to waist height.', 'Receiver supports themselves on their hands or forearms.', 'Athletic — keep it short and use pillows below.'],
+  pretzel: ['Receiver lies on their side.', 'Partner kneels and straddles the receiver\'s lower leg.', 'The receiver\'s top leg wraps around the partner\'s waist.', 'Unusual angle — go slowly and adjust.'],
+};
+
+// Extra guides
+export const LEARN_MORE = [
+  { id: 'foreplay-masterclass', icon: '🔥', title: 'Foreplay masterclass', intro: 'The best sex starts long before the bedroom. Build it up.', sections: [
+    ['Hours before', ['Send a flirty text at lunch. A voice note even better.', 'Tell them exactly what you are planning for tonight.', 'Touch them in passing — the small of the back, the neck.']],
+    ['The first 10 minutes', ['Kiss slower than you think you should.', 'Undress each other one piece at a time.', 'Touch everywhere except the obvious spots — make them wait.']],
+    ['Turning up the heat', ['Use your mouth on the neck, ears, chest and inner thighs.', 'Ask: "Do you want more?" — and make them say it.', 'Add oil, ice, a feather or a blindfold.']],
+  ] },
+  { id: 'oral-tips', icon: '👅', title: 'Oral sex tips for couples', intro: 'Enthusiasm matters more than technique — but technique helps.', sections: [
+    ['Before you start', ['Get comfortable: pillows under the hips or knees.', 'Tease first — kiss the stomach and inner thighs.', 'Ask what they love, and listen to their reactions.']],
+    ['While you are there', ['Start slow and gentle, build up gradually.', 'Use your hands as well as your mouth.', 'Keep a steady rhythm when they are close — do not suddenly change.']],
+    ['Make it better', ['Eye contact is powerful.', 'Let them guide you with their hands or words.', 'Hygiene and trimmed nails make everything nicer for both.']],
+  ] },
+  { id: 'dirty-talk', icon: '💬', title: 'Dirty talk for beginners', intro: 'It feels awkward for about ten seconds. Then it is the hottest thing you do.', sections: [
+    ['Start simple', ['Describe what you are feeling: "That feels so good."', 'Say what you want: "Don\'t stop."', 'Say their name.']],
+    ['Level up', ['Describe what you are about to do to them.', 'Tell them how they look right now.', 'Ask questions: "Do you like that? Tell me."']],
+    ['Practise in the app', ['Use Hot Chat during the day to warm up.', 'Send a wish for tonight.', 'Play X-Rated Truth or Dare and answer out loud.']],
+  ] },
+  { id: 'sensual-massage', icon: '💆', title: 'Sensual massage, step by step', intro: 'The easiest way to switch from a busy day into the mood.', sections: [
+    ['Set up', ['Warm room, soft light, towel on the bed.', 'Warm the oil in your hands first.', 'Phones away. Music on.']],
+    ['The massage', ['Start with the back and shoulders: long, slow strokes.', 'Move to the legs, slowly working up the inner thighs.', 'Turn them over: chest, stomach, hips.', 'Tease — come close to the sensitive spots, then move away.']],
+    ['The finish', ['Ask if they want you to keep going.', 'Let it lead wherever you both want.', 'Swap — it is their turn next time.']],
+  ] },
+  { id: 'last-longer', icon: '⏳', title: 'Last longer & go again', intro: 'Simple habits that help both partners enjoy it for longer.', sections: [
+    ['Slow it down', ['More foreplay means less rush.', 'Change positions when one of you gets close.', 'Breathe slowly and deeply.']],
+    ['Take turns', ['Focus on your partner first with hands or mouth.', 'Pause, kiss, then continue.', 'Try edging: get close, stop, start again.']],
+    ['Round two', ['Rest, cuddle, drink water.', 'Start again slowly with kissing and touching.', 'If problems keep happening, a doctor can help — it is common and treatable.']],
+  ] },
+  { id: 'share-fantasies', icon: '✨', title: 'How to share your fantasies', intro: 'Fantasies are normal. Sharing them can make you closer.', sections: [
+    ['Make it safe', ['Agree: no judgement, no laughing, and a fantasy is not a promise.', 'Start with the mild ones.', 'Use the Fantasy Lab — build it privately, reveal when ready.']],
+    ['Talk about it', ['Describe the scene: where, what you are wearing, what happens.', 'Ask what parts excite your partner.', 'Find the overlap — that is what you try first.']],
+    ['Make it real', ['Plan it as a meet-up with a date and time.', 'Agree on a safe word.', 'Talk afterwards: what was amazing, what to change.']],
+  ] },
+];
+
+// ---------- Fantasy Lab ----------
+export const FANTASY_LAB = [
+  { id: 'where', q: 'Where are we?', icon: '📍', opts: ['Luxury hotel suite', 'Our bed, candles everywhere', 'In the shower', 'On the sofa', 'Kitchen counter', 'In the car', 'Beach at night', 'Private pool villa', 'Rainy cabin in the hills', 'Rooftop under the stars'] },
+  { id: 'roles', q: 'Who are we tonight?', icon: '🎭', opts: ['Just us, deeply in love', 'Strangers who just met', 'Boss & assistant', 'Masseuse & client', 'Model & photographer', 'Doctor & patient', 'Honeymooners', 'Old flames reunited', 'Pilot & flight attendant'] },
+  { id: 'iwear', q: 'What I am wearing', icon: '👙', opts: ['Black lace 🖤', 'Red lingerie', 'Your shirt only', 'Stockings & heels', 'A towel', 'Nothing at all', 'Something you choose'] },
+  { id: 'youwear', q: 'What you are wearing', icon: '👔', opts: ['Black lace 🖤', 'Red lingerie', 'Just boxers', 'A suit', 'Nothing at all', 'A blindfold', 'Something I choose'] },
+  { id: 'mood', q: 'The mood', icon: '🌡️', opts: ['Slow & romantic', 'Teasing for hours', 'Urgent & passionate', 'Rough & wild', 'Playful & giggly', 'Dominant — I am in charge', 'Submissive — you are in charge'] },
+  { id: 'want', q: 'What I want you to do', icon: '🔥', multi: true, opts: ['Undress me slowly', 'Massage me with oil', 'Kiss me everywhere', 'Go down on me', 'Let me go down on you', 'Tie my hands', 'Blindfold me', 'Talk dirty', 'Take me against the wall', 'Ride me', 'Watch me', 'Make me beg', 'Try a new position', 'Multiple rounds'] },
+  { id: 'after', q: 'Afterwards', icon: '🤍', opts: ['Cuddle all night', 'Shower together', 'Round two', 'Food in bed', 'Talk until sunrise'] },
+];
+export const FANTASY_TALK = [
+  [3, 'Describe your dream night with me, from the moment I walk in.'],
+  [3, 'What outfit do you fantasise about seeing me in?'],
+  [3, 'Which place have you imagined us having sex that we have not tried yet?'],
+  [4, 'What is a fantasy you have had about me this week?'],
+  [4, 'If we role-played tonight, who would you want me to be?'],
+  [4, 'What would you want me to whisper in your ear while you are blindfolded?'],
+  [5, 'Describe your dream sex with me — every detail, slowly.'],
+  [5, 'What is the dirtiest fantasy you have ever had about us?'],
+  [5, 'If you could control me completely for one night, what would you make me do?'],
+  [5, 'What do you want me to do to you that I have never done before?'],
+  [5, 'Where would you want me to take you if nobody could ever find out?'],
+  [5, 'What part of your fantasy would you want to try first — this week?'],
+];
+
+LEARN.push(...LEARN_MORE);

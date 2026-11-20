@@ -101,3 +101,4 @@ export function poseSvg(posId, cls = 'pose') {
 }
 
 export const POSE_IDS = Object.keys(MAP);
+export const poseKind = (posId) => MAP[posId] || 'missionary';
