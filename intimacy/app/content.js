@@ -900,11 +900,25 @@ STORIES.push(
 
 // ---------- Dress Me: pick your partner's look for tonight ----------
 export const OUTFITS = [
-  { id: 'lingerie', name: 'Lingerie', icon: '🖤', opts: ['Black lace bra & panty set', 'Red lace lingerie', 'White bridal lingerie', 'Silk babydoll', 'Bodysuit', 'Stockings & garter', 'Sheer robe'] },
-  { id: 'night', name: 'Nightwear', icon: '🌙', opts: ['Satin slip dress', 'Your shirt — nothing else', 'Silk pyjamas', 'Short night dress', 'Boxers only', 'Silk robe'] },
-  { id: 'traditional', name: 'Traditional', icon: '🪷', opts: ['Red silk saree', 'Black saree, sleeveless blouse', 'Lehenga', 'Kerala kasavu saree', 'Kurta & dhoti', 'Sherwani'] },
-  { id: 'party', name: 'Date night', icon: '🍸', opts: ['Little black dress', 'Red bodycon dress', 'Backless dress', 'Crisp white shirt & jeans', 'Black suit, no tie', 'Fitted black T-shirt'] },
-  { id: 'roleplay', name: 'Role-play', icon: '🎭', opts: ['Office look: shirt & pencil skirt', 'Nurse costume', 'Maid costume', 'Police costume', 'Doctor coat', 'Masquerade mask'] },
-  { id: 'him', name: 'For him', icon: '🕴️', opts: ['Tight boxer briefs', 'Grey sweatpants, no shirt', 'Unbuttoned white shirt', 'Towel only', 'Suit & loose tie', 'Kurta, sleeves rolled'] },
+  { id: 'lingerie', for: 'f', name: 'Lingerie', icon: '🖤', opts: ['Black lace bra & panty set', 'Red push-up bra & lace panties', 'Lace thong', 'Sheer bralette', 'Corset & stockings', 'Sheer bodysuit', 'Stockings & garter belt', 'White bridal lingerie', 'Satin bra & high-cut panties', 'Strappy cage bra'] },
+  { id: 'night', for: 'f', name: 'Nightwear', icon: '🌙', opts: ['Satin slip dress', 'Silk babydoll', 'My shirt — nothing else', 'Short night dress', 'Sheer robe over lingerie', 'Crop top & tiny shorts'] },
+  { id: 'traditional', for: 'f', name: 'Saree & ethnic', icon: '🪷', opts: ['Red silk saree', 'Black saree, sleeveless blouse', 'Backless blouse saree', 'Lehenga with low back', 'Kerala kasavu saree', 'Anklets & bangles'] },
+  { id: 'party', for: 'f', name: 'Date night', icon: '🍸', opts: ['Little black dress', 'Red bodycon dress', 'Backless dress', 'Short skirt & heels', 'Deep-neck top', 'High heels only'] },
+  { id: 'roleplay', for: 'f', name: 'Role-play', icon: '🎭', opts: ['Office look: shirt & pencil skirt', 'Nurse costume', 'Maid costume', 'Police costume', 'Air hostess look', 'Masquerade mask'] },
+  { id: 'himunder', for: 'm', name: 'Underwear', icon: '🩲', opts: ['Tight black boxer briefs', 'White briefs', 'Trunks', 'Silk boxers', 'Nothing under the towel', 'Grey boxer briefs'] },
+  { id: 'himhome', for: 'm', name: 'At home', icon: '🏠', opts: ['Grey sweatpants, no shirt', 'Unbuttoned white shirt', 'Towel only', 'Fitted vest', 'Lungi / mundu only', 'Apron only (cook for me)'] },
+  { id: 'himout', for: 'm', name: 'Date night', icon: '🕴️', opts: ['Black suit, no tie', 'Fitted black T-shirt & jeans', 'Linen shirt, sleeves rolled', 'Kurta, sleeves rolled', 'Sherwani', 'Leather jacket'] },
+  { id: 'himrole', for: 'm', name: 'Role-play', icon: '🎭', opts: ['Doctor coat', 'Police uniform', 'Boss in a suit', 'Pilot uniform', 'Masseur (towel & oil)', 'Masquerade mask'] },
+];
+// What partners most often want from each other — one tap sends it as a wish.
+export const WANTS_FROM_HER = [
+  'Wear black lingerie for me tonight 🖤', 'Take control tonight — I am all yours 😈', 'Ride me slowly… then not slowly', 'Wake me up with your mouth ☀️',
+  'Dirty talk all night 💬', 'Send me a teasing photo today 📸', 'Strip for me — one song 💃', 'Wear only my shirt', 'Let me watch you touch yourself',
+  'Moan my name', 'Try a new position with me tonight', 'Lap dance before bed', 'Tie me up and tease me', 'Meet me in the shower 🚿',
+];
+export const WANTS_FROM_HIM = [
+  'More foreplay tonight — take your time 🔥', 'Give me a full oil massage first 💆', 'Kiss me everywhere', 'Take charge — I want you to lead tonight',
+  'Slow and deep, eyes on me', 'Go down on me until I beg', 'Tell me how beautiful I look', 'Undress me slowly', 'Pin my hands and kiss my neck',
+  'Hold me after — no phones', 'Run me a bath and join me 🛁', 'Cook me dinner, then dessert is me 😏', 'Dirty talk in my ear', 'Make me come first',
 ];
 export const MAKEUP = ['Smoky eyes', 'Bold red lips', 'Nude & natural', 'Winged eyeliner', 'Glossy lips', 'Kohl-lined eyes', 'Hair open', 'Hair tied up', 'Your perfume', 'Fresh shave', 'Light stubble', 'Cologne I love'];

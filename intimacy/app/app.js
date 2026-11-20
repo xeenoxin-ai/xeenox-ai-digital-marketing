@@ -106,6 +106,7 @@ function sanitize() {
     const pl = sh.players[r];
     if (pl.photo !== undefined && !(typeof pl.photo === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(pl.photo) && pl.photo.length < 120000)) delete pl.photo;
     if (pl.mood !== undefined && !MOODS.includes(pl.mood)) delete pl.mood;
+    if (pl.g !== undefined && !['m', 'f', 'x'].includes(pl.g)) delete pl.g;
   }
 }
 
@@ -245,7 +246,7 @@ function onRelay(m) {
 }
 function partnerArrived() {
   net.status = 'connected';
-  if (!net.host) send({ t: 'hello', name: S.local.myName || S.shared.players.A.name });
+  if (!net.host) send({ t: 'hello', name: S.local.myName || S.shared.players.A.name, g: S.local.myG });
   toast('Partner connected 💞'); render();
 }
 
@@ -310,8 +311,8 @@ function onData(m) {
     case 'hello':
       if (!net.host) return;
       S.local.role = 'A';
-      S.shared.players.B = { name: String(m.name || 'Partner').slice(0, 30) };
-      if (S.local.myName) S.shared.players.A = { name: S.local.myName };
+      S.shared.players.B = { ...(S.shared.players.B || {}), name: String(m.name || 'Partner').slice(0, 30), ...(['m', 'f', 'x'].includes(m.g) ? { g: m.g } : {}) };
+      if (S.local.myName) S.shared.players.A = { ...(S.shared.players.A || {}), name: S.local.myName, ...(S.local.myG ? { g: S.local.myG } : {}) };
       save(); send({ t: 'state', shared: S.shared }); render();
       break;
     case 'state':
@@ -553,6 +554,11 @@ function render() {
   tick();
 }
 
+const G_LABEL = { m: '👨 Man', f: '👩 Woman', x: '✨ Other' };
+const genderRadios = (name, cur) => `<span class="gseg">${['m', 'f', 'x'].map((g) => `<label><input type="radio" name="${name}" value="${g}" ${cur === g ? 'checked' : ''}><span>${G_LABEL[g]}</span></label>`).join('')}</span>`;
+const gOf = (r) => S.shared.players[r]?.g;
+const pron = (r) => (gOf(r) === 'f' ? 'her' : gOf(r) === 'm' ? 'him' : 'them');
+
 function setupView() {
   return `<section class="setup">
     <div class="hero"><div class="logo-big">💗</div><h1>Intimacy <span>for Couples</span></h1>
@@ -560,6 +566,7 @@ function setupView() {
     <form class="card" data-form="setup">
       <label>Your name<input name="me" maxlength="30" required placeholder="e.g. Arjun" value="${esc(S.local.myName)}"></label>
       <label>Your partner's name<input name="partner" maxlength="30" required placeholder="e.g. Meera"></label>
+      <div class="gpick"><div><small>I am</small>${genderRadios('meG', S.local.myG || 'm')}</div><div><small>My partner is</small>${genderRadios('ptG', S.local.myG === 'f' ? 'm' : 'f')}</div></div>
       <label>Starting heat</label>
       <div class="heat-pick">${C.HEAT.map((h) => `<label class="heat-opt"><input type="radio" name="heat" value="${h.level}" ${h.level === 2 ? 'checked' : ''}><span>${h.icon}<b>${h.name}</b><small>${h.hint}</small></span></label>`).join('')}</div>
       <label>Safe word <small class="muted">— say it or tap 🛑 and everything pauses</small><input name="safe" maxlength="20" value="Pineapple"></label>
@@ -1051,6 +1058,7 @@ function profileView() {
     return `<div class="card profile-card">
       <div class="row">${avatar(r, 'av-xl')}<div><b class="pname">${nm(r)}</b>${p.mood ? `<div class="mood-pill">${esc(p.mood)}</div>` : ''}
         ${editable ? `<div class="row"><label class="btn sm">📷 ${p.photo ? 'Change' : 'Add'} photo<input type="file" accept="image/*" data-a="photo" data-r="${r}" hidden></label>${p.photo ? `<button class="btn sm ghost" data-a="photoDel" data-r="${r}">Remove</button>` : ''}</div>` : '<p class="small muted">Edited on their phone</p>'}</div></div>
+      ${editable ? `<div class="muted small">I am</div><div class="chips">${['m', 'f', 'x'].map((g) => `<button class="chip ${p.g === g ? 'on' : ''}" data-a="gender" data-r="${r}" data-g="${g}">${G_LABEL[g]}</button>`).join('')}</div>` : ''}
       ${editable ? `<div class="muted small">Mood right now</div><div class="chips wrap">${MOODS.map((m) => `<button class="chip ${p.mood === m ? 'on' : ''}" data-a="mood" data-r="${r}" data-m="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
       ${(() => { const mineT = S.shared.turnons?.[r] || []; const all = [...new Set([...C.TURN_ONS, ...mineT])];
         return editable ? `<div class="muted small">🔥 My turn-ons <small>(${nm(other(r))} can see these)</small></div><div class="chips wrap">${all.map((t) => `<button class="chip ${mineT.includes(t) ? 'on' : ''}" data-a="turnon" data-r="${r}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
@@ -1278,10 +1286,12 @@ const A = {
     if (i >= 0) cur.splice(i, 1); else cur.push(t);
     set(['turnons', r], cur.slice(0, 30));
   },
-  wishOpen: () => modal(`<h3>💌 Send a wish</h3><p class="muted small">${nm(other(me()))} gets it instantly and can say yes.</p>
+  wishOpen: () => { const tg = gOf(other(me())); const wants = tg === 'f' ? C.WANTS_FROM_HER : tg === 'm' ? C.WANTS_FROM_HIM : [...C.WANTS_FROM_HER, ...C.WANTS_FROM_HIM]; return modal(`<h3>💌 What you want from ${nm(other(me()))}</h3><p class="muted small">${nm(other(me()))} gets it instantly and can say yes.</p>
+    <div class="chips wrap">${wants.map((q) => `<button class="chip" data-a="wishSend" data-t="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+    <div class="muted small" style="margin-top:6px">More ideas</div>
     <div class="chips wrap">${C.REQUESTS.map((q) => `<button class="chip" data-a="wishSend" data-t="${esc(q)}">${esc(q)}</button>`).join('')}</div>
     <form class="row" data-form="wish"><input name="t" maxlength="120" placeholder="Or write your own wish…" required><button class="btn sm">Send</button></form>
-    <button class="btn ghost wide" data-a="close">Close</button>`),
+    <button class="btn ghost wide" data-a="close">Close</button>`); },
   wishSend: (el) => sendWish(el.dataset.t),
   wishReply: (el) => { const p = other(me()); if (!S.shared.requests?.[p]) return; set(['requests', p, 'reply'], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('😘'); },
   posOpen: (el, e) => { if (e?.target?.closest('[data-a="planToggle"]') && el.dataset.a === 'posOpen') return; modal(posDetail(el.dataset.id)); },
@@ -1299,19 +1309,22 @@ const A = {
   progDay: (el) => { set(['program', 'done', el.dataset.i], el.checked ? true : null); if (el.checked) { addPoints(me(), 10); floatEmoji('🔥'); } },
   progQuit: () => { if (confirm('Leave this challenge?')) set(['program'], null); },
   dressOpen: () => {
-    ui.dress = ui.dress || { cat: 'lingerie', picks: [] };
-    const d = ui.dress, cat = C.OUTFITS.find((c) => c.id === d.cat) || C.OUTFITS[0];
-    modal(`<h3>👗 Dress ${nm(other(me()))} for tonight</h3><p class="muted small">Pick an outfit and a look — it arrives as a wish they can say yes to.</p>
-      <div class="chips">${C.OUTFITS.map((c) => `<button class="chip ${c.id === d.cat ? 'on' : ''}" data-a="dressCat" data-c="${c.id}">${c.icon} ${c.name}</button>`).join('')}</div>
+    const tgt = other(me()), tg = gOf(tgt);
+    const cats = C.OUTFITS.filter((c) => !tg || tg === 'x' || c.for === tg);
+    ui.dress = ui.dress || { cat: cats[0].id, picks: [] };
+    const d = ui.dress, cat = cats.find((c) => c.id === d.cat) || cats[0];
+    modal(`<h3>${tg === 'm' ? '🕴️' : '👗'} Dress ${nm(tgt)} for tonight</h3><p class="muted small">Choose what you want ${pron(tgt)} wearing — it arrives as a wish ${pron(tgt)} can say yes to.</p>
+      <div class="chips">${cats.map((c) => `<button class="chip ${c.id === d.cat ? 'on' : ''}" data-a="dressCat" data-c="${c.id}">${c.icon} ${c.name}</button>`).join('')}</div>
       <div class="chips wrap">${cat.opts.map((o) => `<button class="chip ${d.picks.includes(o) ? 'on' : ''}" data-a="dressPick" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>
-      <div class="muted small" style="margin-top:8px">💄 Makeup, hair & grooming</div>
-      <div class="chips wrap">${C.MAKEUP.map((o) => `<button class="chip ${d.picks.includes(o) ? 'on' : ''}" data-a="dressPick" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+      <div class="muted small" style="margin-top:8px">${tg === 'm' ? '🧔 Grooming & scent' : '💄 Makeup, hair & grooming'}</div>
+      <div class="chips wrap">${C.MAKEUP.filter((o) => { const male = ['Fresh shave', 'Light stubble', 'Cologne I love']; return tg === 'm' ? male.includes(o) : tg === 'f' ? !male.includes(o) : true; }).map((o) => `<button class="chip ${d.picks.includes(o) ? 'on' : ''}" data-a="dressPick" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div>
       <button class="btn wide" data-a="dressSend" ${d.picks.length ? '' : 'disabled'}>Send: ${d.picks.length ? esc(d.picks.join(' + ')) : 'pick something'} 💌</button>
       <button class="btn ghost wide" data-a="close">Close</button>`);
   },
   dressCat: (el) => { ui.dress.cat = el.dataset.c; A.dressOpen(); },
   dressPick: (el) => { const d = ui.dress, o = el.dataset.o; d.picks = d.picks.includes(o) ? d.picks.filter((x) => x !== o) : [...d.picks, o].slice(-4); A.dressOpen(); },
-  dressSend: () => { const d = ui.dress; if (!d?.picks.length) return; sendWish(`Wear tonight: ${d.picks.join(' + ')} 👗`); ui.dress = null; },
+  dressSend: () => { const d = ui.dress; if (!d?.picks.length) return; sendWish(`Wear tonight: ${d.picks.join(' + ')} ${gOf(other(me())) === 'm' ? '🕴️' : '👗'}`); ui.dress = null; },
+  gender: (el) => { const r = el.dataset.r; if (!canAct(r)) return; if (r === me()) S.local.myG = el.dataset.g; ui.dress = null; set(['players', r, 'g'], el.dataset.g); },
   shareApp: async () => {
     const url = location.origin + '/?ref=share';
     const text = 'We found the hottest game for couples 🔥 Truth or dare, fantasies, positions & more — free and private. Try it with your partner:';
@@ -1548,7 +1561,8 @@ document.addEventListener('submit', (e) => {
   switch (f.dataset.form) {
     case 'setup':
       S.local.setup = true; S.local.myName = d.me.trim(); S.local.swiper = 'A';
-      S.shared.players = { A: { name: d.me.trim() }, B: { name: d.partner.trim() } };
+      S.local.myG = ['m', 'f', 'x'].includes(d.meG) ? d.meG : 'x';
+      S.shared.players = { A: { name: d.me.trim(), g: S.local.myG }, B: { name: d.partner.trim(), g: ['m', 'f', 'x'].includes(d.ptG) ? d.ptG : 'x' } };
       S.shared.heat = Number(d.heat) || 2; S.shared.safeWord = d.safe.trim() || 'Pineapple';
       save(); ui.tab = ui.joinCode || ui.ringTo ? 'connect' : 'home'; render();
       if (ui.joinCode) joinRoom(ui.joinCode);
