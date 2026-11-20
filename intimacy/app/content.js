@@ -922,3 +922,47 @@ export const WANTS_FROM_HIM = [
   'Hold me after — no phones', 'Run me a bath and join me 🛁', 'Cook me dinner, then dessert is me 😏', 'Dirty talk in my ear', 'Make me come first',
 ];
 export const MAKEUP = ['Smoky eyes', 'Bold red lips', 'Nude & natural', 'Winged eyeliner', 'Glossy lips', 'Kohl-lined eyes', 'Hair open', 'Hair tied up', 'Your perfume', 'Fresh shave', 'Light stubble', 'Cologne I love'];
+
+// ---------- Sex Roulette ----------
+export const ROULETTE_SPEED = ['Slow & deep', 'Medium rhythm', 'Fast & hard', 'Tease — barely moving', 'Your choice'];
+export const ROULETTE_EXTRA = ['Eye contact the whole time', 'Kiss non-stop', 'Hands on hips', 'Whisper what you feel', 'Hold hands', 'Hair pulled gently', 'No sound allowed', 'Talk dirty', 'Lights on', 'Blindfold on'];
+
+// ---------- Role-play scripts ----------
+// A = the first player, B = the second. Roles are written so either partner can play either part.
+export const ROLEPLAYS = [
+  { id: 'rp1', heat: 3, title: 'Strangers at the Bar', icon: '🍸', setup: 'Meet at a hotel bar or set up your living room like one. You have never met before tonight.',
+    roleA: 'You are a confident stranger who has been watching them across the room.', roleB: 'You are waiting for a friend who never showed up. You are bored — until now.',
+    lines: ['A: "Is this seat taken — or were you saving it for me?"', 'B: "Depends. What are you drinking?"', 'A: "Whatever makes you stay."'],
+    beats: ['Flirt with fake names and fake jobs.', 'One of you suggests "going somewhere quieter".', 'Stay in character until the door closes behind you.'] },
+  { id: 'rp2', heat: 4, title: 'The Boss & the Assistant', icon: '💼', setup: 'Late evening at the office. Everyone else has gone home. One desk, one chair.',
+    roleA: 'You are the demanding boss who has noticed your assistant for weeks.', roleB: 'You are the assistant who stayed late on purpose.',
+    lines: ['A: "You are still here? Close the door."', 'B: "I finished the report. Is there… anything else you need?"', 'A: "Come here and I will tell you."'],
+    beats: ['The boss gives orders. The assistant obeys — slowly.', 'Papers end up on the floor.', 'Swap power halfway: the assistant takes control.'] },
+  { id: 'rp3', heat: 4, title: 'The Masseur', icon: '💆', setup: 'Towel on the bed, oil warmed in your hands, soft music, dim light.',
+    roleA: 'You are the professional masseur — calm, slow, very thorough.', roleB: 'You are the client who booked the "full body" package.',
+    lines: ['A: "Lie down and relax. Tell me if anything is too much."', 'B: "Nothing is too much."', 'A: "Then let us start with your back… and work our way around."'],
+    beats: ['Start completely professional — shoulders, back, legs.', 'The strokes get slower and higher.', 'The client asks for "the special treatment".'] },
+  { id: 'rp4', heat: 3, title: 'Honeymoon Suite', icon: '🥂', setup: 'Pretend tonight is your wedding night. Rose petals optional, champagne recommended.',
+    roleA: 'You just got married and you have been waiting all day for this moment.', roleB: 'You are nervous, excited, and still in your wedding outfit.',
+    lines: ['A: "Finally. Just us."', 'B: "Help me with this — there are about a hundred pins."', 'A: "I will take my time with every single one."'],
+    beats: ['Undress each other very slowly.', 'Say your "vows" again — the naughty version.', 'No rushing. Tonight is forever.'] },
+  { id: 'rp5', heat: 5, title: 'The Interrogation', icon: '🕵️', setup: 'One chair in the middle of the room. A tie or scarf. Low light.',
+    roleA: 'You are the detective. You will get the truth out of them — any way it takes.', roleB: 'You are the suspect. You will not talk easily.',
+    lines: ['A: "Sit. Hands behind the chair."', 'B: "I have nothing to say."', 'A: "We will see how long that lasts."'],
+    beats: ['Every question they refuse to answer, you tease them more.', 'They can only touch you when they confess.', 'Safe word ends the scene instantly.'] },
+  { id: 'rp6', heat: 4, title: 'Pilot & Flight Attendant', icon: '✈️', setup: 'A layover hotel room in a foreign city. You have 12 hours before the next flight.',
+    roleA: 'You are the captain who has flirted with this crew member on every flight.', roleB: 'You are the flight attendant who knocks on the captain\'s hotel door.',
+    lines: ['B: "Captain, I think I left something in your room."', 'A: "Did you? Come in and look for it."', 'B: "It might take a while."'],
+    beats: ['Keep the uniform on as long as possible.', 'Lose it piece by piece.', 'Room service can wait.'] },
+  { id: 'rp7', heat: 5, title: 'Lingerie Photo Shoot', icon: '📸', setup: 'A phone on a tripod or just pretend. Lingerie, heels, one lamp.',
+    roleA: 'You are the photographer — directing every pose, getting closer each shot.', roleB: 'You are the model in black lace who knows exactly what they are doing.',
+    lines: ['A: "Look at the camera. Now look at me."', 'B: "Like this?"', 'A: "Closer. I need to fix the strap."'],
+    beats: ['Direct poses, each one more daring.', 'The photographer has to "adjust" things by hand.', 'The camera gets forgotten.'] },
+  { id: 'rp8', heat: 5, title: 'Your Command', icon: '👑', setup: 'One partner is in charge for 30 minutes. Agree on limits and the safe word first.',
+    roleA: 'You are in total control. Speak slowly. Give orders.', roleB: 'You obey every command — and you ask permission for everything.',
+    lines: ['A: "Kneel."', 'B: "Yes."', 'A: "Now ask me — nicely — for what you want."'],
+    beats: ['Commands only — no hurrying.', 'Reward obedience, tease disobedience.', 'Swap roles next time.'] },
+];
+
+// ---------- Sex diary ----------
+export const DIARY_PLACES = ['Bed', 'Shower', 'Sofa', 'Floor', 'Kitchen', 'Car', 'Hotel', 'Outdoors (private)', 'Video call', 'Somewhere new'];

@@ -261,7 +261,7 @@ function adminPage() {
 <title>Admin — ${BRAND}</title><link rel="stylesheet" href="/site.css"></head><body><main>
 <h1>Community review</h1><p class="lead">Approve or reject stories before they go live. Reported stories (3+ reports) come back here.</p>
 <form id="k"><input id="key" type="password" placeholder="Admin key" style="padding:12px;border-radius:12px;width:100%;max-width:360px" autocomplete="current-password"> <button class="cta sm">Open</button></form>
-<p id="stats" class="note"></p><div id="list"></div></main>
+<p id="stats" class="note"></p><div id="list"></div><div id="comments"></div></main>
 <script>
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let key = sessionStorage.getItem('ak') || '';
@@ -275,11 +275,13 @@ async function load() {
     const d = await call('pending');
     sessionStorage.setItem('ak', key);
     document.getElementById('stats').textContent = d.stats.users + ' Love Numbers · ' + d.stats.couples + ' couples · ' + d.stats.live + ' live stories · ' + d.stories.length + ' waiting';
+    document.getElementById('comments').innerHTML = (d.comments || []).length ? '<h2>Reported comments</h2>' + d.comments.map((c) => '<article style="border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:12px;margin:8px 0"><p class="note">' + esc(c.handle) + ' · ⚑ ' + c.reports + '</p><p>' + esc(c.text) + '</p><button class="cta sm" data-cid="' + c.id + '" data-act="restore">Restore</button> <button class="cta sm" style="background:#5a1023" data-cid="' + c.id + '" data-act="delete">Delete</button></article>').join('') : '';
     document.getElementById('list').innerHTML = d.stories.map((s) => '<article style="border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;margin:10px 0"><p class="note">#' + s.id + ' · ' + esc(s.handle) + ' · ' + esc(s.topic) + ' · ' + new Date(s.created).toLocaleString() + (s.reports ? ' · ⚑ ' + s.reports + ' reports' : '') + '</p><p style="white-space:pre-wrap">' + esc(s.text) + '</p><button class="cta sm" data-id="' + s.id + '" data-act="approve">Approve</button> <button class="cta sm" style="background:#5a1023" data-id="' + s.id + '" data-act="reject">Reject</button></article>').join('') || '<p>Nothing waiting. 🎉</p>';
   } catch (e) { document.getElementById('stats').textContent = e.message; }
 }
 document.getElementById('k').onsubmit = (e) => { e.preventDefault(); key = document.getElementById('key').value; load(); };
 document.getElementById('list').onclick = async (e) => { const b = e.target.closest('button[data-id]'); if (!b) return; b.disabled = true; await call('moderate', { id: Number(b.dataset.id), action: b.dataset.act }).catch((x) => alert(x.message)); load(); };
+document.getElementById('comments').onclick = async (e) => { const b = e.target.closest('button[data-cid]'); if (!b) return; b.disabled = true; await call('comment', { id: Number(b.dataset.cid), action: b.dataset.act }).catch((x) => alert(x.message)); load(); };
 if (key) load();
 </script></body></html>`;
 }

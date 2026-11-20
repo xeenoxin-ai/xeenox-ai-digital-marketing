@@ -36,3 +36,18 @@ CREATE INDEX IF NOT EXISTS stories_live ON stories (status, created);
 CREATE INDEX IF NOT EXISTS stories_author ON stories (n, created);
 CREATE TABLE IF NOT EXISTS story_likes (story_id INTEGER NOT NULL, n TEXT NOT NULL, PRIMARY KEY (story_id, n));
 CREATE TABLE IF NOT EXISTS story_reports (story_id INTEGER NOT NULL, n TEXT NOT NULL, PRIMARY KEY (story_id, n));
+
+-- Comments on live community stories. Auto-filtered; 2 reports hide a comment until the admin reviews it.
+CREATE TABLE IF NOT EXISTS story_comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  story_id INTEGER NOT NULL,
+  n TEXT NOT NULL,
+  handle TEXT NOT NULL,
+  text TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'live',
+  reports INTEGER NOT NULL DEFAULT 0,
+  created INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS comments_story ON story_comments (story_id, status, created);
+CREATE INDEX IF NOT EXISTS comments_author ON story_comments (n, created);
+CREATE TABLE IF NOT EXISTS comment_reports (comment_id INTEGER NOT NULL, n TEXT NOT NULL, PRIMARY KEY (comment_id, n));
