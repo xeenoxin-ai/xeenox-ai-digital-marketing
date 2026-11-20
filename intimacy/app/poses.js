@@ -64,39 +64,72 @@ const MAP = {
 };
 
 const PROPS = {
-  bed: '<rect x="8" y="96" width="184" height="14" rx="7" fill="url(#bed)"/><rect x="8" y="108" width="184" height="6" rx="3" fill="#000" opacity=".25"/>',
-  bedLeft: '<rect x="6" y="74" width="118" height="14" rx="7" fill="url(#bed)"/><rect x="10" y="86" width="110" height="32" rx="4" fill="#000" opacity=".18"/><line x1="4" y1="119" x2="196" y2="119" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>',
-  bedLow: '<rect x="6" y="84" width="66" height="12" rx="6" fill="url(#bed)"/><rect x="10" y="94" width="58" height="24" rx="4" fill="#000" opacity=".18"/><line x1="4" y1="119" x2="196" y2="119" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>',
-  wall: '<rect x="50" y="4" width="10" height="115" rx="3" fill="url(#bed)" opacity=".7"/><line x1="4" y1="119" x2="196" y2="119" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>',
-  chair: '<rect x="66" y="80" width="46" height="8" rx="4" fill="url(#bed)"/><rect x="64" y="40" width="7" height="48" rx="3" fill="url(#bed)" opacity=".8"/><line x1="70" y1="88" x2="68" y2="118" stroke="#d9a7bf" stroke-opacity=".5" stroke-width="4" stroke-linecap="round"/><line x1="108" y1="88" x2="110" y2="118" stroke="#d9a7bf" stroke-opacity=".5" stroke-width="4" stroke-linecap="round"/><line x1="4" y1="119" x2="196" y2="119" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>',
-  floor: '<ellipse cx="100" cy="114" rx="84" ry="6" fill="url(#bed)" opacity=".8"/>',
+  bed: '<rect x="6" y="94" width="188" height="16" rx="8" fill="url(#sheet{id})"/><rect x="6" y="106" width="188" height="12" rx="5" fill="#2a1420"/><ellipse cx="30" cy="92" rx="20" ry="6" fill="#f6e4e8" opacity=".9"/>',
+  bedLeft: '<rect x="4" y="72" width="122" height="16" rx="8" fill="url(#sheet{id})"/><rect x="8" y="86" width="114" height="33" rx="4" fill="#2a1420"/><ellipse cx="24" cy="70" rx="16" ry="5" fill="#f6e4e8" opacity=".9"/><rect x="0" y="119" width="200" height="6" fill="#1d0e16"/>',
+  bedLow: '<rect x="4" y="82" width="70" height="14" rx="7" fill="url(#sheet{id})"/><rect x="8" y="94" width="62" height="25" rx="4" fill="#2a1420"/><rect x="0" y="119" width="200" height="6" fill="#1d0e16"/>',
+  wall: '<rect x="44" y="0" width="16" height="119" fill="#2a1622"/><rect x="58" y="0" width="2" height="119" fill="#000" opacity=".25"/><rect x="0" y="119" width="200" height="6" fill="#1d0e16"/>',
+  chair: '<rect x="62" y="38" width="8" height="50" rx="3" fill="#5a3326"/><rect x="62" y="79" width="52" height="9" rx="4" fill="#7a4632"/><rect x="64" y="86" width="5" height="33" rx="2" fill="#5a3326"/><rect x="107" y="86" width="5" height="33" rx="2" fill="#5a3326"/><rect x="0" y="119" width="200" height="6" fill="#1d0e16"/>',
+  floor: '<ellipse cx="100" cy="114" rx="88" ry="7" fill="url(#sheet{id})" opacity=".85"/><rect x="0" y="119" width="200" height="6" fill="#1d0e16"/>',
 };
 
+const SKIN = { A: ['#f6caa8', '#d99773'], B: ['#c98d66', '#93583a'] };
+const HAIR = { A: '#3b1f17', B: '#17100e' };
 const pt = (a) => `${a[0]},${a[1]}`;
-function figure(f, fill, id) {
-  const limb = (from, [mid, end], w) => `<polyline points="${pt(from)} ${pt(mid)} ${pt(end)}" fill="none" stroke="url(#${fill})" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const len = (v) => Math.hypot(v[0], v[1]) || 1;
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+// Smooth tapered torso between shoulders and hips.
+function torso(n, p, fill) {
+  const d = sub(p, n), L = len(d), q = [-d[1] / L, d[0] / L];
+  const w = (c, k) => [c[0] + q[0] * k, c[1] + q[1] * k];
+  const m = lerp(n, p, 0.62);
+  return `<path d="M${pt(w(n, 9.5))} Q${pt(w(m, 6.8))} ${pt(w(p, 9))} L${pt(w(p, -9))} Q${pt(w(m, -6.8))} ${pt(w(n, -9.5))} Z" fill="${fill}" stroke="${fill}" stroke-width="6" stroke-linejoin="round"/>`;
+}
+const seg = (a, b, w, fill) => `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${fill}" stroke-width="${w}" stroke-linecap="round"/>`;
+
+function figure(f, who, id) {
+  const fill = `url(#skin${who}${id})`, hair = HAIR[who];
+  const head = f.h, neckBase = f.n;
+  const toNeck = sub(neckBase, head), L = len(toNeck), dir = [toNeck[0] / L, toNeck[1] / L];
+  const legs = (f.legs || []).map(([k, ft]) => seg(f.p, k, 13, fill) + `<circle cx="${k[0]}" cy="${k[1]}" r="5.6" fill="${fill}"/>` + seg(k, ft, 9, fill)).join('');
+  const arms = (f.arms || []).map(([e, hd]) => seg(f.n, e, 7.5, fill) + seg(e, hd, 6, fill)).join('');
+  // Long hair for figure A: frames the head and falls with gravity; short hair for B (cap only).
+  const longHair = who === 'A'
+    ? `<ellipse cx="${head[0]}" cy="${head[1] + 6}" rx="9.8" ry="11.5" fill="${hair}"/><circle cx="${head[0] - dir[0] * 1.5}" cy="${head[1] - dir[1] * 1.5}" r="10.2" fill="${hair}"/>`
+    : '';
   return `<g filter="url(#soft${id})">
-    ${(f.legs || []).map((l) => limb(f.p, l, 10)).join('')}
-    <line x1="${f.n[0]}" y1="${f.n[1]}" x2="${f.p[0]}" y2="${f.p[1]}" stroke="url(#${fill})" stroke-width="17" stroke-linecap="round"/>
-    ${(f.arms || []).map((a) => limb(f.n, a, 7)).join('')}
-    <circle cx="${f.h[0]}" cy="${f.h[1]}" r="9" fill="url(#${fill})"/>
+    ${legs}
+    ${torso(f.n, f.p, fill)}
+    ${seg(neckBase, head, 6.5, fill)}
+    ${arms}
+    ${longHair}
+    <circle cx="${head[0]}" cy="${head[1]}" r="8.6" fill="${fill}"/>
+    <circle cx="${head[0] - dir[0] * 1.6}" cy="${head[1] - dir[1] * 1.6}" r="8.8" fill="${hair}" clip-path="url(#cap${who}${id})"/>
   </g>`;
 }
 
 let uid = 0;
-export function poseSvg(posId, cls = 'pose') {
+export function poseSvg(posId, cls = 'pose', animate = false) {
   const pose = P[MAP[posId]] || P.missionary;
   const id = ++uid;
-  return `<svg class="${cls}" viewBox="0 0 200 125" role="img" aria-label="Pose illustration" xmlns="http://www.w3.org/2000/svg">
+  const capClip = (who, f) => { const d = sub(f.n, f.h), L = len(d); const c = [f.h[0] - (d[0] / L) * 9, f.h[1] - (d[1] / L) * 9]; return `<clipPath id="cap${who}${id}"><circle cx="${c[0]}" cy="${c[1]}" r="10"/></clipPath>`; };
+  return `<svg class="${cls}${animate ? ' anim' : ''}" viewBox="0 0 200 125" role="img" aria-label="Position illustration" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="ga${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="125"><stop offset="0" stop-color="#ff7aa8"/><stop offset="1" stop-color="#e0306f"/></linearGradient>
-    <linearGradient id="gb${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="200" y2="125"><stop offset="0" stop-color="#b98cff"/><stop offset="1" stop-color="#6d3bd6"/></linearGradient>
-    <linearGradient id="bed${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3c98b" stop-opacity=".55"/><stop offset="1" stop-color="#b9708f" stop-opacity=".35"/></linearGradient>
-    <filter id="soft${id}" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity=".45"/></filter>
+    <radialGradient id="room${id}" cx=".78" cy=".12" r="1"><stop offset="0" stop-color="#6b2a3a"/><stop offset=".45" stop-color="#2c1220"/><stop offset="1" stop-color="#120810"/></radialGradient>
+    <radialGradient id="lamp${id}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffcf8a" stop-opacity=".55"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sheet${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3d3da"/><stop offset="1" stop-color="#b57d8e"/></linearGradient>
+    <linearGradient id="skinA${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="60" y2="125"><stop offset="0" stop-color="${SKIN.A[0]}"/><stop offset="1" stop-color="${SKIN.A[1]}"/></linearGradient>
+    <linearGradient id="skinB${id}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="60" y2="125"><stop offset="0" stop-color="${SKIN.B[0]}"/><stop offset="1" stop-color="${SKIN.B[1]}"/></linearGradient>
+    <filter id="soft${id}" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".5"/></filter>
+    ${capClip('A', pose.A)}${capClip('B', pose.B)}
   </defs>
-  ${(PROPS[pose.prop] || '').replaceAll('url(#bed)', `url(#bed${id})`)}
-  ${figure(pose.A, `ga${id}`, id)}
-  ${figure(pose.B, `gb${id}`, id)}
+  <rect width="200" height="125" fill="url(#room${id})"/>
+  <circle cx="168" cy="20" r="46" fill="url(#lamp${id})"/>
+  <rect x="160" y="10" width="14" height="10" rx="3" fill="#ffd9a0" opacity=".85"/>
+  ${(PROPS[pose.prop] || '').replaceAll('{id}', id)}
+  <g class="figA">${figure(pose.A, 'A', id)}</g>
+  <g class="figB">${figure(pose.B, 'B', id)}</g>
 </svg>`;
 }
 

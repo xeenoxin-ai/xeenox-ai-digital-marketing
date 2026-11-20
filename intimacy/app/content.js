@@ -785,3 +785,63 @@ export const STORIES = [
     'When she walked out of arrivals he did all three, in that order — except the pancakes, which were so bad they laughed until they cried.',
   ] },
 ];
+
+// ---------- Spicy photo dares (photos go only to the partner) ----------
+export const PHOTO_DARES = [
+  [1, 'Send me your cutest smile right now.'],
+  [1, 'A photo of where you are — and what you wish we were doing there.'],
+  [2, 'Show me your lips — make it a kiss for me.'],
+  [2, 'Your sexiest outfit of the day.'],
+  [2, 'A photo of your neck and collarbone. Tempt me.'],
+  [3, 'Send me a photo in your favourite underwear.'],
+  [3, 'Show me the spot you want me to kiss first tonight.'],
+  [3, 'A mirror selfie — you choose how much you wear.'],
+  [3, 'Bedsheets photo: show me where you want me right now.'],
+  [4, 'Black lace (or your sexiest piece) — send me a teaser.'],
+  [4, 'Show me your back, from your shoulders down.'],
+  [4, 'Strike your most seductive pose.'],
+  [4, 'A photo that makes me want to come home right now.'],
+  [5, 'Send me the photo you would only ever send me. 🔥'],
+  [5, 'Take off one more piece than you are comfortable with — then shoot.'],
+  [5, 'Show me exactly what I am missing tonight.'],
+];
+
+// ---------- Hot challenges ----------
+// [heat, text, seconds]
+export const CHALLENGES = [
+  [1, 'Slow dance to one full song — eyes locked the whole time.', 240],
+  [1, 'Hug for 60 seconds and breathe in sync.', 60],
+  [2, 'Make out for 3 minutes. Hands stay above the waist.', 180],
+  [2, 'Whisper compliments in each other\'s ear — first to run out loses.', 120],
+  [3, 'Undress each other in under 60 seconds — no help allowed.', 60],
+  [3, 'Kiss every place except the lips for 2 minutes. Then the lips.', 150],
+  [3, 'Massage battle: 2 minutes each — best massage wins a dare.', 240],
+  [4, 'Tease each other for 5 minutes — no touching below the belt. First to break loses.', 300],
+  [4, 'Try 3 positions from the planner in 10 minutes.', 600],
+  [4, 'Blindfolded guessing: kiss 5 spots, partner guesses where.', 180],
+  [5, 'Whoever moans first loses — and has to do whatever the winner says.', 300],
+  [5, 'Edge challenge: get your partner close three times before you let them finish.', 900],
+  [5, 'Quickie challenge: 5 minutes, any room except the bedroom.', 300],
+  [5, 'Oral marathon: 5 minutes each — the other rates it out of 10.', 600],
+  [5, 'Position roulette: roll the Sexy Dice and go — new position every 2 minutes.', 600],
+];
+export const PROGRAMS = [
+  { id: 'heat7', name: '7-Day Heat Challenge', icon: '🔥', days: [
+    'Day 1 — Send three flirty messages during the day. Make out tonight for 10 minutes.',
+    'Day 2 — Give each other a 15-minute oil massage. No rushing.',
+    'Day 3 — Swap turn-ons and send one wish each in the app.',
+    'Day 4 — Spicy photo dare: send each other one teasing photo.',
+    'Day 5 — Try a position you have never done before (Positions → Swipe mode).',
+    'Day 6 — Fantasy night: reveal your fantasies in the Fantasy Lab and act out one part.',
+    'Day 7 — No-limits night: X-Rated Truth or Dare, then let it lead wherever it goes.',
+  ] },
+  { id: 'love7', name: '7-Day Closer Challenge', icon: '💗', days: [
+    'Day 1 — The 6-second kiss, morning and night.',
+    'Day 2 — Tell each other three things you love about each other\'s body.',
+    'Day 3 — Phones off for one whole evening.',
+    'Day 4 — Shower or bath together.',
+    'Day 5 — Write a love note and hide it.',
+    'Day 6 — Slow dance, then slow sex.',
+    'Day 7 — Plan your next big date in the app.',
+  ] },
+];

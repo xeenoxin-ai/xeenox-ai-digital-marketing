@@ -21,11 +21,11 @@ function defaultShared() {
     points: { A: 0, B: 0 }, streak: { count: 0, last: '' },
     hidden: {}, desire: { A: {}, B: {} }, pos: {}, plan: [],
     meetup: { when: '', place: '', vibe: '', outfit: '', notes: '', bring: [] },
-    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {}, turnons: { A: [], B: [] }, requests: {}, fantasies: {}, fantasyReact: {},
+    future: [], bucket: {}, customBucket: [], game: null, paused: false, talk: {}, turnons: { A: [], B: [] }, requests: {}, fantasies: {}, fantasyReact: {}, program: null,
   };
 }
 function defaultLocal() {
-  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null, liked: {}, fantasyDraft: {} };
+  return { setup: false, myName: '', pin: '', role: 'A', swiper: 'A', api: '', chat: [], unread: 0, me: null, partner: null, liked: {}, fantasyDraft: {}, fx: true };
 }
 function load() {
   try {
@@ -84,6 +84,8 @@ function sanitize() {
   for (const k of ['desire', 'pos', 'hidden', 'bucket', 'meetup', 'players', 'talk', 'turnons', 'requests', 'fantasies', 'fantasyReact']) if (typeof sh[k] !== 'object' || sh[k] === null) sh[k] = defaultShared()[k];
   for (const k of ['plan', 'future', 'customBucket']) if (!Array.isArray(sh[k])) sh[k] = [];
   if (!Array.isArray(sh.meetup.bring)) sh.meetup.bring = [];
+  if (sh.program && !(typeof sh.program === 'object' && C.PROGRAMS.some((x) => x.id === sh.program.id))) sh.program = null;
+  if (sh.program && (typeof sh.program.done !== 'object' || !sh.program.done)) sh.program.done = {};
   for (const r of ['A', 'B']) {
     const f = sh.fantasies[r];
     if (f === undefined) continue;
@@ -340,6 +342,19 @@ function onData(m) {
       break;
     }
     case 'react': if (typeof m.e === 'string' && m.e.length <= 8) floatEmoji(m.e); break;
+    case 'photo': {
+      if (typeof m.data !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(m.data) || m.data.length > 500000) return;
+      const id = String(m.id || uid()).slice(0, 20);
+      photoInbox.push({ id, data: m.data, dare: String(m.dare || '').slice(0, 200), once: !!m.once });
+      toast(`📸 ${nm(other(S.local.role))} sent you a photo — open it on Home`, 5000); floatEmoji('📸'); softRender();
+      break;
+    }
+    case 'photoSeen': case 'photoReact': {
+      const x = photoSent.find((p) => p.id === m.id); if (!x) return;
+      if (m.t === 'photoSeen') x.seen = true; else if (typeof m.e === 'string' && m.e.length <= 8) { x.react = m.e; x.seen = true; toast(`${m.e} ${nm(other(S.local.role))} reacted to your photo`); floatEmoji(m.e); }
+      softRender();
+      break;
+    }
     case 'call': case 'call-ok': case 'rtc': case 'decline': case 'busy': case 'hangup': onCallMsg(m); break;
   }
 }
@@ -482,10 +497,12 @@ const GAMES = [
   { id: 'tips', name: 'Sex Tips', icon: '📚', desc: 'Better intimacy, health & long distance' },
   { id: 'community', name: 'Community', icon: '💬', desc: 'Real couples share hot experiences' },
   { id: 'stories', name: 'Hot Stories', icon: '📖', desc: 'First times, proposals, steamy nights' },
+  { id: 'photo', name: 'Spicy Photo Dares', icon: '📸', desc: 'Dare each other to send a teasing photo' },
+  { id: 'challenge', name: 'Hot Challenges', icon: '🏆', desc: 'Timed challenges & the 7-Day Heat Challenge' },
 ];
 const gameName = (id) => GAMES.find((g) => g.id === id)?.name || 'a game';
 const PLAY_SECTIONS = [
-  ['Games for two', ['tod', 'never', 'rather', 'hotseat', 'dice']],
+  ['Games for two', ['tod', 'challenge', 'photo', 'never', 'rather', 'hotseat', 'dice']],
   ['Talk & tease', ['talk', 'desire', 'fantasy', 'dates']],
   ['Stories & learn', ['stories', 'community', 'learn', 'tips']],
 ];
@@ -531,6 +548,7 @@ function render() {
   view.innerHTML = v();
   $('#pause-btn').hidden = ui.tab !== 'games' || !ui.game || ['learn', 'tips', 'stories'].includes(ui.game);
   renderPause();
+  ambience();
   const pd = $('#modal .pos-detail'); if (pd && !$('#modal').hidden) $('#modal .sheet').innerHTML = posDetail(pd.dataset.pos);
   tick();
 }
@@ -565,8 +583,8 @@ function heroCard() {
   </div>`;
 }
 const QUICK = [
-  ['tod', 'Truth or Dare', '🎭', 'g-tod'], ['talk', 'Hot Chat', '🔥', 'g-talk'], ['lab', 'Fantasy Lab', '✨', 'g-lab'],
-  ['positions', 'Positions', '🌙', 'g-pos'], ['dice', 'Sexy Dice', '🎲', 'g-dice'], ['desire', 'Desire Match', '💞', 'g-desire'],
+  ['tod', 'Truth or Dare', '🎭', 'g-tod'], ['challenge', 'Hot Challenges', '🏆', 'g-challenge'], ['photo', 'Photo Dares', '📸', 'g-photo'],
+  ['talk', 'Hot Chat', '🔥', 'g-talk'], ['lab', 'Fantasy Lab', '✨', 'g-lab'], ['positions', 'Positions', '🌙', 'g-pos'],
 ];
 function homeView() {
   const sh = S.shared, mu = sh.meetup || {};
@@ -574,6 +592,7 @@ function homeView() {
   const sc = talkScores();
   return `<section class="home">
     ${heroCard()}
+    ${photoInbox.length ? `<button class="card photo-alert" data-a="photoView" data-id="${esc(photoInbox[0].id)}"><b>📸 ${nm(other(me()))} sent you ${photoInbox.length === 1 ? 'a photo' : photoInbox.length + ' photos'}</b><small>Tap to open — ${photoInbox[0].once ? 'view once 🔥' : 'blurred until you tap'}</small></button>` : ''}
     ${wishCard()}
     <div class="sec-head"><h3>Play tonight</h3><button class="link" data-a="tab" data-tab="games">See all</button></div>
     <div class="quick">${QUICK.map(([id, name, ico, cls]) => `<button class="qtile ${cls}" ${id === 'positions' ? 'data-a="tab" data-tab="positions"' : `data-a="game" data-id="${id}"`}><span>${ico}</span><b>${name}</b></button>`).join('')}</div>
@@ -607,7 +626,7 @@ function gamesView() {
       ${PLAY_SECTIONS.map(([title, ids]) => `<h3>${title}</h3><div class="grid">${ids.map((id) => GAMES.find((g) => g.id === id)).filter(Boolean).map(gameTile).join('')}</div>`).join('')}</section>`;
   }
   const back = ui.game === 'stories' && ui.story ? '<button class="back" data-a="storyOpen" data-id="">‹ Stories</button>' : ui.game === 'learn' && ui.guide ? '<button class="back" data-a="guide" data-id="">‹ Guides</button>' : `<button class="back" data-a="back">‹ Play</button>`;
-  const fn = { tod: todView, talk: talkView, tips: tipsView, learn: learnView, stories: storiesView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
+  const fn = { photo: photoView, challenge: challengeView, tod: todView, talk: talkView, tips: tipsView, learn: learnView, stories: storiesView, desire: desireView, dice: diceView, dates: datesView, never: neverView, rather: ratherView, hotseat: hotseatView, fantasy: fantasyView }[ui.game];
   return `<section>${back}${fn ? fn() : ''}</section>`;
 }
 
@@ -834,7 +853,7 @@ function posDetail(id) {
   const v = S.shared.pos?.[p.id] || {}, r = me(), inPlan = (S.shared.plan || []).includes(p.id);
   const steps = C.HOWTO[poseKind(p.id)] || [];
   return `<div class="pos-detail" data-pos="${p.id}">
-    <div class="pd-art">${poseSvg(p.id)}</div>
+    <div class="pd-art">${poseSvg(p.id, 'pose', true)}<span class="pd-hint">▶ how it moves</span></div>
     <h2>${esc(p.name)}</h2>
     <div class="meters"><span>Difficulty ${dots(p.diff, '●')}</span><span>Intimacy ${dots(p.intimacy, '♥')}</span><span>Energy ${dots(p.energy, '⚡')}</span></div>
     <p>${esc(p.desc)}</p>
@@ -859,6 +878,66 @@ function posSwipeView() {
         <div class="sc-body"><b>${esc(next.name)}</b><p>${esc(next.desc)}</p><button class="link" data-a="posOpen" data-id="${next.id}">How to do it ›</button></div></div></div>
       <div class="votes"><button class="vote no" data-a="posVote" data-id="${next.id}" data-v="no">✕</button><button class="vote star" data-a="planToggle" data-id="${next.id}">★</button><button class="vote yes" data-a="posVote" data-id="${next.id}" data-v="want">♥</button></div>`
     : '<div class="card center"><b>All swiped! 🎉</b><p class="muted small">Check "Both want" to see your matches.</p><button class="btn" data-a="posSwipe">See matches</button></div>'}</section>`;
+}
+
+// ---------- Spicy photo dares ----------
+// Photos are shrunk on the phone and sent straight to the partner's open app.
+// They are kept only in memory (gone when the app closes) and never saved on our server.
+const photoInbox = [];
+const photoSent = [];
+async function shrinkPhoto(file) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  let q = 0.82, url = c.toDataURL('image/jpeg', q);
+  while (url.length > 420000 && q > 0.35) { q -= 0.08; url = c.toDataURL('image/jpeg', q); }
+  if (url.length > 420000) { const c2 = document.createElement('canvas'); c2.width = c.width / 2; c2.height = c.height / 2; c2.getContext('2d').drawImage(c, 0, 0, c2.width, c2.height); url = c2.toDataURL('image/jpeg', 0.75); }
+  return url;
+}
+function photoView() {
+  const g = G(), t = g.turn || 'A', o = other(t), card = g.card;
+  const live = online();
+  return `<h2>📸 Spicy Photo Dares</h2>${turnBar()}
+    <p class="center"><b>${nm(o)}</b> dares <b>${nm(t)}</b>:</p>
+    ${card ? cardHtml(card, 'PHOTO DARE') : '<div class="playcard empty"><p>Draw a photo dare. The photo goes only to your partner — never saved on our server.</p></div>'}
+    ${card && canAct(t) ? (live
+      ? `<label class="btn big wide photo-btn">📷 Take or choose photo<input type="file" accept="image/*" data-a="photoPick" hidden></label>
+         <label class="check small center-check"><input type="checkbox" data-photo-once ${ui.photoOnce === false ? '' : 'checked'}> View once (disappears after ${nm(o)} sees it)</label>`
+      : `<p class="muted small center">Playing on one phone? Show ${nm(o)} for real 😉 — or connect two phones to send photos.</p><button class="btn wide" data-a="photoDone">Done it! +10</button>`) : ''}
+    ${card && !canAct(t) ? `<p class="center muted small">⏳ Waiting for ${nm(t)}'s photo…</p>` : ''}
+    <div class="row"><button class="btn ${card ? 'ghost' : ''}" data-a="photoDraw">${card ? 'Another dare' : 'Draw a dare'}</button>${card ? `<button class="btn ghost" data-a="todNext">Next: ${nm(o)}'s turn →</button>` : ''}</div>
+    ${photoSent.length ? `<h3>Sent</h3><div class="list">${photoSent.slice(-5).reverse().map((x) => `<div class="li"><span>${esc(x.dare.slice(0, 40))}…</span><span class="tag ${x.seen ? 'ok' : ''}">${x.react ? x.react + ' ' : ''}${x.seen ? 'Seen' : 'Delivered'}</span></div>`).join('')}</div>` : ''}
+    ${photoInbox.length ? `<h3>Received</h3><div class="list">${photoInbox.map((x) => `<button class="li" data-a="photoView" data-id="${esc(x.id)}"><span>📸 ${esc(x.dare.slice(0, 40))}…</span><span class="tag">${x.once ? 'View once' : 'Open'}</span></button>`).join('')}</div>` : ''}
+    <p class="muted small center">🔒 Only send what you're both comfortable with. Screenshots can't be blocked — trust each other.</p>`;
+}
+function openPhoto(id) {
+  const x = photoInbox.find((p) => p.id === id); if (!x) return;
+  modal(`<div class="photo-viewer"><small class="eyebrow">${esc(x.dare)}</small>
+    <div class="pv-frame blurred" data-a="photoReveal"><img src="${esc(x.data)}" alt=""><span class="pv-tap">Tap to reveal 🔥</span></div>
+    <div class="react-row3"><button class="rbtn" data-a="photoReact" data-id="${esc(id)}" data-e="🔥">🔥<small>Hot +15</small></button><button class="rbtn" data-a="photoReact" data-id="${esc(id)}" data-e="😍">😍<small>Love it</small></button><button class="rbtn" data-a="photoReact" data-id="${esc(id)}" data-e="🥵">🥵<small>Come here</small></button></div>
+    <button class="btn ghost wide" data-a="photoClose" data-id="${esc(id)}">${x.once ? 'Close — photo disappears' : 'Close'}</button></div>`);
+}
+
+// ---------- Hot challenges ----------
+function challengeView() {
+  const g = G(), tab = ui.chTab || 'quick';
+  const head = `<h2>🏆 Hot Challenges</h2><div class="seg"><button class="${tab === 'quick' ? 'on' : ''}" data-a="chTab" data-t="quick">⏱️ Quick challenge</button><button class="${tab === 'program' ? 'on' : ''}" data-a="chTab" data-t="program">📅 7-Day</button></div>`;
+  if (tab === 'program') {
+    const pr = S.shared.program, prog = pr && C.PROGRAMS.find((x) => x.id === pr.id);
+    if (!prog) return head + `<p class="muted small">Do one task a day together. Tick it off on either phone — it syncs.</p>` + C.PROGRAMS.map((x) => `<button class="card program-card" data-a="progStart" data-id="${x.id}"><b>${x.icon} ${x.name}</b><small>${esc(x.days[0])}</small><span class="btn sm">Start</span></button>`).join('');
+    const done = Object.keys(pr.done || {}).length;
+    return head + `<div class="card"><div class="row between"><b>${prog.icon} ${prog.name}</b><span class="tag">${done}/7</span></div><div class="bar"><i style="width:${(done / 7) * 100}%"></i></div></div>
+      <div class="list">${prog.days.map((d, i) => `<label class="li check day ${pr.done?.[i] ? 'done' : ''}"><input type="checkbox" data-a="progDay" data-i="${i}" ${pr.done?.[i] ? 'checked' : ''}><span>${esc(d)}</span></label>`).join('')}</div>
+      ${done === 7 ? '<div class="card center reveal"><b>🏆 Challenge complete!</b><p class="small muted">You two are on fire. Start another?</p></div>' : ''}
+      <button class="btn ghost wide" data-a="progQuit">${done === 7 ? 'Choose another challenge' : 'Quit challenge'}</button>`;
+  }
+  const running = g.endsAt && g.endsAt > Date.now(), over = g.endsAt && !running;
+  return head + `${g.card ? `<div class="playcard heat${num(g.card.heat)} challenge-card"><div class="pc-top"><span>CHALLENGE · ${Math.round(num(g.card.secs) / 60) || 1} MIN</span><span>${heatInfo(num(g.card.heat)).icon}</span></div><p>${esc(g.card.text)}</p>
+      ${running || over ? `<div class="timer small-timer" ${running ? `data-timer="${num(g.endsAt)}" data-fmt="mmss"` : ''}>${running ? fmtDur(g.endsAt - Date.now()) : "Time's up!"}</div>` : ''}</div>` : '<div class="playcard empty"><p>Draw a challenge, start the timer, and go. Complete it for +20 each.</p></div>'}
+    <div class="row">${g.card && !g.endsAt ? '<button class="btn" data-a="chStart">▶ Start timer</button>' : ''}
+      ${g.card ? '<button class="btn" data-a="chDone">We did it! +20</button>' : ''}
+      <button class="btn ghost" data-a="chDraw">${g.card ? 'Another' : 'Draw a challenge'}</button></div>`;
 }
 
 // ---------- Stories ----------
@@ -1129,11 +1208,25 @@ function connectView() {
     <form class="card" data-form="settings">
       <div class="row"><label>Player 1<input name="a" maxlength="30" value="${esc(S.shared.players.A.name)}"></label><label>Player 2<input name="b" maxlength="30" value="${esc(S.shared.players.B.name)}"></label></div>
       <label>Safe word<input name="safe" maxlength="20" value="${esc(S.shared.safeWord)}"></label>
+      <label class="check"><input type="checkbox" name="fx" ${S.local.fx === false ? '' : 'checked'}> Steamy effects (floating embers & hearts)</label>
       <label>App lock PIN <small class="muted">(4–8 digits, blank = off)</small><input name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" placeholder="${S.local.pin ? '•••• (set)' : 'Off'}"></label>
       <button class="btn">Save settings</button>
     </form>
     <div class="row"><button class="btn ghost sm" data-a="export">⬇ Backup</button><label class="btn ghost sm">⬆ Restore<input type="file" accept="application/json" data-a="import" hidden></label><button class="btn ghost sm" data-a="unhide">Unhide cards</button><button class="btn danger sm" data-a="reset">Erase everything</button></div>
     <p class="muted small">🔒 No email, no phone number, no tracking. Games, answers and chats stay on your phones — the server only passes live messages between you and never stores them. Voice and video go directly phone-to-phone. Press Esc or 🙈 to hide the app instantly. <a href="/privacy/">Privacy</a></p></section>`;
+}
+
+// Steamy ambience: floating embers / hearts behind the app, more as the heat rises.
+let ambHeat = -1;
+function ambience() {
+  const box = $('#ambience'); if (!box) return;
+  const h = S.local.fx === false ? 0 : S.shared.heat;
+  if (h === ambHeat) return; ambHeat = h;
+  const n = [0, 5, 7, 10, 14, 18][h] || 0;
+  box.innerHTML = Array.from({ length: n }, (_, i) => {
+    const heart = h <= 2 || i % 4 === 0;
+    return `<span class="${heart ? 'amb-heart' : 'ember'}" style="left:${Math.round(Math.random() * 100)}%;animation-duration:${(8 + Math.random() * 10).toFixed(1)}s;animation-delay:-${(Math.random() * 14).toFixed(1)}s;--s:${(0.5 + Math.random() * 0.9).toFixed(2)}">${heart ? '♥' : ''}</span>`;
+  }).join('');
 }
 
 function renderPause() {
@@ -1153,9 +1246,9 @@ function tick() {
     const end = Number(el.dataset.timer);
     if (!end) return;
     const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-    el.textContent = left;
+    el.textContent = el.dataset.fmt === 'mmss' ? (left ? fmtDur(left * 1000) : "Time's up!") : left;
     el.classList.toggle('low', left <= 10);
-    if (left === 0 && !el._done) { el._done = true; hotseatOver(); }
+    if (left === 0 && !el._done) { el._done = true; if (el.dataset.fmt === 'mmss') { floatEmoji('🏆'); render(); } else hotseatOver(); }
   });
 }
 setInterval(tick, 1000);
@@ -1190,6 +1283,19 @@ const A = {
   wishSend: (el) => sendWish(el.dataset.t),
   wishReply: (el) => { const p = other(me()); if (!S.shared.requests?.[p]) return; set(['requests', p, 'reply'], el.dataset.v); if (el.dataset.v === 'yes') floatEmoji('😘'); },
   posOpen: (el, e) => { if (e?.target?.closest('[data-a="planToggle"]') && el.dataset.a === 'posOpen') return; modal(posDetail(el.dataset.id)); },
+  photoDraw: () => { const c = draw(C.PHOTO_DARES, 'F'); if (!c) return toast('Raise the heat for more dares'); setGame({ card: c, answer: null, done: false }); },
+  photoDone: () => { const g = G(); if (g.done) return; addPoints(g.turn || 'A', 10); floatEmoji('📸'); setGame({ done: true }); },
+  photoView: (el) => openPhoto(el.dataset.id),
+  photoReveal: (el) => { el.classList.remove('blurred'); const t = el.querySelector('.pv-tap'); if (t) t.remove(); const id = $('#modal [data-a=photoClose]')?.dataset.id; if (id) send({ t: 'photoSeen', id }); },
+  photoReact: (el) => { const x = photoInbox.find((p) => p.id === el.dataset.id); if (!x || x.reacted) return; x.reacted = true; send({ t: 'photoReact', id: x.id, e: el.dataset.e }); if (el.dataset.e === '🔥') addPoints(other(S.local.role), 15); floatEmoji(el.dataset.e); el.classList.add('on'); },
+  photoClose: (el) => { const i = photoInbox.findIndex((p) => p.id === el.dataset.id); if (i >= 0 && photoInbox[i].once) photoInbox.splice(i, 1); closeModal(); render(); },
+  chTab: (el) => { ui.chTab = el.dataset.t; render(); },
+  chDraw: () => { const pool = C.CHALLENGES.map((c) => [c[0], c[1], c[2]]); const c = draw(pool.map((x) => [x[0], x[1] + '|' + x[2]]), 'C'); if (!c) return; const [text, secs] = c.text.split('|'); setGame({ card: { id: c.id, heat: c.heat, text, secs: Number(secs) }, endsAt: 0 }); },
+  chStart: () => { const g = G(); if (!g.card) return; setGame({ endsAt: Date.now() + num(g.card.secs) * 1000 }); },
+  chDone: () => { addPoints('A', 20); addPoints('B', 20); floatEmoji('🏆'); toast('🏆 Challenge complete! +20 each'); setGame({ card: null, endsAt: 0 }); },
+  progStart: (el) => { set(['program'], { id: el.dataset.id, start: localDate(), done: {} }); floatEmoji('🔥'); },
+  progDay: (el) => { set(['program', 'done', el.dataset.i], el.checked ? true : null); if (el.checked) { addPoints(me(), 10); floatEmoji('🔥'); } },
+  progQuit: () => { if (confirm('Leave this challenge?')) set(['program'], null); },
   storyCat: (el) => { ui.storyCat = el.dataset.c; render(); },
   storyOpen: (el) => { ui.tab = 'games'; ui.game = 'stories'; ui.story = el.dataset.id || null; render(); window.scrollTo(0, 0); },
   storyAsk: (el) => { const st = C.STORIES.find((x) => x.id === el.dataset.id); ui.talkDraft = `Just read "${st.title}"… what part would you want to do with me? `; openGame('talk'); },
@@ -1233,7 +1339,7 @@ const A = {
     try { await ensureNumber(); await post('/community/report', authBody({ id: Number(el.dataset.id) })); toast('Thanks — reported'); } catch (e) { toast(e.message); }
   },
   heat: () => modal(`<h3>Choose the heat</h3><div class="heat-pick">${C.HEAT.map((h) => `<button class="heat-opt btnlike ${S.shared.heat === h.level ? 'on' : ''}" data-a="setHeat" data-h="${h.level}"><span>${h.icon}<b>${h.name}</b><small>${h.hint}</small></span></button>`).join('')}</div><p class="muted small">Both of you see the same heat. Anyone can turn it down anytime.</p><button class="btn ghost wide" data-a="close">Close</button>`),
-  setHeat: (el) => { closeModal(); set(['heat'], Number(el.dataset.h)); toast(`Heat: ${heatInfo(Number(el.dataset.h)).icon} ${heatInfo(Number(el.dataset.h)).name}`); },
+  setHeat: (el) => { closeModal(); document.body.classList.remove('heat-flash'); void document.body.offsetWidth; document.body.classList.add('heat-flash'); setTimeout(() => document.body.classList.remove('heat-flash'), 900); set(['heat'], Number(el.dataset.h)); toast(`Heat: ${heatInfo(Number(el.dataset.h)).icon} ${heatInfo(Number(el.dataset.h)).name}`); },
   close: closeModal,
   tod: (el) => todDraw(el.dataset.type),
   todDone: () => { const g = G(); if (g.done) return; addPoints(g.turn || 'A', 10); floatEmoji('🔥'); setGame({ done: true }); },
@@ -1396,6 +1502,19 @@ document.addEventListener('change', (e) => {
   if (el.matches('input[type=checkbox][data-a]')) { A[el.dataset.a]?.(el, e); return; }
   if (el.matches('input[type=file][data-a="import"]')) { importFile(el.files[0]); return; }
   if (el.matches('input[type=file][data-a="photo"]')) { setPhoto(el.dataset.r, el.files[0]); return; }
+  if (el.matches('input[data-photo-once]')) { ui.photoOnce = el.checked; return; }
+  if (el.matches('input[type=file][data-a="photoPick"]')) {
+    const file = el.files[0]; if (!file || !online()) return;
+    toast('Sending… 📸');
+    shrinkPhoto(file).then((data) => {
+      const g = G(), id = Date.now().toString(36) + uid().slice(0, 4), once = ui.photoOnce !== false;
+      send({ t: 'photo', id, data, dare: g.card?.text || '', once });
+      photoSent.push({ id, dare: g.card?.text || 'Photo', seen: false });
+      if (!g.done) { addPoints(g.turn || 'A', 10); setGame({ done: true }); }
+      toast(`🔥 Sent to ${S.shared.players[other(S.local.role)]?.name || 'your partner'}`); floatEmoji('📸'); render();
+    }).catch(() => toast('Could not read that photo — try another'));
+    return;
+  }
   const f = el.closest('form[data-form="meetup"]');
   if (f && el.name) set(['meetup', el.name], el.value, { quiet: el.name !== 'when' });
 });
@@ -1462,6 +1581,7 @@ document.addEventListener('submit', (e) => {
       if (online()) S.local.myName = (S.local.role === 'A' ? d.a : d.b).trim() || S.local.myName; else S.local.myName = d.a.trim() || S.local.myName;
       if (d.safe.trim()) set(['safeWord'], d.safe.trim(), { quiet: true });
       if (/^\d{4,8}$/.test(d.pin)) { S.local.pin = d.pin; toast('PIN lock on'); } else if (d.pin === '' && S.local.pin && confirm('Turn off the PIN lock?')) S.local.pin = '';
+      S.local.fx = d.fx === 'on'; ambHeat = -1;
       if (S.local.me) post('/name', authBody({ name: S.local.myName })).catch(() => {});
       save(); toast('Saved'); render();
       break;
