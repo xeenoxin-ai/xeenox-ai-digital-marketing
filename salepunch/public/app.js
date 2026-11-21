@@ -427,6 +427,13 @@ async function startCall(leadId, name, how) {
   // On a computer, ask how to call: talk here (internet call) or ring their mobile from the phone.
   if (!how && !PHONE && !ON_PHONE && !(me.call_mode === 'exotel' && me.telephony)) return chooseCall(leadId, name);
   if (how === 'web') return startWebCall(leadId, name);
+  if (how === 'link') { // Windows Phone Link: the phone dials, the voice plays in this computer's headset
+    const r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId } });
+    const a = document.createElement('a'); a.href = 'tel:' + r.phone; a.click();
+    liveCall(r.id, name, 'phone');
+    openLivePanel(r.id, name, true);
+    return;
+  }
   if (me.call_mode === 'exotel' && me.telephony) {
     const r = await api('/api/calls/dial', { method: 'POST', body: { lead_id: leadId } });
     return liveCall(r.id, name);
@@ -453,14 +460,28 @@ function chooseCall(leadId, name) {
   let dlg = document.getElementById('choosedlg');
   if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'choosedlg'; document.body.appendChild(dlg); }
   dlg.innerHTML = `<h2>Call ${esc(name)}</h2>
-    <button class="choice" id="chWeb"><span class="ic" style="background:var(--grad);color:#fff">${ic('mic')}</span><span><b>Talk on this computer</b><span class="small muted">Internet call. You use your headset here, and ${esc(name.split(' ')[0])} joins from a WhatsApp link on their phone. SalePunch hears both of you live.</span></span></button>
+    <button class="choice" id="chLink"><span class="ic" style="background:var(--grad);color:#fff">${ic('phone')}</span><span><b>Call their mobile, talk on this headset <span class="pill good" style="font-size:11px">Free · recommended</span></b><span class="small muted">Uses Windows <b>Phone Link</b>: your Android phone dials from its SIM, and the call plays in the headset on this computer. SalePunch hears both of you. <a href="#" id="chSetup">One-time setup (2 minutes)</a></span></span></button>
+    <button class="choice" id="chWeb"><span class="ic" style="background:var(--grad);color:#fff">${ic('mic')}</span><span><b>Internet call (WhatsApp link)</b><span class="small muted">Internet call. You use your headset here, and ${esc(name.split(' ')[0])} joins from a WhatsApp link on their phone. SalePunch hears both of you live.</span></span></button>
     <button class="choice" id="chPhone"><span class="ic" style="background:var(--good-soft);color:var(--good)">${ic('phone')}</span><span><b>Ring their mobile from my phone</b><span class="small muted">Your phone dials their number from its SIM. You talk on the phone. Here SalePunch hears only you, unless Phone Link plays the call on this computer.</span></span></button>
     <div class="row" style="justify-content:flex-end;margin-top:8px"><button type="button" id="chCancel">Cancel</button></div>`;
   dlg.showModal();
   const go = (how) => { dlg.close(); startCall(leadId, name, how).catch((e) => toast(e.message)); };
   dlg.querySelector('#chWeb').onclick = () => go('web');
+  dlg.querySelector('#chLink').onclick = (e) => { if (e.target.id === 'chSetup') { e.preventDefault(); dlg.close(); return phoneLinkSetup(); } go('link'); };
   dlg.querySelector('#chPhone').onclick = () => go('phone');
   dlg.querySelector('#chCancel').onclick = () => dlg.close();
+}
+function phoneLinkSetup() {
+  let dlg = document.getElementById('pldlg');
+  if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'pldlg'; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<h2>${ic('phone')} Hear calls in your headset (free, one time)</h2><ol class="steps-list">
+    <li><div><b>On the computer, open Phone Link</b><p>Press the Windows key, type <b>Phone Link</b>, open it and choose <b>Android</b>. A QR code appears.</p></div></li>
+    <li><div><b>On the phone, scan the QR code</b><p>Open the camera (or install <b>Link to Windows</b> from Play Store) and scan it. Allow everything it asks.</p></div></li>
+    <li><div><b>Turn on Calls</b><p>In Phone Link click <b>Calls</b>, then <b>Set up</b>. Accept the Bluetooth pairing code on both the phone and the PC. The computer needs Bluetooth (most laptops have it; for a desktop a ₹300 USB Bluetooth dongle works).</p></div></li>
+    <li><div><b>Plug in the headset on the computer</b><p>Now in SalePunch click <b>Call</b> and choose <b>Call their mobile, talk on this headset</b>. If Windows asks which app to use for calls, pick <b>Phone Link</b> and tick "Always".</p></div></li>
+    <li><div><b>When SalePunch asks to share</b><p>Pick <b>Entire screen</b> and switch on <b>Share system audio</b>. That is how SalePunch hears the lead. Use Chrome or Edge.</p></div></li></ol>
+    <div class="row" style="justify-content:flex-end"><button class="primary" id="plOk">Done</button></div>`;
+  dlg.showModal(); dlg.querySelector('#plOk').onclick = () => dlg.close();
 }
 function phoneHelp(msg) {
   let dlg = document.getElementById('phonedlg');
@@ -613,7 +634,7 @@ class LiveListener {
 }
 
 let activeLive = null;
-function openLivePanel(callId, leadName) {
+function openLivePanel(callId, leadName, viaLink) {
   let el = document.getElementById('livepanel');
   if (!el) { el = document.createElement('aside'); el.id = 'livepanel'; document.body.appendChild(el); }
   const canSystem = !!navigator.mediaDevices?.getDisplayMedia;
@@ -671,7 +692,7 @@ function openLivePanel(callId, leadName) {
         setTimeout(() => {
           if (!activeLive || leadPeak > 0.01) return;
           const t = $('lpTip'); t.hidden = false; t.className = 'lp-tip warn';
-          t.innerHTML = `${ic('alert')}<div><b>SalePunch can't hear the lead.</b><br>This call is playing on your phone, not on this computer. To talk and listen here, end this call and use <b>Talk on this computer</b> (internet call), or set up Phone Link.</div>`;
+          t.innerHTML = `${ic('alert')}<div><b>SalePunch can't hear the lead.</b><br>The call is playing on your phone, not on this computer. Check Phone Link shows the call and its sound is on this computer, and that you ticked <b>Share system audio</b>. <a href="#" onclick="phoneLinkSetup();return false">Setup steps</a></div>`;
         }, 20000);
       }
     } catch (e) {
@@ -680,6 +701,7 @@ function openLivePanel(callId, leadName) {
     }
   };
   $('lpStart').onclick = () => start(canSystem);
+  const how = $('lpHow'); if (how) how.onclick = (e) => { e.preventDefault(); phoneLinkSetup(); };
   const mo = $('lpMicOnly'); if (mo) mo.onclick = () => start(false);
   $('lpEnd').onclick = finish;
   $('lpClose').onclick = () => { if (activeLive && !confirm('Stop listening? What was heard so far is saved and analysed.')) return; if (activeLive) finish(); else { el.className = ''; document.body.classList.remove('lp-open'); } };
