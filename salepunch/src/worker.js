@@ -4,12 +4,14 @@ import { authUrl, exchangeCode, googleReady } from './google.js';
 import { LEAD_STATUSES, STATUS_LABELS } from './constants.js';
 import { mapIncomingLead, nextAssignee, toCsv } from './crm.js';
 import { dailyReport, enqueueCall, getSettings, processCall, retryStuck, today } from './pipeline.js';
+import { liveCoachTip } from './analyze.js';
+import { fakeAI } from './devfake.js';
 import { productivity, salesLeaks } from './insights.js';
 import { serveStatic } from './static.js';
 import { teamStats } from './stats.js';
 import { exotelDial, exotelReady, parseExotelCallback } from './telephony.js';
 import { audioResponse, loadRecording, saveRecording } from './storage.js';
-import { parseTextTranscript } from './transcribe.js';
+import { parseTextTranscript, transcribeAndTranslate } from './transcribe.js';
 import { dayOf, fail, json, newId, normalizePhone, parseCsv, safeJson, sameSecret } from './util.js';
 
 const MANAGERS = ['admin', 'manager'];
@@ -497,6 +499,15 @@ route('POST', '/api/calls/:id/finish', async (req, env, { user, params, ctx }) =
   const status = SIM_STATUS.includes(String(form.get('status'))) ? String(form.get('status')) : (hasAudio ? 'completed' : call.status === 'dialing' ? 'completed' : call.status);
   const duration = Math.max(0, Math.round(Number(form.get('duration_sec')) || 0)) || call.duration_sec || 0;
   const startedAt = Date.parse(String(form.get('started_at') || '')) || call.started_at;
+  // A call listened to live on the computer already has a better, speaker-labelled
+  // transcript: keep it, and only fill in the call result (and audio if missing).
+  const live = await env.DB.prepare('SELECT 1 AS x FROM live_segments WHERE call_id = ? LIMIT 1').bind(call.id).first();
+  if (live) {
+    const key = hasAudio && !call.recording_key ? await saveRecording(env, call, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/mp4', file.name) : null;
+    await env.DB.prepare('UPDATE calls SET status = ?, duration_sec = MAX(duration_sec, ?), started_at = ?, recording_key = COALESCE(recording_key, ?) WHERE id = ?')
+      .bind(status, duration, startedAt, key, call.id).run();
+    return json({ ok: true, status, recording: hasAudio, live: true });
+  }
   let key = null;
   if (hasAudio) key = await saveRecording(env, call, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/mp4', file.name);
   const processing = hasAudio ? 'pending' : 'skipped';
@@ -506,6 +517,85 @@ route('POST', '/api/calls/:id/finish', async (req, env, { user, params, ctx }) =
   if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
   if (hasAudio) await enqueueCall(env, call.id, ctx);
   return json({ ok: true, status, recording: hasAudio });
+});
+
+// --- Live calls: the computer listens to both sides and the AI coaches during the call
+const JUNK = /^(thank you\.?|thanks for watching.*|you\.?|bye\.?|\.+|music|\[.*\]|\(.*\))$/i;
+async function ownLiveCall(env, user, id) {
+  const c = await env.DB.prepare('SELECT * FROM calls WHERE id = ?').bind(id).first();
+  return c && c.agent_id === user.id && c.provider !== 'exotel' ? c : null;
+}
+
+route('POST', '/api/calls/:id/live-chunk', async (req, env, { user, params }) => {
+  const call = await ownLiveCall(env, user, params.id);
+  if (!call) return fail(404, 'Call not found');
+  const form = await req.formData();
+  const file = form.get('audio');
+  const speaker = ['lead', 'mixed'].includes(form.get('speaker')) ? form.get('speaker') : 'agent'; // mixed = one mic hears both
+  const start = Math.max(0, Number(form.get('start')) || 0);
+  if (!file || typeof file !== 'object' || !file.size) return fail(400, 'No audio');
+  if (file.size > 3 * 1024 * 1024) return fail(413, 'Audio piece too large');
+  const t = await transcribeAndTranslate(new Uint8Array(await file.arrayBuffer()), env, { language: env.CALL_LANGUAGE || undefined });
+  const text = t.original.map((x) => x.text).join(' ').trim();
+  if (!text || JUNK.test(text)) return json({ text: '' });
+  const en = t.translated ? t.segments.map((x) => x.text).join(' ').trim() : null;
+  const r = await env.DB.prepare('INSERT INTO live_segments (call_id, start, speaker, text, en, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(call.id, start, speaker, text.slice(0, 4000), en ? en.slice(0, 4000) : null, Date.now()).run();
+  return json({ id: r.meta?.last_row_id, speaker, start, text, en, language: t.language });
+});
+
+route('POST', '/api/calls/:id/live-coach', async (req, env, { user, params }) => {
+  const call = await ownLiveCall(env, user, params.id);
+  if (!call) return fail(404, 'Call not found');
+  if (!env.AI) return json({ tip: null });
+  const { results } = await env.DB.prepare("SELECT id, speaker, text, en FROM live_segments WHERE call_id = ? ORDER BY start DESC, id DESC LIMIT 30").bind(call.id).all();
+  const lines = results.reverse().filter((r) => r.speaker !== 'coach').map((r) => ({ speaker: r.speaker, text: r.en || r.text }));
+  if (lines.length < (lines.some((l) => l.speaker === 'mixed') ? 1 : 2)) return json({ tip: null });
+  const lastCoach = results.filter((r) => r.speaker === 'coach').at(-1);
+  const s = await getSettings(env.DB);
+  let tip = null;
+  try { tip = await liveCoachTip({ lines, product: s.product, script: s.script }, env); } catch (e) { console.log('coach failed', e.message); }
+  if (!tip || (lastCoach && lastCoach.text === tip.tip)) return json({ tip: null });
+  const r = await env.DB.prepare("INSERT INTO live_segments (call_id, start, speaker, text, en, created_at) VALUES (?, (SELECT COALESCE(MAX(start), 0) FROM live_segments WHERE call_id = ?), 'coach', ?, ?, ?)")
+    .bind(call.id, call.id, tip.tip, tip.kind, Date.now()).run();
+  return json({ tip: { id: r.meta?.last_row_id, text: tip.tip, kind: tip.kind } });
+});
+
+route('GET', '/api/calls/:id/live', async (req, env, { user, params, url }) => {
+  const c = await env.DB.prepare('SELECT id, agent_id, status, processing FROM calls WHERE id = ?').bind(params.id).first();
+  if (!c || (c.agent_id !== user.id && !isManager(user))) return fail(404, 'Call not found');
+  const after = Number(url.searchParams.get('after')) || 0;
+  const { results } = await env.DB.prepare('SELECT id, start, speaker, text, en FROM live_segments WHERE call_id = ? AND id > ? ORDER BY id LIMIT 500').bind(c.id, after).all();
+  return json({ status: c.status, processing: c.processing, segments: results });
+});
+
+route('POST', '/api/calls/:id/live-finish', async (req, env, { user, params, ctx }) => {
+  const call = await ownLiveCall(env, user, params.id);
+  if (!call) return fail(404, 'Call not found');
+  const form = await req.formData();
+  const file = form.get('recording');
+  const duration = Math.max(0, Math.round(Number(form.get('duration_sec')) || 0));
+  const { results } = await env.DB.prepare("SELECT start, speaker, text, en FROM live_segments WHERE call_id = ? AND speaker != 'coach' ORDER BY start, id").bind(call.id).all();
+  let key = call.recording_key;
+  if (file && typeof file === 'object' && file.size && file.size <= MAX_UPLOAD) {
+    key = await saveRecording(env, call, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/webm', file.name || 'call.webm');
+  }
+  if (!results.length) {
+    await env.DB.prepare("UPDATE calls SET status = CASE WHEN status IN ('dialing','queued') THEN 'completed' ELSE status END, duration_sec = MAX(duration_sec, ?), recording_key = ? WHERE id = ?")
+      .bind(duration, key || null, call.id).run();
+    if (key) await enqueueCall(env, call.id, ctx); // nothing heard live: analyse the recording instead
+    return json({ ok: true, segments: 0 });
+  }
+  const segments = results.map((r, i) => ({ start: r.start, end: results[i + 1]?.start ?? r.start + 5, text: r.en || r.text, speaker: r.speaker }));
+  const translated = results.some((r) => r.en);
+  const who = (sp) => (sp === 'agent' ? 'Agent: ' : sp === 'lead' ? 'Lead: ' : '');
+  const seed = translated ? JSON.stringify({ original: { language: 'detected', text: results.map((r) => who(r.speaker) + r.text).join('\n').slice(0, 20000) } }) : null;
+  await env.DB.prepare(`UPDATE calls SET status = CASE WHEN status IN ('dialing','queued') THEN 'completed' ELSE status END, duration_sec = MAX(duration_sec, ?),
+      recording_key = ?, transcript = ?, analysis = ?, processing = 'pending', error = NULL WHERE id = ?`)
+    .bind(duration, key || null, JSON.stringify(segments), seed, call.id).run();
+  if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
+  await enqueueCall(env, call.id, ctx);
+  return json({ ok: true, segments: segments.length });
 });
 
 // Calls happening right now (for the "Live now" strip).
@@ -718,6 +808,7 @@ route('POST', '/hooks/leads', async (req, env, { url }) => {
 // ---------------------------------------------------------------- entry
 export default {
   async fetch(request, env, ctx) {
+    if (env.FAKE_AI === '1' && !env.AI) env = { ...env, AI: fakeAI }; // local development only
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/hooks/')) {
       return env.ASSETS ? env.ASSETS.fetch(request) : serveStatic(url.pathname, url.search);
@@ -744,6 +835,7 @@ export default {
 
   // Processing queue: one call per message, up to 15 minutes each, retried on failure.
   async queue(batch, env) {
+    if (env.FAKE_AI === '1' && !env.AI) env = { ...env, AI: fakeAI };
     for (const msg of batch.messages) {
       try { await processCall(env, msg.body.id); msg.ack(); }
       catch (e) { console.log('queue job failed', e.message); msg.retry({ delaySeconds: 30 }); }

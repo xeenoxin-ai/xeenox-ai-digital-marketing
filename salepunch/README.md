@@ -60,6 +60,32 @@ In a plain phone **browser**, Call opens the dialer with the number filled in.
 When the agent comes back, a "How did the call go?" box asks for the result and
 an optional recording file.
 
+### Talking through the computer, with live listening and AI coaching
+
+When an agent clicks **Call** on a computer, a **live panel** opens:
+
+1. The phone dials the lead from its SIM, as above. With **Windows Phone Link**
+   (phone paired with the PC over Bluetooth), the call plays through the PC,
+   so the agent talks and listens on the computer headset.
+2. **Start listening** captures the headset microphone ("You") and the PC's
+   sound ("Lead"). Chrome and Edge capture the PC sound when the agent shares
+   the **Entire screen** with **Share system audio**.
+3. Every 5 seconds each side's speech is sent to
+   `POST /api/calls/{id}/live-chunk` (16 kHz WAV, silence skipped). It is
+   written out by Whisper, translated to English if needed, and stored in
+   `live_segments`. After the lead speaks, `POST /api/calls/{id}/live-coach`
+   asks a fast model for one tip for the agent's next line.
+4. Managers watch any call live on its call page (`GET /api/calls/{id}/live`),
+   or from **Live now** on the Dashboard.
+5. **End & analyse**, or the phone reporting that the call ended, sends the
+   whole-call recording (WebM/Opus) to `POST /api/calls/{id}/live-finish`.
+   The speaker-labelled live transcript goes straight to analysis, with no second
+   speech-to-text pass. The phone app's later upload does not overwrite it.
+
+Without Phone Link, put the phone on speaker and choose **Listen with the
+microphone only**. Both voices then come through one mic, and the AI works out
+who said what.
+
 ### 2. Company cloud line (Exotel)
 
 Exotel rings the agent's mobile, then connects the lead, showing the company

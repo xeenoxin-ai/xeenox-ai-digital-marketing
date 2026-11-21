@@ -235,7 +235,7 @@ async function dashboardView(arg) {
       ${dayNav('dashboard', day)}</div>
     ${setupNotices()}
     ${live.length ? `<div class="panel" style="padding:14px 18px"><div class="row" style="gap:12px"><span class="pill bad" style="background:var(--good-soft);color:var(--good)">LIVE NOW</span>
-      ${live.map((c) => `<span class="row" style="gap:8px">${avatar(c.agent_name, true)}<span><b>${esc(c.agent_name || '')}</b> <span class="muted">on a call with</span> <b>${esc(c.lead_name || c.lead_phone || 'a lead')}</b> <span class="muted small">· ${Math.max(0, Math.round((Date.now() - c.started_at) / 60000))} min</span></span></span>`).join('')}</div></div>` : ''}
+      ${live.map((c) => `<a class="row" style="gap:8px;color:inherit;text-decoration:none" href="#/calls/${c.id}" title="Watch live">${avatar(c.agent_name, true)}<span><b>${esc(c.agent_name || '')}</b> <span class="muted">on a call with</span> <b>${esc(c.lead_name || c.lead_phone || 'a lead')}</b> <span class="muted small">· ${Math.max(0, Math.round((Date.now() - c.started_at) / 60000))} min · watch live →</span></span></a>`).join('')}</div></div>` : ''}
     ${dueNow.length ? `<div class="panel" style="padding:16px 18px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">${ic('check')} Your tasks for today · ${dueNow.length}</h2><a href="#/tasks" class="small">All tasks →</a></div>
       <ul class="clean" id="dashTasks">${dueNow.slice(0, 5).map((t) => taskRow(t, { showLead: true })).join('')}</ul></div>` : ''}
     <div class="grid g4">
@@ -352,6 +352,32 @@ async function callView(id) {
   document.querySelectorAll('[data-seek]').forEach((b) => { b.onclick = () => { const au = document.getElementById('aud'); au.currentTime = Number(b.dataset.seek); au.play(); }; });
   const re = document.getElementById('re');
   if (re) re.onclick = async () => { await api(`/api/calls/${c.id}/reprocess`, { method: 'POST' }); toast('Re-analysing…'); callView(id); };
+  // Call still going on: show what is being said, live (managers and the agent).
+  if (['dialing', 'queued'].includes(c.status)) {
+    const chatPanel = document.querySelector('#main .chat')?.closest('.panel') || document.querySelector('#main .panel');
+    if (chatPanel) {
+      chatPanel.innerHTML = `<h2>${ic('mic')} Live now <span class="pill bad plain" style="margin-left:6px">● on call</span></h2><div class="lp-tip" id="cvTip" hidden></div><div class="chat" id="cvLive"><p class="small muted">Waiting for the first words… (the agent must click Start listening)</p></div>`;
+      let after = 0;
+      const here = location.hash;
+      const tick = async () => {
+        if (location.hash !== here) return;
+        try {
+          const r = await api(`/api/calls/${c.id}/live?after=${after}`);
+          const box = document.getElementById('cvLive');
+          for (const sgm of r.segments) {
+            after = Math.max(after, sgm.id);
+            if (sgm.speaker === 'coach') { const t = document.getElementById('cvTip'); t.hidden = false; t.className = 'lp-tip ' + (sgm.en === 'warning' ? 'warn' : ''); t.innerHTML = `${ic('zap')}<div><b>AI coach</b><br>${esc(sgm.text)}</div>`; continue; }
+            if (box.querySelector('p.muted')) box.innerHTML = '';
+            box.insertAdjacentHTML('beforeend', `<div class="msg ${sgm.speaker === 'agent' ? 'agent' : ''}"><span class="t">${sgm.speaker === 'agent' ? esc(c.agent_name || 'Agent') : sgm.speaker === 'lead' ? esc(c.lead_name || 'Lead') : 'Call'} · ${dur(sgm.start)}</span>${esc(sgm.text)}${sgm.en ? `<span class="note" style="color:var(--muted)">${esc(sgm.en)}</span>` : ''}</div>`);
+            box.scrollTop = box.scrollHeight;
+          }
+          if (!['dialing', 'queued'].includes(r.status)) return void setTimeout(() => location.hash === here && callView(id), 2000);
+        } catch { /* keep polling */ }
+        setTimeout(tick, 3000);
+      };
+      tick();
+    }
+  }
   // Keep refreshing while the call is being processed, so the report shows up by itself.
   if (['pending', 'transcribing', 'analyzing'].includes(c.processing) && c.status === 'completed') {
     const here = location.hash;
@@ -406,7 +432,9 @@ async function startCall(leadId, name) {
     let r;
     try { r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId, via: 'phone' } }); }
     catch (e) { refreshPhoneBadge(); return phoneHelp(e.message); }
-    return liveCall(r.id, name, 'phone');
+    liveCall(r.id, name, 'phone');
+    if (navigator.mediaDevices?.getUserMedia) openLivePanel(r.id, name);
+    return;
   }
   const r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId } });
   if (PHONE) {
@@ -464,6 +492,165 @@ document.addEventListener('visibilitychange', () => {
     if (p && Date.now() - p.t > 3000) askCallResult(p.id, p.name, p.t);
   } catch { /* ignore */ }
 });
+
+
+// ------------------------------------------------------------ live listening (computer)
+// While a phone call is on, the computer listens to both sides:
+//  - "You": the headset microphone
+//  - "Lead": the computer's sound (Windows Phone Link plays the call on the PC;
+//    Chrome/Edge capture it when sharing the screen with "Share system audio").
+// Every few seconds each side is written out (and translated) on the server, an
+// AI coach suggests the next line, and at the end the report is built from it.
+const LIVE_CHUNK_SEC = 5;
+function wavBlob(samples, rate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + samples.length * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, x < 0 ? x * 0x8000 : x * 0x7fff, true); }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+const rms = (a) => { let t = 0; for (let i = 0; i < a.length; i++) t += a[i] * a[i]; return Math.sqrt(t / (a.length || 1)); };
+
+class LiveListener {
+  constructor(callId, ui) { this.callId = callId; this.ui = ui; this.tracks = []; this.queue = Promise.resolve(); this.lastCoach = 0; this.stopped = false; }
+  async start({ systemAudio }) {
+    this.ctx = new AudioContext({ sampleRate: 16000 });
+    this.t0 = performance.now();
+    const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    this.streams = [mic];
+    this.addTrack(mic, systemAudio ? 'agent' : 'mixed'); // mic only: it hears both people
+    if (systemAudio) {
+      const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
+      disp.getVideoTracks().forEach((t) => t.stop()); // only the sound is needed
+      if (!disp.getAudioTracks().length) { disp.getTracks().forEach((t) => t.stop()); throw new Error('No sound was shared. Choose "Entire screen" and switch on "Share system audio".'); }
+      this.streams.push(disp);
+      this.addTrack(new MediaStream(disp.getAudioTracks()), 'lead');
+    }
+    // Whole-call recording, kept inside SalePunch.
+    this.dest = this.ctx.createMediaStreamDestination();
+    this.tracks.forEach((t) => t.src.connect(this.dest));
+    this.chunks = [];
+    const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'].find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
+    if (mime) { this.rec = new MediaRecorder(this.dest.stream, { mimeType: mime, audioBitsPerSecond: 32000 }); this.rec.ondataavailable = (e) => e.data.size && this.chunks.push(e.data); this.rec.start(5000); }
+    this.timer = setInterval(() => this.flush(false), LIVE_CHUNK_SEC * 1000);
+  }
+  addTrack(stream, speaker) {
+    const src = this.ctx.createMediaStreamSource(stream);
+    const proc = this.ctx.createScriptProcessor(4096, 1, 1);
+    const mute = this.ctx.createGain(); mute.gain.value = 0;
+    const track = { speaker, src, proc, buf: [], startAt: 0, level: 0 };
+    proc.onaudioprocess = (e) => {
+      const d = e.inputBuffer.getChannelData(0);
+      if (!track.buf.length) track.startAt = (performance.now() - this.t0) / 1000 - d.length / 16000;
+      track.buf.push(new Float32Array(d));
+      track.level = Math.max(rms(d), track.level * 0.85);
+      this.ui.level(speaker, track.level);
+    };
+    src.connect(proc); proc.connect(mute); mute.connect(this.ctx.destination);
+    this.tracks.push(track);
+  }
+  flush(final) {
+    for (const t of this.tracks) {
+      if (!t.buf.length) continue;
+      const n = t.buf.reduce((k, b) => k + b.length, 0), all = new Float32Array(n);
+      let o = 0; for (const b of t.buf) { all.set(b, o); o += b.length; }
+      t.buf = [];
+      if (rms(all) < (t.speaker === 'lead' ? 0.004 : 0.008) || n < 16000 * 0.6) continue; // silence: nothing to send
+      const fd = new FormData();
+      fd.set('audio', wavBlob(all, 16000), 'chunk.wav'); fd.set('speaker', t.speaker); fd.set('start', String(Math.max(0, t.startAt).toFixed(2)));
+      this.queue = this.queue.then(() => api(`/api/calls/${this.callId}/live-chunk`, { method: 'POST', form: fd })
+        .then((r) => { if (r.text) { this.ui.line(r); if (r.speaker !== 'agent' && !final) this.coach(); } })
+        .catch((e) => this.ui.warn(e.message)));
+    }
+  }
+  coach() {
+    if (Date.now() - this.lastCoach < 12000) return;
+    this.lastCoach = Date.now();
+    api(`/api/calls/${this.callId}/live-coach`, { method: 'POST', body: {} }).then((r) => r.tip && this.ui.tip(r.tip)).catch(() => {});
+  }
+  async stop() {
+    if (this.stopped) return; this.stopped = true;
+    clearInterval(this.timer);
+    this.flush(true);
+    await this.queue;
+    const blob = await new Promise((res) => {
+      if (!this.rec || this.rec.state === 'inactive') return res(null);
+      this.rec.onstop = () => res(new Blob(this.chunks, { type: this.rec.mimeType }));
+      this.rec.stop();
+    });
+    this.streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
+    this.ctx.close().catch(() => {});
+    const fd = new FormData();
+    if (blob && blob.size) fd.set('recording', blob, 'call.webm');
+    fd.set('duration_sec', String(Math.round((performance.now() - this.t0) / 1000)));
+    return api(`/api/calls/${this.callId}/live-finish`, { method: 'POST', form: fd });
+  }
+}
+
+let activeLive = null;
+function openLivePanel(callId, leadName) {
+  let el = document.getElementById('livepanel');
+  if (!el) { el = document.createElement('aside'); el.id = 'livepanel'; document.body.appendChild(el); }
+  const canSystem = !!navigator.mediaDevices?.getDisplayMedia;
+  el.className = 'show';
+  document.body.classList.add('lp-open');
+  el.innerHTML = `<header><div><b>${esc(leadName)}</b><div class="small" id="lpStatus">Ready to listen</div></div><span class="lp-timer" id="lpTimer">0:00</span><button class="x" id="lpClose" aria-label="Close">${ic('x')}</button></header>
+    <div id="lpSetup" class="lp-setup">
+      <p><b>Listen &amp; coach this call live</b> on this computer.</p>
+      <ol class="small"><li>Use <b>Phone Link</b> (Windows) so the call plays in your headset. <a href="#/guide" id="lpHow">How to set up</a></li>
+        <li>Click <b>Start listening</b>, choose <b>Entire screen</b> and switch on <b>Share system audio</b>. That lets SalePunch hear the lead.</li></ol>
+      <button class="primary" id="lpStart" style="width:100%;justify-content:center">${ic('mic')} Start listening</button>
+      ${canSystem ? `<button class="link small" id="lpMicOnly" style="margin-top:10px">Phone on speaker next to the computer? Listen with the microphone only</button>` : ''}
+    </div>
+    <div id="lpLive" hidden>
+      <div class="lp-meters"><div><span>You</span><i><b id="mAgent"></b></i></div><div><span>Lead</span><i><b id="mLead"></b></i></div></div>
+      <div class="lp-tip" id="lpTip" hidden></div>
+      <div class="lp-lines" id="lpLines"><p class="small muted">Listening… what each side says appears here every few seconds.</p></div>
+      <button class="primary" id="lpEnd" style="width:100%;justify-content:center">${ic('check')} End &amp; analyse</button>
+    </div>`;
+  const $ = (id) => el.querySelector('#' + id);
+  let timer = null, poll = null;
+  const ui = {
+    level: (sp, v) => { const b = $(sp === 'lead' ? 'mLead' : 'mAgent'); if (b) b.style.width = Math.min(100, v * 600) + '%'; },
+    line: (r) => {
+      const box = $('lpLines'); if (box.querySelector('p.muted')) box.innerHTML = '';
+      box.insertAdjacentHTML('beforeend', `<div class="msg ${r.speaker === 'agent' ? 'agent' : ''}"><span class="t">${r.speaker === 'agent' ? 'You' : r.speaker === 'lead' ? esc(leadName) : 'Call'}</span>${esc(r.text)}${r.en ? `<span class="note" style="color:var(--muted)">${esc(r.en)}</span>` : ''}</div>`);
+      box.scrollTop = box.scrollHeight;
+    },
+    tip: (t) => { const b = $('lpTip'); b.hidden = false; b.className = 'lp-tip ' + (t.kind === 'warning' ? 'warn' : ''); b.innerHTML = `${ic(t.kind === 'warning' ? 'alert' : 'zap')}<div><b>${t.kind === 'warning' ? 'Careful' : 'AI coach'}</b><br>${esc(t.text)}</div>`; },
+    warn: (m) => { $('lpStatus').textContent = m; },
+  };
+  const finish = async () => {
+    if (!activeLive) return;
+    const l = activeLive; activeLive = null;
+    clearInterval(timer); clearInterval(poll);
+    $('lpEnd').disabled = true; $('lpStatus').textContent = 'Saving and analysing…';
+    try { await l.stop(); el.className = ''; document.body.classList.remove('lp-open'); location.hash = `#/calls/${callId}`; toast('Call saved. The report appears in a few seconds.'); }
+    catch (e) { $('lpStatus').textContent = e.message; $('lpEnd').disabled = false; }
+  };
+  const start = async (systemAudio) => {
+    try {
+      activeLive = new LiveListener(callId, ui);
+      await activeLive.start({ systemAudio });
+      $('lpSetup').hidden = true; $('lpLive').hidden = false;
+      $('lpStatus').textContent = systemAudio ? 'Listening to you and the lead' : 'Listening through the microphone';
+      const t0 = Date.now();
+      timer = setInterval(() => { const sec = Math.round((Date.now() - t0) / 1000); $('lpTimer').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }, 1000);
+      // Stop by itself when the phone reports the call has ended.
+      poll = setInterval(async () => { try { const r = await api(`/api/calls/${callId}/live?after=999999999`); if (!['dialing', 'queued'].includes(r.status)) setTimeout(finish, 2500); } catch { /* keep going */ } }, 4000);
+    } catch (e) {
+      activeLive = null;
+      toast(e.name === 'NotAllowedError' ? 'Permission was not given. Allow the microphone (and screen sound) to listen live.' : e.message);
+    }
+  };
+  $('lpStart').onclick = () => start(canSystem);
+  const mo = $('lpMicOnly'); if (mo) mo.onclick = () => start(false);
+  $('lpEnd').onclick = finish;
+  $('lpClose').onclick = () => { if (activeLive && !confirm('Stop listening? What was heard so far is saved and analysed.')) return; if (activeLive) finish(); else { el.className = ''; document.body.classList.remove('lp-open'); } };
+}
+window.addEventListener('beforeunload', (e) => { if (activeLive) { e.preventDefault(); e.returnValue = ''; } });
 
 // ------------------------------------------------------------ leads
 async function leadsView(_, q) {
@@ -686,6 +873,15 @@ function guideView() {
         <li>${ic('mic')}<span>Every conversation, as audio and as a chat</span></li><li>${ic('target')}<span>Converted or not, with the chance to buy</span></li>
         <li>${ic('leak')}<span>Where sales leak, in <a href="#/leaks">Sales leaks</a></span></li><li>${ic('zap')}<span>Who is on a call right now, and each agent's day, in <a href="#/productivity">Productivity</a></span></li></ul></div>
     </div>
+    <div class="panel"><h2>${ic('mic')} Talk through your computer headset, with live AI coaching</h2>
+      <div class="grid g2"><ol class="steps-list">
+        <li><div><b>Link your Android phone to Windows</b><p>On the PC open <b>Phone Link</b> (built into Windows 10/11). On the phone install <b>Link to Windows</b>, scan the QR code, and allow <b>Calls</b> (it pairs over Bluetooth).</p></div></li>
+        <li><div><b>Plug in your headset on the computer</b><p>Phone Link plays the call through the PC, so you talk and listen on the headset.</p></div></li>
+        <li><div><b>Click Call in SalePunch</b><p>Your phone dials the lead from its SIM; the call shows in Phone Link on the PC.</p></div></li>
+        <li><div><b>Click Start listening</b><p>Choose <b>Entire screen</b> and switch on <b>Share system audio</b>. SalePunch now hears you (microphone) and the lead (PC sound).</p></div></li></ol>
+      <div><p><b>During the call</b> you see what both of you say every few seconds, translated to English if needed, plus <b>AI coach</b> tips for your next line. Managers can watch any call live from <b>Live now</b> on the Dashboard.</p>
+        <p><b>When the call ends</b> the full report is ready in seconds, built from the live conversation, with the recording saved inside SalePunch.</p>
+        <p class="small muted">Works in Chrome or Edge on Windows. Without Phone Link, put the phone on speaker next to the computer and choose "Listen with the microphone only".</p></div></div></div>
     <div class="panel"><h2>${ic('shield')} Questions</h2>
       <details><summary>How does SalePunch catch the conversation?</summary><p>Android doesn't let ordinary apps record calls, but the phone's own dialer can. So SalePunch works like TeleCRM, Callyzer or Salestrail. The SalePunch app dials the lead from the agent's SIM, and the phone's built-in recorder records both voices. When the call ends, the app reads the call log (length, answered or not) and uploads the newest call recording. SalePunch then writes out the conversation, separates the agent's and the lead's lines, and the AI scores it.</p></details>
       <details><summary>Can managers listen to the call while it is happening?</summary><p>Not with SIM calling: the recording is uploaded the moment the call ends. Managers can see who is on a call right now in the "Live now" strip on the Dashboard. To listen in live, use a company cloud line (Exotel), which Settings supports as the other calling mode.</p></details>

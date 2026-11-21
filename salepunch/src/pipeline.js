@@ -94,8 +94,11 @@ export async function processCall(env, callId, { deps = {} } = {}) {
     const analysis = await analyzeCall(input, env, deps.claude);
     fullDone = true;
     await quick;
-    const labelled = segments.map((s, i) => ({ start: s.start, text: s.text, speaker: analysis.speakers[i] }));
-    analysis.talk_ratio = talkRatio(segments, analysis.speakers);
+    // Live calls (and labelled pasted transcripts) already know who spoke each line.
+    const known = segments.every((s) => s.speaker === 'agent' || s.speaker === 'lead');
+    const speakers = known ? segments.map((s) => s.speaker) : analysis.speakers;
+    const labelled = segments.map((s, i) => ({ start: s.start, text: s.text, speaker: speakers[i] }));
+    analysis.talk_ratio = talkRatio(segments, speakers);
     delete analysis.speakers;
     if (original) analysis.original = original;
     else if (call.analysis) { const prev = safeJson(call.analysis, {}); if (prev?.original) analysis.original = prev.original; }

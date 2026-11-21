@@ -194,6 +194,24 @@ export async function quickAnalysis(input, env) {
   };
 }
 
+// Live coach: one short tip for the agent's next line, while the call is on.
+const COACH_SCHEMA = obj({ tip: str, kind: { type: 'string', enum: ['tip', 'warning', 'none'] } });
+export async function liveCoachTip({ lines, product, script }, env) {
+  const out = await env.AI.run(env.QUICK_AI_MODEL || QUICK_MODEL, {
+    messages: [
+      { role: 'system', content: `You are a live sales coach listening to a phone call that is happening right now between a sales agent and a lead. Read the latest lines and give the agent ONE short, practical tip for what to say next (max 18 words, simple English), e.g. answer the lead's doubt, ask a question, or ask for the booking. kind: "warning" if the agent was rude, gave wrong information or is losing the lead; "tip" otherwise; "none" with an empty tip if nothing useful to add.${product ? `\nProduct: ${product.slice(0, 1500)}` : ''}${script ? `\nCompany script: ${script.slice(0, 1500)}` : ''}` },
+      { role: 'user', content: lines.slice(-14).map((l) => `${l.speaker === 'agent' ? 'Agent: ' : l.speaker === 'lead' ? 'Lead: ' : ''}${l.text}`).join('\n') },
+    ],
+    response_format: { type: 'json_schema', json_schema: COACH_SCHEMA },
+    max_tokens: 120,
+    temperature: 0.3,
+  });
+  const a = workersAiContent(out);
+  const kind = ['tip', 'warning', 'none'].includes(a.kind) ? a.kind : 'tip';
+  const tip = String(a.tip || '').trim().slice(0, 200);
+  return kind === 'none' || !tip ? null : { tip, kind };
+}
+
 // --- Keyword fallback (no AI available) -----------------------------------------
 const WORDS = {
   converted: /\b(book(ed)? it|confirm(ed)?|send (me )?the (payment|link)|i('ll| will) (pay|take it|buy)|done deal|let'?s go ahead)\b/i,

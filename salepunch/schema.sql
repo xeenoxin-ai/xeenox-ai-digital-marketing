@@ -125,3 +125,16 @@ CREATE TABLE IF NOT EXISTS activities (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS activities_lead ON activities(lead_id, created_at);
+
+-- Live calls: what each side said, written out every few seconds during the
+-- call (speaker "agent" / "lead"), plus live AI coach tips (speaker "coach").
+CREATE TABLE IF NOT EXISTS live_segments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  call_id TEXT NOT NULL,
+  start REAL NOT NULL,              -- seconds from the start of listening
+  speaker TEXT NOT NULL,
+  text TEXT NOT NULL,               -- as spoken
+  en TEXT,                          -- English translation (when not English)
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS live_call ON live_segments(call_id, start);
