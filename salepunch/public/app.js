@@ -369,7 +369,7 @@ function phoneHelp(msg) {
   let dlg = document.getElementById('phonedlg');
   if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'phonedlg'; document.body.appendChild(dlg); }
   dlg.innerHTML = `<h2>${ic('phone')} Connect your phone first</h2><p>${esc(msg)}</p><ol class="steps-list">
-    <li><div><b>Open the SalePunch app on your Android phone</b><p>Sign in with the same email as here. A "Ready for calls" notification shows it's connected.</p></div></li>
+    <li><div><b>Open the SalePunch app on your Android phone</b><p>No app yet? On your phone, open <b>${esc(location.origin)}/download</b> and install it. Sign in with the same email as here. A "Ready for calls" notification shows it's connected.</p></div></li>
     <li><div><b>Keep it running</b><p>You can lock the phone. If calls stop arriving, set the app's battery use to "Unrestricted" (the app asks once).</p></div></li>
     <li><div><b>Click Call again</b><p>Your phone dials the lead within a few seconds.</p></div></li></ol>
     <div class="row" style="justify-content:flex-end"><a class="btn" href="#/guide" onclick="this.closest('dialog').close()">How it works</a><button class="primary" onclick="this.closest('dialog').close()">OK</button></div>`;
@@ -524,7 +524,8 @@ async function teamView() {
   shell('team', loading());
   const { users } = await api('/api/users');
   setMain(`<div class="head"><div><h1>Team</h1><div class="muted">Each agent's mobile is the phone that rings when they tap Call.</div></div>
-      ${isManager() ? `<button class="primary" id="add">${ic('plus')} Add agent</button>` : ''}</div>
+      <div class="row"><a class="btn" href="/download/salepunch.apk">${ic('upload')} Download Android app</a>${isManager() ? `<button class="primary" id="add">${ic('plus')} Add agent</button>` : ''}</div></div>
+    <div class="notice" style="background:var(--info-soft);color:var(--info)">${ic('phone')}<div>Send agents this link to install the phone app: <b>${esc(location.origin)}/download</b>. They open it on their Android phone, tap the downloaded file and allow "Install unknown apps" once.</div></div>
     <div class="panel flush scroll"><table><tr><th>Agent</th><th>Mobile</th><th>Role</th><th>Status</th><th></th></tr>
       ${users.map((u) => `<tr><td><div class="who">${avatar(u.name, true)}<div>${esc(u.name)}<span>${esc(u.email)}</span></div></div></td><td class="small">${esc(u.phone || '—')}${u.phone ? '' : ' <span class="pill warn">needed to call</span>'}</td>
         <td><span class="pill plain">${esc(u.role)}</span></td><td>${u.active ? '<span class="pill good">Active</span>' : '<span class="pill">Off</span>'}</td><td class="n"><button data-edit="${u.id}">Edit</button></td></tr>`).join('')}</table></div>

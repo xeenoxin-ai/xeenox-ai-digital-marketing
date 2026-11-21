@@ -132,7 +132,7 @@ route('GET', '/api/me', async (req, env, { user }) => {
   const s = await getSettings(env.DB);
   const callMode = s.call_mode === 'exotel' && exotelReady(env) ? 'exotel' : 'sim';
   const phone_online = await phoneOnline(env, user.id);
-  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, phone_online, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '' });
+  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, phone_online, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '/download/salepunch.apk' });
 });
 
 // --- team

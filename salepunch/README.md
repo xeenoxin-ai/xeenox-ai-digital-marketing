@@ -75,8 +75,11 @@ a single company caller ID or to listen to calls live. Setup is below.
   "install unknown apps" once, sign in, and allow Phone, Call logs and Music &
   audio. Apps that read the call log are installed this way, outside Play Store,
   because Google restricts that permission to approved apps.
-- **Download link:** to show a *Download the Android app* button in SalePunch,
-  host the APK somewhere and set `ANDROID_APP_URL` in `wrangler.toml` vars.
+- **Download link:** the site serves the app at **`/download`**
+  (`/download/salepunch.apk`), from `public/salepunch.apk`, which is bundled into
+  the worker. To publish a new app version, copy the APK from the workflow log
+  (between `APK_BASE64_BEGIN` and `APK_BASE64_END`, decoded with `base64 -d`)
+  or from the run's artifact into `public/salepunch.apk`, then deploy.
 - The address the app opens is `APP_URL` in `salepunch/android/app/build.gradle`.
 - The APK is signed with a debug key, which is fine for installing directly. For
   Play Store or long-term updates, add your own signing key.
