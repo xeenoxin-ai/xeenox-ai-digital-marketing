@@ -3,7 +3,7 @@ import { hashPassword, readSession, readToken, requestToken, sessionCookie, sign
 import { authUrl, exchangeCode, googleReady } from './google.js';
 import { LEAD_STATUSES, STATUS_LABELS } from './constants.js';
 import { mapIncomingLead, nextAssignee, toCsv } from './crm.js';
-import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
+import { dailyReport, enqueueCall, getSettings, processCall, retryStuck, today } from './pipeline.js';
 import { productivity, salesLeaks } from './insights.js';
 import { serveStatic } from './static.js';
 import { teamStats } from './stats.js';
@@ -504,7 +504,7 @@ route('POST', '/api/calls/:id/finish', async (req, env, { user, params, ctx }) =
   await env.DB.prepare('UPDATE calls SET status = ?, duration_sec = ?, started_at = ?, recording_key = COALESCE(?, recording_key), processing = ?, error = ?, transcript = CASE WHEN ? THEN NULL ELSE transcript END WHERE id = ?')
     .bind(status, duration, startedAt, key, processing, note, hasAudio ? 1 : 0, call.id).run();
   if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
-  if (hasAudio) ctx.waitUntil(processCall(env, call.id));
+  if (hasAudio) await enqueueCall(env, call.id, ctx);
   return json({ ok: true, status, recording: hasAudio });
 });
 
@@ -533,9 +533,9 @@ route('POST', '/api/calls/upload', async (req, env, { user, ctx }) => {
   const day = dayOf(when, env.TIMEZONE || 'Asia/Kolkata');
   let key = null;
   if (file && file.size) key = await saveRecording(env, { id, day }, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/mpeg', file.name);
-  await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, duration_sec, recording_key, day) VALUES (?, ?, ?, ?, 'upload', 'completed', ?, ?, ?, ?)")
-    .bind(id, agentId, leadId, phone || null, when, Math.max(0, Number(form.get('duration_sec')) || 0), key, day).run();
-  ctx.waitUntil(processCall(env, id, key ? {} : { textSegments: parseTextTranscript(text) }));
+  await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, duration_sec, recording_key, day, transcript) VALUES (?, ?, ?, ?, 'upload', 'completed', ?, ?, ?, ?, ?)")
+    .bind(id, agentId, leadId, phone || null, when, Math.max(0, Number(form.get('duration_sec')) || 0), key, day, key ? null : JSON.stringify(parseTextTranscript(text))).run();
+  await enqueueCall(env, id, ctx);
   return json({ id });
 });
 
@@ -589,7 +589,7 @@ route('POST', '/api/calls/:id/reprocess', async (req, env, { user, params, ctx }
   // Keep a pasted transcript; recordings are transcribed again.
   if (c.recording_key || c.recording_url) await env.DB.prepare('UPDATE calls SET transcript = NULL WHERE id = ?').bind(c.id).run();
   await env.DB.prepare("UPDATE calls SET processing = 'pending', error = NULL WHERE id = ?").bind(c.id).run();
-  ctx.waitUntil(processCall(env, c.id));
+  await enqueueCall(env, c.id, ctx);
   return json({ ok: true });
 }, { manager: true });
 
@@ -696,7 +696,7 @@ route('POST', '/hooks/exotel', async (req, env, { url, ctx }) => {
   const done = cb.status === 'completed' && cb.recordingUrl;
   await env.DB.prepare('UPDATE calls SET status = ?, duration_sec = ?, recording_url = ?, provider_call_id = COALESCE(provider_call_id, ?), started_at = COALESCE(?, started_at), processing = ? WHERE id = ?')
     .bind(cb.status, cb.durationSec, cb.recordingUrl || null, cb.providerCallId || null, cb.startedAt, done ? 'pending' : 'skipped', call.id).run();
-  if (done) ctx.waitUntil(processCall(env, call.id));
+  if (done) await enqueueCall(env, call.id, ctx);
   else if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
   return json({ ok: true });
 }, { public: true });
@@ -739,6 +739,14 @@ export default {
     } catch (e) {
       console.log('request failed', url.pathname, e.stack || e.message);
       return fail(500, e.message || 'Server error');
+    }
+  },
+
+  // Processing queue: one call per message, up to 15 minutes each, retried on failure.
+  async queue(batch, env) {
+    for (const msg of batch.messages) {
+      try { await processCall(env, msg.body.id); msg.ack(); }
+      catch (e) { console.log('queue job failed', e.message); msg.retry({ delaySeconds: 30 }); }
     }
   },
 

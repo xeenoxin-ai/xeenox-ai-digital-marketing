@@ -1,13 +1,26 @@
 // After a call ends: keep the recording in R2, transcribe it, analyse it,
 // update the lead, and tell the outside CRM. Also the daily report job.
-import { analyzeCall, coachingNote, talkRatio } from './analyze.js';
+import { analyzeCall, coachingNote, quickAnalysis, talkRatio } from './analyze.js';
 import { crmEvent, leadStatusAfterCall, postWebhook } from './crm.js';
 import { agentStats } from './stats.js';
 import { STATUS_LABELS } from './constants.js';
 import { fetchRecording } from './telephony.js';
 import { loadRecording, saveRecording } from './storage.js';
-import { transcribe } from './transcribe.js';
+import { transcribeAndTranslate } from './transcribe.js';
 import { dayOf, safeJson } from './util.js';
+
+/**
+ * Sends a call to the processing queue (no 30-second limit, automatic retries).
+ * Without a queue binding it runs in the background of the current request.
+ */
+export async function enqueueCall(env, callId, ctx) {
+  if (env.CALLS) {
+    await env.CALLS.send({ id: callId });
+    return;
+  }
+  const job = processCall(env, callId);
+  if (ctx) ctx.waitUntil(job); else await job;
+}
 
 export async function getSettings(db) {
   const { results } = await db.prepare('SELECT key, value FROM settings').all();
@@ -20,16 +33,18 @@ const setCall = (db, id, fields) => {
 };
 
 /**
- * Processes one call. `textSegments` is set for pasted transcripts.
- * Safe to run again (Reprocess button / retry job).
+ * Processes one call: recording → transcript (+ English translation for other
+ * languages) → quick AI verdict (about 4 s) → full AI analysis → lead update.
+ * Every stage is saved, so the call page fills in as it goes. Safe to run again.
  */
-export async function processCall(env, callId, { textSegments, deps = {} } = {}) {
+export async function processCall(env, callId, { deps = {} } = {}) {
   const db = env.DB;
   const call = await db.prepare('SELECT * FROM calls WHERE id = ?').bind(callId).first();
   if (!call) return;
   try {
-    let segments = textSegments || safeJson(call.transcript, null);
+    let segments = safeJson(call.transcript, null);
     let language = call.language || '';
+    let original = null;
     if (!segments) {
       if (!call.recording_key && !call.recording_url) {
         await setCall(db, callId, { processing: 'skipped', error: null });
@@ -48,9 +63,15 @@ export async function processCall(env, callId, { textSegments, deps = {} } = {})
         const key = await saveRecording(env, call, bytes, rec.type);
         await setCall(db, callId, { recording_key: key });
       }
-      const t = await (deps.transcribe || transcribe)(bytes, env, { language: env.CALL_LANGUAGE || undefined });
+      const t = await (deps.transcribe || transcribeAndTranslate)(bytes, env, { language: env.CALL_LANGUAGE || undefined });
       segments = t.segments;
       language = t.language;
+      if (t.translated) original = { language: t.language, text: t.original.map((x) => x.text).join(' ').slice(0, 20000) };
+    }
+    if (!segments.length) {
+      await setCall(db, callId, { processing: 'done', error: null, transcript: '[]', outcome: 'no_conversation', conversion_chance: 0,
+        analysis: JSON.stringify({ outcome: 'no_conversation', summary: 'No speech was found in the recording.', skills: {}, script_adherence: { score: 0, followed: [], missed: [] }, objections: [], strengths: [], improvements: [], red_flags: [], key_moments: [], engine: 'none' }) });
+      return;
     }
     await setCall(db, callId, { processing: 'analyzing', transcript: JSON.stringify(segments), language });
 
@@ -60,10 +81,24 @@ export async function processCall(env, callId, { textSegments, deps = {} } = {})
       call.agent_id ? db.prepare('SELECT id, name, email FROM users WHERE id = ?').bind(call.agent_id).first() : null,
     ]);
     const durationSec = call.duration_sec || Math.round(segments.at(-1)?.end || 0);
-    const analysis = await analyzeCall({ segments, script: settings.script, product: settings.product, lead, agentName: agent?.name, durationSec, today: call.day }, env, deps.claude);
+    const input = { segments, script: settings.script, product: settings.product, lead, agentName: agent?.name, durationSec, today: call.day };
+
+    // Quick verdict and full analysis run together; the quick one shows first.
+    let fullDone = false;
+    const quick = env.AI && !env.ANTHROPIC_API_KEY && !deps.claude
+      ? quickAnalysis(input, env).then(async (q) => {
+        if (fullDone) return;
+        await setCall(db, callId, { analysis: JSON.stringify({ ...q, original }), outcome: q.outcome, conversion_chance: q.conversion_chance });
+      }).catch((e) => console.log('quick analysis failed', e.message))
+      : Promise.resolve();
+    const analysis = await analyzeCall(input, env, deps.claude);
+    fullDone = true;
+    await quick;
     const labelled = segments.map((s, i) => ({ start: s.start, text: s.text, speaker: analysis.speakers[i] }));
     analysis.talk_ratio = talkRatio(segments, analysis.speakers);
     delete analysis.speakers;
+    if (original) analysis.original = original;
+    else if (call.analysis) { const prev = safeJson(call.analysis, {}); if (prev?.original) analysis.original = prev.original; }
 
     await setCall(db, callId, {
       processing: 'done',
@@ -109,8 +144,8 @@ export async function retryStuck(env, now = Date.now()) {
     .bind(now - 120000).run();
   const { results } = await env.DB.prepare(
     "SELECT id FROM calls WHERE processing IN ('pending','transcribing','analyzing') AND status = 'completed' AND started_at < ? LIMIT 10",
-  ).bind(now - 20 * 60000).all();
-  for (const r of results) await processCall(env, r.id);
+  ).bind(now - 10 * 60000).all();
+  for (const r of results) await enqueueCall(env, r.id);
 }
 
 /** Builds and stores each agent's report for `day`, then posts a team summary. */

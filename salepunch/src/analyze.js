@@ -164,6 +164,36 @@ export async function analyzeWithWorkersAI(input, env) {
   return normalizeAnalysis(workersAiContent(out), input.segments.length);
 }
 
+// Quick first result from a small, fast model (about 4 s), shown while the full analysis runs.
+export const QUICK_MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
+const QUICK_SCHEMA = obj({
+  outcome: { type: 'string', enum: OUTCOMES },
+  conversion_chance: { type: 'integer' },
+  sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
+  summary: str,
+  next_action: str,
+});
+export async function quickAnalysis(input, env) {
+  const out = await env.AI.run(env.QUICK_AI_MODEL || QUICK_MODEL, {
+    messages: [
+      { role: 'system', content: 'You read one sales call transcript between a company sales agent and a lead, and give a quick verdict. outcome: "converted" only if the lead clearly agreed to buy/book/visit; "interested", "follow_up" (callback agreed), "not_interested", or "no_conversation". conversion_chance 0-100 = how likely the lead buys. summary: 1-2 plain English sentences. next_action: the agreed next step, or "".' },
+      { role: 'user', content: formatSegments(input.segments).slice(0, 12000) },
+    ],
+    response_format: { type: 'json_schema', json_schema: QUICK_SCHEMA },
+    max_tokens: 400,
+    temperature: 0.1,
+  });
+  const a = workersAiContent(out);
+  return {
+    quick: true,
+    outcome: OUTCOMES.includes(a.outcome) ? a.outcome : 'no_conversation',
+    conversion_chance: clampInt(a.conversion_chance, 0, 100),
+    sentiment: ['positive', 'neutral', 'negative'].includes(a.sentiment) ? a.sentiment : 'neutral',
+    summary: String(a.summary || ''),
+    next_action: String(a.next_action || ''),
+  };
+}
+
 // --- Keyword fallback (no AI available) -----------------------------------------
 const WORDS = {
   converted: /\b(book(ed)? it|confirm(ed)?|send (me )?the (payment|link)|i('ll| will) (pay|take it|buy)|done deal|let'?s go ahead)\b/i,

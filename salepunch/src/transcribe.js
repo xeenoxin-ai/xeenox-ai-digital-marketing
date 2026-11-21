@@ -4,16 +4,16 @@
 
 export const WHISPER = '@cf/openai/whisper-large-v3-turbo';
 
-function toBase64(bytes) {
+export function toBase64(bytes) {
   let s = '';
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
 
 /** Returns {language, segments:[{start, end, text}]}. */
-export async function transcribe(bytes, env, { language } = {}) {
+export async function transcribe(bytes, env, { language, task = 'transcribe', base64 } = {}) {
   if (!env.AI) throw new Error('Workers AI binding "AI" is missing (see wrangler.toml)');
-  const input = { audio: toBase64(bytes), vad_filter: true };
+  const input = { audio: base64 || toBase64(bytes), vad_filter: true, task };
   if (language) input.language = language;
   const out = await env.AI.run(WHISPER, input);
   const segments = (out.segments || [])
@@ -33,4 +33,25 @@ export function parseTextTranscript(text) {
     const speaker = m ? (/^(agent|sales|me)$/i.test(m[1]) ? 'agent' : 'lead') : undefined;
     return { start: i * 5, end: i * 5 + 5, text: m ? m[2] : line, speaker };
   }).filter((s) => s.text);
+}
+
+/**
+ * Writes out the call and, for non-English calls, an English translation, in
+ * parallel (so it adds no waiting time). The AI analyses the English version:
+ * models read English far better than Malayalam, Tamil or Hindi script.
+ */
+export async function transcribeAndTranslate(bytes, env, { language } = {}) {
+  const base64 = toBase64(bytes);
+  const english = language === 'en';
+  const [orig, en] = await Promise.all([
+    transcribe(null, env, { language, base64 }),
+    english ? null : transcribe(null, env, { language, base64, task: 'translate' }).catch(() => null),
+  ]);
+  const isEnglish = english || orig.language === 'en' || !en || !en.segments.length;
+  return {
+    language: orig.language,
+    original: orig.segments,
+    segments: isEnglish ? orig.segments : en.segments, // what the AI reads (English)
+    translated: !isEnglish,
+  };
 }

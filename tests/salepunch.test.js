@@ -366,3 +366,32 @@ test('audio supports jumping (HTTP range requests)', async () => {
   assert.equal(audioResponse(bytes, 'a', 'bytes=20-').status, 416);
   assert.equal(extFor('audio/amr', ''), 'amr'); assert.equal(extFor('audio/mpeg', 'x.MP3'), 'mp3');
 });
+
+// ---- speed: quick verdict + translation
+import { quickAnalysis } from '../salepunch/src/analyze.js';
+import { transcribeAndTranslate } from '../salepunch/src/transcribe.js';
+
+test('quick verdict uses the small fast model and is cleaned up', async () => {
+  let model;
+  const env = { AI: { run: async (m) => { model = m; return { response: { outcome: 'weird', conversion_chance: 140, sentiment: 'happy', summary: 'Lead booked.', next_action: '' } }; } } };
+  const q = await quickAnalysis({ segments: segs }, env);
+  assert.equal(model, '@cf/meta/llama-3.1-8b-instruct-fast');
+  assert.deepEqual(q, { quick: true, outcome: 'no_conversation', conversion_chance: 100, sentiment: 'neutral', summary: 'Lead booked.', next_action: '' });
+});
+
+test('non-English calls are written out and translated in parallel', async () => {
+  const calls = [];
+  const env = { AI: { run: async (m, input) => {
+    calls.push(input.task);
+    return input.task === 'translate'
+      ? { segments: [{ start: 0, end: 2, text: 'Hello, is this Rahul?' }], transcription_info: { language: 'ml' } }
+      : { segments: [{ start: 0, end: 2, text: 'ഹലോ, രാഹുൽ ആണോ?' }], transcription_info: { language: 'ml' } };
+  } } };
+  const t = await transcribeAndTranslate(new Uint8Array([1, 2, 3]), env);
+  assert.deepEqual(calls.sort(), ['transcribe', 'translate']);
+  assert.equal(t.translated, true); assert.equal(t.language, 'ml');
+  assert.equal(t.segments[0].text, 'Hello, is this Rahul?');
+  assert.equal(t.original[0].text, 'ഹലോ, രാഹുൽ ആണോ?');
+  const en = await transcribeAndTranslate(new Uint8Array([1]), { AI: { run: async (m, i) => ({ segments: [{ start: 0, end: 1, text: i.task }], transcription_info: { language: 'en' } }) } });
+  assert.equal(en.translated, false); assert.equal(en.segments[0].text, 'transcribe');
+});

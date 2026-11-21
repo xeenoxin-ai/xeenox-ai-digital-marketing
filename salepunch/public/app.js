@@ -78,7 +78,9 @@ const score = (v, max = 100) => (v == null ? '<span class="muted">–</span>' : 
 const outcomePill = (c) => {
   if (c.status && c.status !== 'completed') return `<span class="pill">${esc(CALL_STATUS[c.status] || c.status)}</span>`;
   if (c.processing === 'error') return '<span class="pill error">Analysis failed</span>';
-  if (c.processing !== 'done') return '<span class="pill info">Analysing…</span>';
+  if (c.processing === 'skipped') return `<span class="pill warn" title="${esc(c.error || 'This call has no recording to analyse')}">No recording</span>`;
+  if (c.processing === 'analyzing' && c.outcome) return `<span class="pill ${esc(c.outcome)}">${esc(OUTCOME_LABEL[c.outcome] || c.outcome)}</span> <span class="small muted">refining…</span>`;
+  if (c.processing !== 'done') return `<span class="pill info">${c.processing === 'transcribing' ? 'Writing out…' : 'Analysing…'}</span>`;
   return `<span class="pill ${esc(c.outcome)}">${esc(OUTCOME_LABEL[c.outcome] || c.outcome)}</span>`;
 };
 const addDays = (day, n) => { const d = new Date(day + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -303,7 +305,10 @@ async function callsView(_, q) {
 async function callView(id) {
   shell('calls', loading());
   const { call: c } = await api(`/api/calls/${id}`);
-  const a = c.analysis;
+  const raw = c.analysis;
+  const q = raw && raw.quick ? raw : null; // quick verdict while the full analysis runs
+  const a = raw && !raw.quick ? raw : null;
+  const orig = raw?.original;
   const keys = new Map((a?.key_moments || []).map((m) => [m.segment, m.note]));
   const chat = (c.transcript || []).map((s, i) => `<div class="msg ${s.speaker === 'agent' ? 'agent' : ''} ${keys.has(i) ? 'key' : ''}">
       <span class="t">${s.speaker === 'agent' ? esc(c.agent_name || 'Agent') : esc(c.lead_name || 'Lead')} · ${c.has_audio ? `<button class="link" data-seek="${s.start}">${ic('clock')} ${dur(s.start)}</button>` : dur(s.start)}</span>${esc(s.text)}
@@ -314,7 +319,11 @@ async function callView(id) {
       <div class="row">${c.lead_id ? `<a class="btn" href="#/lead/${c.lead_id}">${ic('users')} Open lead</a>` : ''}
       ${isManager() ? '<button id="re">Re-analyse</button>' : ''}</div></div>
     ${c.processing === 'error' ? `<div class="flag">${ic('alert')}<div>Analysis failed: ${esc(c.error)}</div></div>` : ''}
+    ${c.processing === 'skipped' && c.status === 'completed' ? `<div class="notice">${ic('mic')}<div><b>No recording reached SalePunch for this call</b>, so there is nothing to analyse. ${esc(c.error || '')} Check that automatic call recording is on in the phone's dialer (How it works), or attach the recording on Add a call.</div></div>` : ''}
     ${['pending', 'transcribing', 'analyzing'].includes(c.processing) && c.status === 'completed' ? `<div class="notice" style="background:var(--info-soft);color:var(--info)">${ic('clock')}<div><b>${c.processing === 'analyzing' ? 'AI is scoring the call…' : c.processing === 'transcribing' ? 'Writing out the conversation…' : 'Getting the recording…'}</b> This page updates by itself, usually within 30 seconds.</div></div>` : ''}
+    ${q ? `<div class="panel" style="border-color:var(--info)"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0;color:var(--info)">${ic('zap')} Quick AI result</h3><span class="pill info">Full analysis finishing…</span></div>
+      <div class="grid g3" style="margin-bottom:10px">${ring(q.conversion_chance, 'Chance to convert', `${q.conversion_chance}% likely to buy`)}<div><div class="small muted">Result</div><div style="margin-top:6px">${outcomePill({ status: 'completed', processing: 'done', outcome: q.outcome })}</div></div><div><div class="small muted">Mood</div><b style="text-transform:capitalize">${esc(q.sentiment)}</b></div></div>
+      <p style="margin:0">${esc(q.summary)}</p>${q.next_action ? `<p class="small" style="margin:6px 0 0"><b>Next step:</b> ${esc(q.next_action)}</p>` : ''}</div>` : ''}
     ${a ? `<div class="panel"><div class="grid g4">
       ${ring(a.overall_score, 'Sales skill', 'Score out of 100')}
       ${ring(a.conversion_chance, 'Chance to convert', `${a.conversion_chance}% likely to buy`)}
@@ -324,7 +333,8 @@ async function callView(id) {
     <div class="grid g-side">
       <div>
         ${c.has_audio ? `<div class="player"><h3>Call recording</h3><audio id="aud" controls preload="none" src="/api/calls/${c.id}/audio"></audio></div>` : ''}
-        <div class="panel"><h2>${ic('mic')} Conversation, hello to goodbye</h2>${chat ? `<div class="chat">${chat}</div>` : empty('mic', 'No transcript yet', 'It appears here once the call is processed.')}</div>
+        <div class="panel"><h2>${ic('mic')} Conversation, hello to goodbye${orig ? ' <span class="pill info plain" style="margin-left:6px">Translated to English</span>' : ''}</h2>${chat ? `<div class="chat">${chat}</div>` : empty('mic', 'No transcript yet', 'It appears here once the call is processed.')}
+          ${orig ? `<details style="margin-top:12px"><summary>Original language (${esc(orig.language || 'detected')})</summary><p style="white-space:pre-wrap">${esc(orig.text)}</p></details>` : ''}</div>
       </div>
       <div>${a ? `
         ${a.red_flags.map((f) => `<div class="flag">${ic('flag')}<div>${esc(f)}</div></div>`).join('')}

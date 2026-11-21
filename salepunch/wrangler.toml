@@ -35,6 +35,17 @@ database_id = "d808f24d-5146-4835-9f20-c40f920427c3"
 [ai]
 binding = "AI"
 
+# Call processing queue (no 30-second limit, automatic retries).
+[[queues.producers]]
+queue = "salepunch-calls"
+binding = "CALLS"
+
+[[queues.consumers]]
+queue = "salepunch-calls"
+max_batch_size = 1
+max_batch_timeout = 1
+max_retries = 3
+
 [triggers]
 crons = ["0 * * * *"] # hourly: retry stuck calls; daily report at REPORT_HOUR
 
