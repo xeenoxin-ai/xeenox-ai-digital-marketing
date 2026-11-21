@@ -57,6 +57,7 @@ Truly phone-free calling to normal mobile numbers needs a paid licensed provider
 ## Working status on 21 November 2026
 
 - A local copy of SalePunch opened its home page, app, and Android download page. It read its local database and served the Android installer bundled with the project.
+- A local test created an admin account, saved a sample customer, and analyzed a pasted conversation from that customer's call record.
 - All 97 automated repository tests passed, including 34 SalePunch tests.
 - The cloud development environment blocked access to the live SalePunch site, so the live site and Google sign-in still need a check.
 - A real call with Windows Phone Link still needs to confirm two things. The salesperson can hear the customer in the headset, and the recording contains both voices.
