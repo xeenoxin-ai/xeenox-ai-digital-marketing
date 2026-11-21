@@ -43,6 +43,8 @@ const P = {
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   leak: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -106,9 +108,29 @@ function shell(active, content) {
       <div class="me">${avatar(me.user.name)}<div><b>${esc(me.user.name)}</b><span>${esc(me.user.role)}${me.company ? ' · ' + esc(me.company) : ''}</span></div>
         <button id="logout" title="Sign out" aria-label="Sign out">${ic('logout')}</button></div>
     </nav>
-    <main id="main">${content}</main></div>`;
+    <div class="content"><header class="topbar">
+      <form id="gsearch" role="search">${ic('search')}<input name="q" placeholder="Search leads, phones, companies…" aria-label="Search leads"><span class="kbd">/</span></form>
+      <span class="sp"></span><span class="date">${new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+      ${phoneBadge()}
+      <button class="icon-btn" id="themeBtn" title="Switch light / dark">${ic(isDark() ? 'sun' : 'moon')}</button>
+      <a class="btn primary" href="#/leads?new=1">${ic('plus')} <span class="lbl-sm">New lead</span></a></header>
+    <main id="main">${content}</main></div></div>`;
   document.getElementById('logout').onclick = async () => { await api('/api/logout', { method: 'POST' }); me = null; render(); };
+  document.getElementById('gsearch').onsubmit = (e) => { e.preventDefault(); const v = e.target.q.value.trim(); location.hash = '#/leads' + (v ? '?q=' + encodeURIComponent(v) : ''); };
+  document.getElementById('themeBtn').onclick = (e) => { setTheme(isDark() ? 'light' : 'dark'); e.currentTarget.innerHTML = ic(isDark() ? 'sun' : 'moon'); };
 }
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('sp_theme', t); } catch { /* private mode */ }
+}
+try { const t = localStorage.getItem('sp_theme'); if (t) document.documentElement.dataset.theme = t; } catch { /* ignore */ }
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) { const i = document.querySelector('#gsearch input'); if (i) { e.preventDefault(); i.focus(); } }
+});
 const setMain = (html) => { document.getElementById('main').innerHTML = html; };
 const dayNav = (base, day) => `<div class="seg"><a href="#/${base}/${addDays(day, -1)}" aria-label="Previous day">${ic('left')}</a><input type="date" id="day" value="${day}"><a href="#/${base}/${addDays(day, 1)}" aria-label="Next day">${ic('right')}</a></div>`;
 
@@ -441,7 +463,7 @@ async function leadsView(_, q) {
   const [{ leads }, { users }] = await Promise.all([api('/api/leads?' + p), api('/api/users')]);
   const agentOpts = (sel) => `<option value="">Unassigned</option>${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${sel === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
   setMain(`<div class="head"><div><h1>Leads</h1><div class="muted">${leads.length} lead${leads.length === 1 ? '' : 's'}${q.get('due') ? ' · follow-ups due' : ''} · tap <b>Call</b> to start a recorded call</div></div>
-      <div class="row">${phoneBadge()}<a class="btn" href="/api/leads/export">${ic('file')} Export</a><button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
+      <div class="row"><a class="btn" href="/api/leads/export">${ic('file')} Export</a><button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
     ${recNotice()}${simNotice()}
     <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email, company, tag" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">${q.get('tag') ? `<input type="hidden" name="tag" value="${esc(q.get('tag'))}"><a class="pill" href="#/leads">#${esc(q.get('tag'))} ✕</a>` : ''}
       <select name="status"><option value="">All statuses</option>${LEAD_STATUSES.map((s) => `<option value="${s}" ${q.get('status') === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
@@ -484,6 +506,7 @@ async function leadsView(_, q) {
       try { const r = await api('/api/leads', { method: 'POST', body: form(e.target) }); dlg.close(); location.hash = `#/lead/${r.id}`; } catch (err) { toast(err.message); }
     };
   };
+  if (q.get('new')) { history.replaceState(null, '', location.pathname + '#/leads'); document.getElementById('add').click(); }
   document.getElementById('imp').onclick = () => {
     dlg.innerHTML = `<h2>Import leads (CSV)</h2><p class="small muted">The first row is the header. A <b>phone</b> column is required. <b>name, email, source, notes, owner</b> (agent email) and <b>status</b> are optional. Exports from Meta Lead Ads, Google Sheets, Zoho and HubSpot work.</p>
       <form id="cf"><input type="file" name="file" accept=".csv,text/csv" required><br><br>${isManager() ? `<label>Give unassigned leads to<select name="owner_id">${agentOpts('')}</select></label>` : ''}
