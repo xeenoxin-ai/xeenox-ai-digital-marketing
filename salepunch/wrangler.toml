@@ -1,0 +1,39 @@
+# SalePunch — Cloudflare Worker (API + dashboard), D1 database, R2 recordings,
+# Workers AI speech-to-text. See salepunch/README.md for the full setup.
+name = "salepunch"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "salepunch"
+database_id = "REPLACE_WITH_D1_DATABASE_ID" # npx wrangler d1 create salepunch
+
+[[r2_buckets]]
+binding = "RECORDINGS"
+bucket_name = "salepunch-recordings" # npx wrangler r2 bucket create salepunch-recordings
+
+[ai]
+binding = "AI"
+
+[triggers]
+crons = ["0 * * * *"] # hourly: retry stuck calls; daily report at REPORT_HOUR
+
+[vars]
+TIMEZONE = "Asia/Kolkata"
+REPORT_HOUR = "21"
+# APP_URL = "https://salepunch.example.com"
+# CALL_LANGUAGE = "ml"   # force Whisper language (ml, hi, ta, en); blank = auto
+# CLAUDE_MODEL = "claude-opus-5-5"
+
+# Secrets (npx wrangler secret put NAME):
+#   SESSION_SECRET      random 32+ characters, signs logins
+#   WEBHOOK_SECRET      random string, protects /hooks/exotel
+#   LEADS_WEBHOOK_KEY   random string, protects /hooks/leads
+#   ANTHROPIC_API_KEY   Claude, for call analysis and coaching
+#   EXOTEL_SID, EXOTEL_API_KEY, EXOTEL_API_TOKEN, EXOTEL_CALLER_ID, EXOTEL_SUBDOMAIN

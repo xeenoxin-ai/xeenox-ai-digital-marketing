@@ -6,3 +6,5 @@ dist/
 .env*
 *-debug.log
 dist-billx/
+.dev.vars
+.wrangler/
