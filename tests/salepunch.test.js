@@ -173,3 +173,62 @@ test('CRM event carries the outcome and follow-up', () => {
   assert.equal(e.outcome, 'interested'); assert.equal(e.follow_up_date, '2026-11-25'); assert.deepEqual(e.objections, ['Price']);
   assert.equal(e.call_url, 'https://sp/#/calls/c1');
 });
+
+// ---- sales leaks & productivity
+import { salesLeaks, productivity } from '../salepunch/src/insights.js';
+
+const H = 3600000, D = 24 * H, NOW = Date.parse('2026-11-21T12:00:00Z');
+const lead = (id, o = {}) => ({ id, name: id, phone: '+91' + id, status: 'new', owner_id: 'a', source: 'Meta', created_at: NOW - 5 * D, next_follow_up: null, ...o });
+const kall = (lead_id, o = {}) => ({ id: 'c-' + lead_id + (o.started_at || ''), lead_id, agent_id: 'a', status: 'completed', outcome: 'interested', started_at: NOW - 4 * D, duration_sec: 120, processing: 'done', skill_score: 60, analysis: { skills: { closing: 7 }, objections: [], red_flags: [], next_action: 'call back', script_adherence: { missed: [] } }, ...o });
+
+test('sales leaks: finds each kind of leak and builds the funnel', () => {
+  const leads = [
+    lead('never'),                                                     // never called
+    lead('slow', { status: 'contacted' }),                             // first call 4 days after creation
+    lead('fu', { status: 'follow_up', next_follow_up: '2026-11-19' }), // follow-up missed
+    lead('noans', { status: 'contacted' }),                            // 1 unanswered attempt, no retry
+    lead('won', { status: 'won', source: 'Website' }),
+    lead('fresh', { created_at: NOW - H }),                            // too new to count as never called
+  ];
+  const calls = [
+    kall('slow', { started_at: NOW - 1 * D }),
+    kall('fu', { outcome: 'follow_up', started_at: NOW - 5 * D + 10 * 60000 }),
+    kall('noans', { status: 'no_answer', duration_sec: 0, outcome: null, processing: 'skipped', analysis: null, started_at: NOW - 3 * D }),
+    kall('won', { outcome: 'converted', started_at: NOW - 5 * D + 5 * 60000, analysis: { skills: { closing: 9 }, objections: [{ objection: 'Price', handled_well: false }], red_flags: [], next_action: 'x', script_adherence: { missed: ['Mention warranty'] } } }),
+    kall('x1', { outcome: 'not_interested', duration_sec: 30, lead_name: 'Gone', analysis: { skills: { closing: 2 }, objections: [{ objection: 'Too expensive', handled_well: false }], red_flags: ['Rude'], next_action: '', script_adherence: { missed: ['Mention warranty'] } } }),
+    kall('x2', { outcome: 'interested', analysis: { skills: { closing: 3 }, objections: [], red_flags: [], next_action: '', script_adherence: { missed: [] } } }),
+  ];
+  const r = salesLeaks({ leads, calls, users: [{ id: 'a', name: 'Anu' }], today: '2026-11-21', now: NOW });
+  const by = Object.fromEntries(r.leaks.map((l) => [l.key, l]));
+  assert.deepEqual(by.never_called.items.map((i) => i.id), ['never']);
+  assert.ok(by.slow_first_call.items.some((i) => i.id === 'slow'));
+  assert.deepEqual(by.missed_follow_ups.items.map((i) => i.id), ['fu']);
+  assert.deepEqual(by.not_retried.items.map((i) => i.id), ['noans']);
+  assert.equal(by.no_close.count, 1);            // x2: interested, no next step
+  assert.equal(by.objections.count, 1);          // won call's objection doesn't count, x1's does
+  assert.equal(by.early_hangup.count, 1);
+  assert.equal(by.red_flags.count, 1);
+  assert.equal(r.leads_at_risk, 3);
+  assert.deepEqual(r.funnel.map((f) => f.count), [6, 4, 3, 3, 1]);
+  assert.equal(r.lost_reasons[0].text, 'too expensive');
+  assert.deepEqual(r.missed_steps[0], { text: 'mention warranty', count: 2 });
+  assert.equal(r.by_source.find((s) => s.source === 'Website').conversion_pct, 100);
+  assert.equal(r.leaks[0].severity, 'high');
+});
+
+test('productivity: activity, gaps, target and best hour', () => {
+  const at = (h, m = 0) => Date.parse(`2026-11-21T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00+05:30`);
+  const calls = [
+    { agent_id: 'a', status: 'completed', outcome: 'converted', started_at: at(10), duration_sec: 300 },
+    { agent_id: 'a', status: 'no_answer', outcome: null, started_at: at(10, 10), duration_sec: 0 },
+    { agent_id: 'a', status: 'completed', outcome: 'interested', started_at: at(12, 10), duration_sec: 60 },
+    { agent_id: 'b', status: 'completed', outcome: 'interested', started_at: at(10, 30), duration_sec: 90 },
+  ];
+  const p = productivity({ calls, users: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }], target: 4 });
+  const a = p.agents.find((x) => x.agent_id === 'a');
+  assert.equal(a.calls, 3); assert.equal(a.connected, 2); assert.equal(a.converted, 1);
+  assert.equal(a.target_pct, 75); assert.equal(a.longest_gap_min, 120); assert.equal(a.active_hours, 2.2);
+  assert.equal(a.hours[10], 2); assert.equal(a.hours[12], 1);
+  assert.deepEqual(p.hours.map((h) => [h.hour, h.calls, h.connected]), [[10, 3, 2], [12, 1, 1]]);
+  assert.equal(p.best_hours[0].hour, 10);
+});

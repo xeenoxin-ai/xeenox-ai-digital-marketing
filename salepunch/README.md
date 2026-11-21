@@ -1,6 +1,6 @@
 # SalePunch: sales call monitoring
 
-**Live:** https://salepunch.xeenox-in.workers.dev
+**Live:** https://salepunch.xeenox-in.workers.dev (home page with pricing) · the app is at `/app`
 
 SalePunch records every sales call from "hello" to the end, turns it into a
 written conversation, and tells you whether the agent is actually trying to
@@ -17,6 +17,9 @@ convert the lead.
 | **Daily view per agent** | Calls dialed, connected, talk time, conversions, conversion %, average skill score, weakest skill and top objections, for any day. |
 | **Daily reports** | Every evening (21:00 IST) each agent gets a report and a short AI coaching note. The team summary can go to Slack, Google Chat, or WhatsApp/email through Zapier. |
 | **CRM** | A lead list is built in (statuses, owners, follow-up dates, CSV import, click-to-call). Leads can come in from website forms, Meta Lead Ads, Zoho or HubSpot by webhook. After each call, SalePunch sends the result back to your CRM. |
+| **Sales leak finder** | Shows where sales are lost: the lead funnel with drop-off at each step, and leaks ranked by impact. Leaks include leads never called, slow first calls, missed follow-ups, unanswered leads never retried, interested leads not asked to buy, objections left unanswered, calls lost in the first minute and red flags. Each leak lists the leads affected and a fix. It also shows why leads said no, the script steps most often skipped, leaks per agent and conversion by lead source. |
+| **Productivity** | Per agent per day: calls against target, connect rate, talk time, conversions, first and last call, calls per hour and longest break. Also an hour-by-hour heatmap and the hours when leads actually pick up. |
+| **Home page & plans** | A public home page at `/` with Starter ₹4,999, Growth ₹6,999 and Pro ₹8,999 per month (+ GST). Its demo and plan forms create a lead in your own SalePunch CRM, with the source "Website · <plan> plan". |
 | **Roles** | Admins and managers see the whole team. Agents see only their own leads and calls. |
 
 ## How calls get recorded
@@ -163,6 +166,8 @@ Tests: `npm test` (`tests/salepunch.test.js`).
 | `src/analyze.js` | Claude call analysis (structured JSON), coaching notes, keyword fallback |
 | `src/pipeline.js` | Recording → R2 → transcript → analysis → lead update → CRM webhook; daily reports |
 | `src/stats.js` | Per-agent and team numbers |
+| `src/insights.js` | Sales leak finder and productivity numbers |
+| `public/landing.html` | Public home page with pricing |
 | `src/crm.js` | Lead webhook mapping, CRM event, lead status rules |
 | `schema.sql` | Database tables |
 | `public/` | The dashboard (plain HTML/CSS/JS, no build step), bundled into the worker by `src/static.js` |

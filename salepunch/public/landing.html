@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SalePunch · Call recording & AI sales coaching</title>
+  <meta name="description" content="SalePunch records every sales call, writes out the conversation, scores each agent with AI and shows exactly where your team is losing sales. Plans from ₹4,999/month.">
+  <meta name="theme-color" content="#0b0d18">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    :root {
+      --bg: #07080f; --bg-2: #0d1020; --card: #12152a; --line: rgba(255,255,255,.08); --ink: #f3f4fb; --ink-2: #c3c6dc; --muted: #8a8fab;
+      --brand: #ff5a1f; --grad: linear-gradient(135deg, #ff8a4c 0%, #ff4d1a 50%, #e0300a 100%);
+      --good: #3fd17f; --warn: #f2b24a; --bad: #ff6b60; --info: #7d9bff; --violet: #a68bff;
+      --paper: #f6f6fa; --paper-ink: #0f1222; --paper-muted: #636884; --paper-line: #e5e6ef;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+    svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 650; font-size: 15px; padding: 13px 22px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink); cursor: pointer; transition: transform .1s, box-shadow .2s, background .2s; white-space: nowrap; }
+    .btn:hover { background: rgba(255,255,255,.08); } .btn:active { transform: translateY(1px); }
+    .btn.primary { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 12px 30px -12px rgba(255,77,26,.9); }
+    .btn.primary:hover { box-shadow: 0 16px 40px -12px rgba(255,77,26,1); }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; color: #ffb08f; background: rgba(255,90,31,.1); border: 1px solid rgba(255,90,31,.25); padding: 6px 12px; border-radius: 99px; }
+    .eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: #ff7a3d; box-shadow: 0 0 0 4px rgba(255,122,61,.2); }
+    h1, h2, h3 { letter-spacing: -.035em; line-height: 1.08; margin: 0; }
+    .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* nav */
+    header.nav { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); background: rgba(7,8,15,.72); border-bottom: 1px solid var(--line); }
+    header.nav .wrap { display: flex; align-items: center; gap: 28px; height: 68px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
+    .logo img { width: 32px; height: 32px; border-radius: 9px; }
+    nav.links { display: flex; gap: 26px; font-size: 14.5px; color: var(--ink-2); font-weight: 500; }
+    nav.links a:hover { color: #fff; }
+    header .cta { margin-left: auto; display: flex; gap: 10px; }
+    header .btn { padding: 9px 16px; font-size: 14px; }
+
+    /* hero */
+    .hero { position: relative; padding: 84px 0 96px; overflow: hidden; }
+    .hero::before { content: ""; position: absolute; inset: -30% -10% auto; height: 900px; background: radial-gradient(600px 380px at 25% 30%, rgba(255,90,31,.22), transparent 70%), radial-gradient(520px 360px at 80% 20%, rgba(124,77,255,.18), transparent 70%); pointer-events: none; }
+    .hero .grid { position: relative; display: grid; grid-template-columns: 1.02fr 1fr; gap: 56px; align-items: center; }
+    .hero h1 { font-size: clamp(40px, 5.4vw, 66px); font-weight: 850; margin: 22px 0 20px; }
+    .hero p.lead { font-size: 19px; color: var(--ink-2); max-width: 540px; margin: 0 0 32px; }
+    .hero .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero .ticks { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 26px; color: var(--muted); font-size: 14px; }
+    .hero .ticks span { display: inline-flex; gap: 7px; align-items: center; } .hero .ticks svg { color: var(--good); width: 17px; height: 17px; }
+
+    /* product mock */
+    .mock { position: relative; background: linear-gradient(180deg, #15182f, #0f1224); border: 1px solid var(--line); border-radius: 22px; padding: 18px; box-shadow: 0 40px 100px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.03) inset; }
+    .mock .bar { display: flex; gap: 6px; margin-bottom: 14px; } .mock .bar i { width: 10px; height: 10px; border-radius: 50%; background: #2a2e4a; }
+    .mock .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .mock .who { display: flex; gap: 10px; align-items: center; font-weight: 700; } .mock .who small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+    .av { width: 34px; height: 34px; border-radius: 50%; background: var(--grad); display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #fff; }
+    .tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: rgba(63,209,127,.14); color: var(--good); }
+    .rings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .ring { background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; gap: 10px; align-items: center; }
+    .ring svg { width: 48px; height: 48px; transform: rotate(-90deg); flex: none; }
+    .ring b { display: block; font-size: 18px; letter-spacing: -.02em; } .ring span { font-size: 11.5px; color: var(--muted); }
+    .chat { display: grid; gap: 8px; }
+    .msg { max-width: 86%; padding: 9px 12px; border-radius: 14px 14px 14px 4px; background: #1c2038; font-size: 13.5px; color: var(--ink-2); }
+    .msg.me { justify-self: end; background: rgba(255,90,31,.16); color: #ffd9c9; border-radius: 14px 14px 4px 14px; }
+    .msg small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+    .msg.flag { outline: 1.5px solid rgba(255,90,31,.7); }
+    .note { margin-top: 12px; background: rgba(125,155,255,.1); border: 1px solid rgba(125,155,255,.25); color: #c7d4ff; font-size: 13px; padding: 10px 12px; border-radius: 12px; display: flex; gap: 8px; }
+    .float { position: absolute; background: #fff; color: var(--paper-ink); border-radius: 14px; padding: 12px 14px; box-shadow: 0 24px 50px -16px rgba(0,0,0,.6); font-size: 13px; display: flex; gap: 10px; align-items: center; }
+    .float b { display: block; font-size: 15px; } .float small { color: var(--paper-muted); }
+    .float .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; }
+    .f1 { left: -38px; bottom: -44px; } .f1 .ic { background: #ffe8de; color: #e0300a; }
+    .f2 { right: -28px; top: -30px; } .f2 .ic { background: #e3f7ec; color: #12a150; }
+
+    /* trust strip */
+    .strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+    .strip .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 22px 24px; color: var(--muted); font-size: 14px; font-weight: 550; }
+    .strip span { display: inline-flex; gap: 8px; align-items: center; } .strip svg { color: #ff8a5c; }
+
+    /* sections */
+    section.s { padding: 104px 0; }
+    .s-head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+    .s-head h2 { font-size: clamp(32px, 4vw, 46px); font-weight: 820; margin: 16px 0 14px; }
+    .s-head p { color: var(--ink-2); font-size: 18px; margin: 0; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: s; }
+    .step { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; position: relative; }
+    .step::after { counter-increment: s; content: "0" counter(s); position: absolute; right: 20px; top: 18px; font-weight: 800; color: #2c3150; font-size: 28px; letter-spacing: -.04em; }
+    .step .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--grad); color: #fff; margin-bottom: 18px; box-shadow: 0 12px 26px -12px rgba(255,77,26,.9); }
+    .step h3 { font-size: 18px; margin-bottom: 8px; } .step p { color: var(--muted); margin: 0; font-size: 14.5px; }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feat { background: linear-gradient(180deg, #12152a, #0e1122); border: 1px solid var(--line); border-radius: 18px; padding: 26px; transition: border-color .2s, transform .2s; }
+    .feat:hover { border-color: rgba(255,90,31,.35); transform: translateY(-2px); }
+    .feat .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 16px; }
+    .feat h3 { font-size: 18px; margin-bottom: 8px; } .feat p { color: var(--muted); margin: 0; font-size: 14.5px; }
+    .c1 { background: rgba(255,90,31,.14); color: #ff8a5c; } .c2 { background: rgba(125,155,255,.14); color: var(--info); } .c3 { background: rgba(63,209,127,.14); color: var(--good); }
+    .c4 { background: rgba(166,139,255,.14); color: var(--violet); } .c5 { background: rgba(242,178,74,.14); color: var(--warn); } .c6 { background: rgba(255,107,96,.14); color: var(--bad); }
+
+    /* leaks */
+    .leak { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: center; }
+    .leak h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 820; margin: 16px 0 16px; }
+    .leak p { color: var(--ink-2); font-size: 17px; }
+    .leak ul { list-style: none; padding: 0; margin: 24px 0 0; display: grid; gap: 12px; }
+    .leak li { display: flex; gap: 12px; color: var(--ink-2); } .leak li svg { color: var(--good); margin-top: 3px; }
+    .funnel { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 26px; }
+    .fr { margin-bottom: 14px; } .fr .top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; color: var(--ink-2); } .fr .top b { color: #fff; }
+    .fr .track { height: 14px; background: #1c2038; border-radius: 99px; overflow: hidden; } .fr .track i { display: block; height: 100%; background: var(--grad); border-radius: 99px; }
+    .fr .drop { font-size: 12px; color: var(--bad); margin-top: 4px; font-weight: 600; }
+    .lk { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 12px; background: rgba(255,107,96,.08); border: 1px solid rgba(255,107,96,.2); margin-top: 10px; font-size: 14px; }
+    .lk b { color: var(--bad); font-size: 18px; }
+
+    /* pricing */
+    .pricing { background: var(--paper); color: var(--paper-ink); }
+    .pricing .s-head p { color: var(--paper-muted); }
+    .pricing .eyebrow { color: #d03a0c; background: #ffe9df; border-color: #ffd0bd; }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
+    .plan { background: #fff; border: 1px solid var(--paper-line); border-radius: 22px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(15,18,34,.04), 0 18px 40px -26px rgba(15,18,34,.25); position: relative; }
+    .plan.pop { background: var(--bg-2); color: #fff; border-color: transparent; box-shadow: 0 40px 80px -30px rgba(224,48,10,.55); transform: translateY(-10px); }
+    .plan.pop::before { content: ""; position: absolute; inset: 0; border-radius: 22px; padding: 1.5px; background: var(--grad); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+    .badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--grad); color: #fff; font-size: 12px; font-weight: 750; padding: 5px 14px; border-radius: 99px; letter-spacing: .02em; white-space: nowrap; }
+    .plan h3 { font-size: 20px; letter-spacing: -.02em; } .plan .for { color: var(--paper-muted); font-size: 14px; margin: 6px 0 20px; } .plan.pop .for { color: var(--muted); }
+    .price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; } .price b { font-size: 46px; font-weight: 850; letter-spacing: -.045em; } .price span { color: var(--paper-muted); font-weight: 550; }
+    .plan.pop .price span { color: var(--muted); }
+    .gst { font-size: 13px; color: var(--paper-muted); margin-bottom: 22px; } .plan.pop .gst { color: var(--muted); }
+    .plan ul { list-style: none; padding: 0; margin: 22px 0 28px; display: grid; gap: 11px; font-size: 14.5px; flex: 1; }
+    .plan li { display: flex; gap: 10px; align-items: flex-start; } .plan li svg { color: #12a150; margin-top: 2px; width: 18px; height: 18px; } .plan.pop li svg { color: var(--good); }
+    .plan li.hd { font-weight: 700; margin-top: 4px; }
+    .plan .btn { width: 100%; } .plan:not(.pop) .btn { background: var(--paper-ink); color: #fff; border-color: transparent; }
+    .fine { text-align: center; color: var(--paper-muted); font-size: 14px; margin-top: 34px; }
+
+    /* faq */
+    .faq { max-width: 800px; margin: 0 auto; }
+    details { border-bottom: 1px solid var(--line); padding: 20px 4px; }
+    summary { cursor: pointer; font-weight: 650; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+    summary::-webkit-details-marker { display: none; } summary::after { content: "+"; color: #ff8a5c; font-size: 22px; line-height: 1; } details[open] summary::after { content: "–"; }
+    details p { color: var(--ink-2); margin: 12px 0 0; }
+
+    /* final cta */
+    .final { margin: 0 24px 80px; border-radius: 28px; padding: 72px 24px; text-align: center; background: radial-gradient(600px 300px at 50% 0%, rgba(255,255,255,.18), transparent 70%), var(--grad); position: relative; overflow: hidden; }
+    .final h2 { font-size: clamp(30px, 4vw, 46px); font-weight: 850; margin-bottom: 14px; color: #fff; } .final p { color: rgba(255,255,255,.9); font-size: 18px; margin: 0 0 30px; }
+    .final .btn { background: #0b0d18; border-color: transparent; color: #fff; } .final .btn.ghost { background: rgba(255,255,255,.16); }
+    footer { border-top: 1px solid var(--line); padding: 34px 0; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+
+    /* modal */
+    dialog { border: 0; border-radius: 22px; padding: 0; width: min(500px, calc(100vw - 32px)); background: #fff; color: var(--paper-ink); box-shadow: 0 40px 100px -20px rgba(0,0,0,.7); }
+    dialog::backdrop { background: rgba(5,6,12,.7); backdrop-filter: blur(4px); }
+    dialog form { padding: 30px; } dialog h3 { font-size: 24px; margin-bottom: 6px; } dialog .sub { color: var(--paper-muted); margin: 0 0 20px; font-size: 15px; }
+    dialog label { display: block; font-size: 13.5px; font-weight: 650; margin-bottom: 14px; color: #3b4058; }
+    dialog input, dialog select, dialog textarea { display: block; width: 100%; margin-top: 6px; font: inherit; font-size: 15px; padding: 11px 13px; border: 1px solid var(--paper-line); border-radius: 11px; color: var(--paper-ink); background: #fff; }
+    dialog input:focus, dialog select:focus, dialog textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px rgba(255,90,31,.14); }
+    dialog .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    dialog .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; } dialog .btn:not(.primary) { background: #f1f2f7; color: var(--paper-ink); border-color: transparent; }
+    .hp { position: absolute; left: -9999px; }
+    .done { padding: 40px 30px; text-align: center; } .done .ic { width: 60px; height: 60px; border-radius: 50%; background: #e3f7ec; color: #12a150; display: grid; place-items: center; margin: 0 auto 16px; } .done .ic svg { width: 30px; height: 30px; }
+
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; } .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+    @media (max-width: 980px) {
+      nav.links { display: none; } .hero .grid, .leak { grid-template-columns: 1fr; gap: 48px; }
+      .steps { grid-template-columns: 1fr 1fr; } .features { grid-template-columns: 1fr 1fr; }
+      .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } .plan.pop { transform: none; }
+      .f1 { left: 8px; bottom: -22px; } .f2 { right: 8px; top: -18px; }
+    }
+    @media (max-width: 620px) {
+      .wrap { padding: 0 16px; } header .cta .btn:not(.primary) { display: none; }
+      .hero { padding-top: 56px; } .hero p.lead { font-size: 17px; }
+      .steps, .features { grid-template-columns: 1fr; } section.s { padding: 72px 0; }
+      .rings { grid-template-columns: 1fr 1fr 1fr; } .ring { flex-direction: column; text-align: center; padding: 10px 6px; } .ring svg { width: 40px; height: 40px; }
+      .float { display: none; } .final { margin: 0 16px 56px; padding: 52px 20px; } dialog .two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="brain" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16V9M12 16V5M17 16v-4"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="star" viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
+  <symbol id="leak" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></symbol>
+  <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="trend" viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3zM12 9v4M12 17h.01"/></symbol>
+</svg>
+
+<header class="nav"><div class="wrap">
+  <a class="logo" href="/"><img src="/logo.svg" alt="">SalePunch</a>
+  <nav class="links"><a href="#how">How it works</a><a href="#features">Features</a><a href="#leaks">Sales leaks</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+  <div class="cta"><a class="btn" href="/app">Sign in</a><button class="btn primary" data-plan="demo">Book a free demo</button></div>
+</div></header>
+
+<section class="hero"><div class="wrap grid">
+  <div>
+    <span class="eyebrow"><i></i>AI call intelligence for Indian sales teams</span>
+    <h1>Hear every sales call. <span class="grad-text">See where you lose the sale.</span></h1>
+    <p class="lead">SalePunch records each call your team makes, writes out the whole conversation from hello to goodbye, scores the agent with AI and shows exactly which leads are slipping away, and why.</p>
+    <div class="ctas"><button class="btn primary" data-plan="demo">Book a free demo <svg class="i"><use href="#arrow"/></svg></button><a class="btn" href="#pricing">See pricing</a></div>
+    <div class="ticks"><span><svg class="i"><use href="#check"/></svg>Works with agents' own phones</span><span><svg class="i"><use href="#check"/></svg>Malayalam, Hindi, Tamil, English</span><span><svg class="i"><use href="#check"/></svg>Live in a day</span></div>
+  </div>
+  <div style="position:relative">
+    <div class="mock" aria-label="Example call report">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="head"><div class="who"><span class="av">RM</span><div>Rahul Menon<small>Anu · 3:16 · Car service enquiry</small></div></div><span class="tag">● Follow-up</span></div>
+      <div class="rings">
+        <div class="ring"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#23273f" stroke-width="5"/><circle cx="24" cy="24" r="19" fill="none" stroke="#3fd17f" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="31"/></svg><div><b>74</b><span>Skill score</span></div></div>
+        <div class="ring"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#23273f" stroke-width="5"/><circle cx="24" cy="24" r="19" fill="none" stroke="#f2b24a" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="54"/></svg><div><b>55%</b><span>Will buy</span></div></div>
+        <div class="ring"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="19" fill="none" stroke="#23273f" stroke-width="5"/><circle cx="24" cy="24" r="19" fill="none" stroke="#7d9bff" stroke-width="5" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="24"/></svg><div><b>80%</b><span>Script</span></div></div>
+      </div>
+      <div class="chat">
+        <div class="msg me"><small>Anu · 0:04</small>Good morning sir, this is Anu from Xeenox Car Care. You enquired about a full service?</div>
+        <div class="msg"><small>Rahul · 0:12</small>Yes. How much will it be for a Swift?</div>
+        <div class="msg me"><small>Anu · 0:18</small>₹3,499 with free pickup and drop. Shall I book Saturday?</div>
+        <div class="msg flag"><small>Rahul · 0:26 · ★ Price objection</small>It's a bit expensive. Let me think about it.</div>
+      </div>
+      <div class="note"><svg class="i"><use href="#brain"/></svg><span><b>AI coaching:</b> answer the price doubt with the 6-month warranty, then offer two booking slots.</span></div>
+    </div>
+    <div class="float f1"><span class="ic"><svg class="i"><use href="#leak"/></svg></span><div><b>12 leads</b><small>never called this week</small></div></div>
+    <div class="float f2"><span class="ic"><svg class="i"><use href="#check"/></svg></span><div><b>Follow-up set</b><small>Sat, 10:00 am</small></div></div>
+  </div>
+</div></section>
+
+<div class="strip"><div class="wrap">
+  <span><svg class="i"><use href="#mic"/></svg>Every call recorded</span><span><svg class="i"><use href="#brain"/></svg>Scored by Claude AI</span><span><svg class="i"><use href="#globe"/></svg>Indian languages</span><span><svg class="i"><use href="#users"/></svg>Built-in CRM</span><span><svg class="i"><use href="#shield"/></svg>Your data stays yours</span>
+</div></div>
+
+<section class="s" id="how"><div class="wrap">
+  <div class="s-head reveal"><span class="eyebrow"><i></i>How it works</span><h2>From "hello" to a scored report in one minute</h2><p>No new phones and no app to learn. Agents tap Call, talk as usual, and SalePunch does the rest.</p></div>
+  <div class="steps">
+    <div class="step reveal"><div class="ic"><svg class="i"><use href="#users"/></svg></div><h3>Agent taps Call</h3><p>On the lead in SalePunch. Leads arrive automatically from your website, Meta ads or a CSV.</p></div>
+    <div class="step reveal"><div class="ic"><svg class="i"><use href="#phone"/></svg></div><h3>Company line connects</h3><p>The agent's mobile rings first, then the lead. The lead sees your company number, not the agent's.</p></div>
+    <div class="step reveal"><div class="ic"><svg class="i"><use href="#mic"/></svg></div><h3>Whole call recorded</h3><p>Both voices, start to finish. The call is written out as a conversation: agent on one side, lead on the other.</p></div>
+    <div class="step reveal"><div class="ic"><svg class="i"><use href="#brain"/></svg></div><h3>AI scores it</h3><p>Outcome, chance to buy, sales skills, objections, script steps missed, and the next follow-up date.</p></div>
+  </div>
+</div></section>
+
+<section class="s" id="features" style="padding-top:0"><div class="wrap">
+  <div class="s-head reveal"><span class="eyebrow"><i></i>Everything in one place</span><h2>Know what your team says on every call</h2><p>Stop guessing who is selling and who is just dialing.</p></div>
+  <div class="features">
+    <div class="feat reveal"><div class="ic c1"><svg class="i"><use href="#mic"/></svg></div><h3>Full conversation</h3><p>Play the recording or read it like a chat. Tap any line to jump to that moment in the audio.</p></div>
+    <div class="feat reveal"><div class="ic c3"><svg class="i"><use href="#target"/></svg></div><h3>Converting or not?</h3><p>Every call is marked Converted, Interested, Follow-up or Not interested, with the lead's chance to buy.</p></div>
+    <div class="feat reveal"><div class="ic c4"><svg class="i"><use href="#star"/></svg></div><h3>Sales-skill scores</h3><p>Opening, questions, pitch, objection handling, closing, tone and listening, each scored out of 10.</p></div>
+    <div class="feat reveal"><div class="ic c2"><svg class="i"><use href="#file"/></svg></div><h3>Script check</h3><p>Paste your script once. See which steps each agent follows and which they skip, on every call.</p></div>
+    <div class="feat reveal"><div class="ic c5"><svg class="i"><use href="#clock"/></svg></div><h3>Productivity tracking</h3><p>First and last call, calls per hour, talk time, idle gaps and target progress for every agent, every day.</p></div>
+    <div class="feat reveal"><div class="ic c6"><svg class="i"><use href="#chart"/></svg></div><h3>Daily reports & coaching</h3><p>A 9 pm report per agent with an AI coaching note, sent to Slack or WhatsApp if you like.</p></div>
+  </div>
+</div></section>
+
+<section class="s" id="leaks" style="background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap leak">
+  <div class="reveal">
+    <span class="eyebrow"><i></i>Sales leak finder</span>
+    <h2>Find exactly <span class="grad-text">where sales are lost</span></h2>
+    <p>Most lost sales aren't lost on price. They're lost because nobody called back. SalePunch checks every lead and every call and lists each leak, with the leads affected and what to do about it.</p>
+    <ul>
+      <li><svg class="i"><use href="#check"/></svg>Leads never called, or called too late</li>
+      <li><svg class="i"><use href="#check"/></svg>Follow-ups promised but missed</li>
+      <li><svg class="i"><use href="#check"/></svg>Unanswered leads nobody tried again</li>
+      <li><svg class="i"><use href="#check"/></svg>Interested leads never asked to buy</li>
+      <li><svg class="i"><use href="#check"/></svg>Objections left unanswered, and the top reasons leads say no</li>
+    </ul>
+  </div>
+  <div class="funnel reveal">
+    <div class="fr"><div class="top"><span>Leads received</span><b>240</b></div><div class="track"><i style="width:100%"></i></div></div>
+    <div class="fr"><div class="top"><span>Called</span><b>188</b></div><div class="track"><i style="width:78%"></i></div><div class="drop">−52 never called</div></div>
+    <div class="fr"><div class="top"><span>Spoke to the lead</span><b>121</b></div><div class="track"><i style="width:50%"></i></div><div class="drop">−67 unanswered, not retried</div></div>
+    <div class="fr"><div class="top"><span>Showed interest</span><b>64</b></div><div class="track"><i style="width:27%"></i></div></div>
+    <div class="fr"><div class="top"><span>Converted</span><b>22</b></div><div class="track"><i style="width:9%"></i></div></div>
+    <div class="lk"><span><svg class="i" style="vertical-align:-4px;color:var(--bad)"><use href="#alert"/></svg>&nbsp; Follow-ups missed this month</span><b>19</b></div>
+    <p style="font-size:12.5px;color:var(--muted);margin:12px 0 0">Sample numbers for illustration.</p>
+  </div>
+</div></section>
+
+<section class="s pricing" id="pricing"><div class="wrap">
+  <div class="s-head reveal"><span class="eyebrow"><i></i>Simple monthly pricing</span><h2>Pick the plan that fits your team</h2><p>All plans include call recording, AI transcripts, scoring and the CRM. No setup fee. Cancel anytime.</p></div>
+  <div class="plans">
+    <div class="plan reveal">
+      <h3>Starter</h3><div class="for">For small teams getting started</div>
+      <div class="price"><b>₹4,999</b><span>/month</span></div><div class="gst">+ GST · billed monthly</div>
+      <button class="btn" data-plan="starter">Choose Starter</button>
+      <ul>
+        <li><svg class="i"><use href="#check"/></svg>Up to 3 sales agents</li>
+        <li><svg class="i"><use href="#check"/></svg>1,500 call minutes analysed / month</li>
+        <li><svg class="i"><use href="#check"/></svg>Call recording & full transcripts</li>
+        <li><svg class="i"><use href="#check"/></svg>AI outcome, conversion chance & skill scores</li>
+        <li><svg class="i"><use href="#check"/></svg>Built-in CRM & CSV import</li>
+        <li><svg class="i"><use href="#check"/></svg>Team dashboard & daily reports</li>
+      </ul>
+    </div>
+    <div class="plan pop reveal"><span class="badge">MOST POPULAR</span>
+      <h3>Growth</h3><div class="for">For growing teams that want more sales</div>
+      <div class="price"><b>₹6,999</b><span>/month</span></div><div class="gst">+ GST · billed monthly</div>
+      <button class="btn primary" data-plan="growth">Choose Growth</button>
+      <ul>
+        <li class="hd">Everything in Starter, plus:</li>
+        <li><svg class="i"><use href="#check"/></svg>Up to 8 sales agents</li>
+        <li><svg class="i"><use href="#check"/></svg>4,000 call minutes analysed / month</li>
+        <li><svg class="i"><use href="#check"/></svg>Sales leak finder</li>
+        <li><svg class="i"><use href="#check"/></svg>Agent productivity tracking & targets</li>
+        <li><svg class="i"><use href="#check"/></svg>Script check & AI coaching notes</li>
+        <li><svg class="i"><use href="#check"/></svg>Lead webhooks (website, Meta ads, Zoho, HubSpot)</li>
+      </ul>
+    </div>
+    <div class="plan reveal">
+      <h3>Pro</h3><div class="for">For larger teams and call centres</div>
+      <div class="price"><b>₹8,999</b><span>/month</span></div><div class="gst">+ GST · billed monthly</div>
+      <button class="btn" data-plan="pro">Choose Pro</button>
+      <ul>
+        <li class="hd">Everything in Growth, plus:</li>
+        <li><svg class="i"><use href="#check"/></svg>Up to 15 sales agents</li>
+        <li><svg class="i"><use href="#check"/></svg>8,000 call minutes analysed / month</li>
+        <li><svg class="i"><use href="#check"/></svg>Daily reports to Slack / WhatsApp</li>
+        <li><svg class="i"><use href="#check"/></svg>Results sent back to your CRM</li>
+        <li><svg class="i"><use href="#check"/></svg>Setup & script writing done for you</li>
+        <li><svg class="i"><use href="#check"/></svg>Priority WhatsApp support</li>
+      </ul>
+    </div>
+  </div>
+  <p class="fine">Telephony call charges (Exotel company number and per-minute rates) are paid directly to the provider. Need more agents? <a href="#" data-plan="demo" style="color:#d03a0c;font-weight:650">Talk to us</a>.</p>
+</div></section>
+
+<section class="s" id="faq"><div class="wrap">
+  <div class="s-head reveal"><span class="eyebrow"><i></i>Questions</span><h2>Good questions, straight answers</h2></div>
+  <div class="faq reveal">
+    <details><summary>How does SalePunch record calls made from an agent's own phone?</summary><p>Calls go through your company phone line (Exotel). The agent taps Call in SalePunch, their own mobile rings, and the lead is connected. The line records both sides, and the lead sees your company number. Calls dialled straight from the phone's keypad aren't recorded, but agents can upload the phone's own recording.</p></details>
+    <details><summary>Which languages does it understand?</summary><p>English, Malayalam, Hindi, Tamil and mixed speech. The summaries and coaching are always written in simple English for managers.</p></details>
+    <details><summary>What does "call minutes analysed" mean?</summary><p>The total length of the calls SalePunch transcribes and scores each month. A team making 40 five-minute calls a day uses about 4,000 minutes a month.</p></details>
+    <details><summary>Do I need to buy new phones or SIMs?</summary><p>No. Agents keep their phones. You only need a company number from Exotel, and we help you set it up.</p></details>
+    <details><summary>Is recording calls legal?</summary><p>Yes, as long as you tell people. Your company line plays a short "this call may be recorded" message before the call connects, and recordings stay in your own account, in line with the DPDP Act 2023.</p></details>
+    <details><summary>Can I connect my existing CRM?</summary><p>Yes. New leads can come in from website forms, Meta Lead Ads, Zoho or HubSpot, and every call result can be sent back to your CRM automatically.</p></details>
+  </div>
+</div></section>
+
+<div class="final reveal"><h2>Stop losing sales you never hear about.</h2><p>See your team's real calls in a 20-minute demo.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button class="btn" data-plan="demo">Book a free demo</button><a class="btn ghost" href="/app">Sign in</a></div></div>
+
+<footer><div class="wrap"><a class="logo" href="/"><img src="/logo.svg" alt="">SalePunch</a><span>© <span id="yr"></span> SalePunch · Call recording & AI sales coaching</span><span><a href="/app">Sign in</a></span></div></footer>
+
+<dialog id="dlg"><form id="eq">
+  <h3 id="dlgT">Book a free demo</h3><p class="sub" id="dlgS">Tell us about your team and we'll call you within one working day.</p>
+  <input type="hidden" name="plan" id="plan">
+  <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+  <div class="two"><label>Your name<input name="name" required maxlength="80" autocomplete="name"></label><label>Phone<input name="phone" required inputmode="tel" placeholder="98xxxxxxxx" autocomplete="tel"></label></div>
+  <div class="two"><label>Company<input name="company" maxlength="80" autocomplete="organization"></label><label>Sales team size<select name="team"><option>1–3</option><option>4–8</option><option>9–15</option><option>16+</option></select></label></div>
+  <label>Email (optional)<input name="email" type="email" autocomplete="email"></label>
+  <div class="row"><button type="button" class="btn" id="cancel">Cancel</button><button class="btn primary" id="send">Send request</button></div>
+</form></dialog>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  const dlg = document.getElementById('dlg'), f = document.getElementById('eq');
+  const NAMES = { starter: 'Starter · ₹4,999/month', growth: 'Growth · ₹6,999/month', pro: 'Pro · ₹8,999/month' };
+  document.querySelectorAll('[data-plan]').forEach((b) => b.addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = b.dataset.plan;
+    document.getElementById('plan').value = p;
+    document.getElementById('dlgT').textContent = NAMES[p] ? `Get started with ${p[0].toUpperCase() + p.slice(1)}` : 'Book a free demo';
+    document.getElementById('dlgS').textContent = NAMES[p] ? `${NAMES[p]} + GST. We'll call you to set up your account and phone line.` : "Tell us about your team and we'll call you within one working day.";
+    dlg.showModal();
+  }));
+  document.getElementById('cancel').onclick = () => dlg.close();
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('send'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/enquiry', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(f))) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || 'Something went wrong');
+      dlg.innerHTML = '<div class="done"><div class="ic"><svg class="i"><use href="#check"/></svg></div><h3>Thank you!</h3><p class="sub" style="margin:8px 0 22px">We’ll call you within one working day.</p><button class="btn primary" onclick="this.closest(\'dialog\').close()">Close</button></div>';
+    } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = 'Send request'; }
+  });
+  const io = new IntersectionObserver((es) => es.forEach((x) => { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } }), { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+</script>
+</body>
+</html>

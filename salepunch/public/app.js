@@ -38,6 +38,9 @@ const P = {
   link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  leak: '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+  zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
 
@@ -63,7 +66,8 @@ async function api(path, opts = {}) {
 }
 const dur = (s) => { s = Math.round(s || 0); return s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const mins = (s) => { const m = Math.round((s || 0) / 60); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
-const when = (ms) => new Date(ms).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+const TZ = 'Asia/Kolkata';
+const when = (ms) => new Date(ms).toLocaleString('en-IN', { timeZone: TZ, day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 const band = (pct) => (pct == null ? '' : pct >= 70 ? 'hi' : pct >= 45 ? 'mid' : 'lo');
 const score = (v, max = 100) => (v == null ? '<span class="muted">–</span>' : `<span class="score ${band((v / max) * 100)}">${v}</span>`);
 const outcomePill = (c) => {
@@ -89,12 +93,12 @@ const empty = (icon, title, text) => `<div class="empty">${ic(icon)}<div style="
 // ------------------------------------------------------------ shell
 const NAV = [
   ['Workspace'], ['dashboard', 'Dashboard', 'grid'], ['leads', 'Leads', 'users'], ['calls', 'Calls', 'phone'], ['upload', 'Add a call', 'upload'],
-  ['Insights'], ['reports', 'Daily reports', 'file'], ['team', 'Team', 'team'], ['settings', 'Settings', 'cog', true], ['guide', 'How it works', 'book'],
+  ['Insights'], ['leaks', 'Sales leaks', 'leak'], ['productivity', 'Productivity', 'zap'], ['reports', 'Daily reports', 'file'], ['team', 'Team', 'team'], ['settings', 'Settings', 'cog', true], ['guide', 'How it works', 'book'],
 ];
 function shell(active, content) {
   $app.innerHTML = `<div class="layout">
     <nav class="side">
-      <div class="brand"><img src="logo.svg" alt=""><div>SalePunch<small>Call intelligence</small></div></div>
+      <div class="brand"><img src="/logo.svg" alt=""><div>SalePunch<small>Call intelligence</small></div></div>
       ${NAV.filter(([, , , m]) => !m || isManager()).map(([k, l, i]) => (l ? `<a href="#/${k}" class="${k === active ? 'on' : ''}" title="${l}">${ic(i)}<span class="lbl">${l}</span></a>` : `<div class="sec">${k}</div>`)).join('')}
       <div class="me">${avatar(me.user.name)}<div><b>${esc(me.user.name)}</b><span>${esc(me.user.role)}${me.company ? ' · ' + esc(me.company) : ''}</span></div>
         <button id="logout" title="Sign out" aria-label="Sign out">${ic('logout')}</button></div>
@@ -109,7 +113,7 @@ const dayNav = (base, day) => `<div class="seg"><a href="#/${base}/${addDays(day
 function authShell(inner) {
   $app.innerHTML = `<div class="auth-wrap">
     <section class="auth-hero">
-      <div class="brand"><img src="logo.svg" alt="">SalePunch</div>
+      <a class="brand" href="/" style="text-decoration:none"><img src="/logo.svg" alt="">SalePunch</a>
       <div><h1>Hear every sales call. <em>Know who's converting.</em></h1>
         <p>Every call your team makes is recorded, written out from hello to goodbye, and scored by AI, so you know what was said and who is closing.</p>
         <ul><li><span>${ic('mic')}</span>Calls recorded through your company number</li>
@@ -457,6 +461,7 @@ async function settingsView() {
     <div class="panel"><h2>Your sales script</h2><p class="small muted" style="margin-top:-6px">The AI checks every call against this. Write it the way you train new agents, step by step.</p>
       <label>Company name<input name="company" value="${esc(v.company)}"></label>
       <label>What you sell (products, prices, offers, common questions)<textarea name="product">${esc(v.product)}</textarea></label>
+      <label>Daily call target per agent (used on Productivity)<input name="daily_call_target" type="number" min="1" max="1000" value="${esc(v.daily_call_target || 60)}" style="max-width:160px"></label>
       <label>Sales script<textarea name="script" style="min-height:220px" placeholder="1. Greet: 'Good morning, this is <name> from <company>…'&#10;2. Confirm you are speaking to the right person&#10;3. Ask what they are looking for&#10;4. …">${esc(v.script)}</textarea></label></div>
     <div class="panel"><h2>${ic('link')} CRM connection</h2>
       <p class="small"><b>Leads in:</b> send new leads from website forms, Meta Lead Ads (through Zapier, Make or Pabbly), Zoho or HubSpot to this webhook as JSON with name, phone, email, source and owner:</p>
@@ -507,8 +512,93 @@ function guideView() {
     </div>`);
 }
 
+
+// ------------------------------------------------------------ sales leaks
+const LEAK_ICON = { never_called: 'users', slow_first_call: 'clock', missed_follow_ups: 'calendar', not_retried: 'phone', no_close: 'target', objections: 'alert', early_hangup: 'zap', red_flags: 'flag' };
+async function leaksView(_, q) {
+  shell('leaks', loading());
+  const to = q.get('to') || me.today, from = q.get('from') || addDays(to, -29);
+  const d = await api(`/api/leaks?from=${from}&to=${to}`);
+  const top = d.funnel[0].count || 1;
+  const lostTotal = d.leaks.reduce((s, l) => s + l.count, 0);
+  const leadLink = (i) => i.call_id ? `#/calls/${i.call_id}` : `#/leads?q=${encodeURIComponent(i.phone || i.name)}`;
+  const agentName = Object.fromEntries(d.by_agent.map((a) => [a.agent_id, a.name]));
+  setMain(`<div class="head"><div><h1>Where you're losing sales</h1><div class="muted">Leads received ${new Date(from + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${new Date(to + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, and every call made on them</div></div>
+      <form class="row" id="rng"><input type="date" name="from" value="${from}"><span class="muted">to</span><input type="date" name="to" value="${to}"><button>Apply</button></form></div>
+    <div class="grid g4">
+      ${tile('leak', lostTotal, 'Leaks found (leads & calls)', '', true)}
+      ${tile('alert', d.leads_at_risk, 'Open leads at risk right now', 'bad')}
+      ${tile('clock', d.avg_first_call_hours == null ? '–' : `${d.avg_first_call_hours}<small> h</small>`, 'Avg time to first call', d.avg_first_call_hours > 1 ? 'warn' : 'good')}
+      ${tile('trophy', `${d.funnel.at(-1).count}<small> / ${d.funnel[0].count}</small>`, `Leads won · ${d.funnel.at(-1).pct_of_leads}%`, 'good')}
+    </div><br>
+    <div class="grid g-side">
+      <div class="panel"><h2>${ic('chart')} Sales funnel</h2>
+        ${d.funnel.map((f, i) => `<div style="margin-bottom:14px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span>${esc(f.label)}</span><span><b>${f.count}</b> <span class="muted small">${f.pct_of_leads}%</span></span></div>
+          <div class="bar" style="height:14px"><i style="width:${(f.count / top) * 100}%"></i></div>
+          ${i && f.drop_from_prev ? `<div class="small" style="color:var(--bad);font-weight:600;margin-top:4px">−${f.drop_from_prev} lost at this step</div>` : ''}</div>`).join('')}
+        ${d.funnel[0].count ? '' : '<p class="muted">No leads in this date range yet.</p>'}</div>
+      <div>
+        <div class="panel"><h2>${ic('x')} Why leads said no</h2>${d.lost_reasons.length ? `<ul class="clean">${d.lost_reasons.map((r) => `<li>${ic('alert')}<span style="flex:1">${esc(r.text)}</span><span class="pill plain">× ${r.count}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:0">No "not interested" calls analysed yet.</p>'}</div>
+        <div class="panel"><h2>${ic('file')} Script steps most often skipped</h2>${d.missed_steps.length ? `<ul class="clean">${d.missed_steps.map((r) => `<li>${ic('x')}<span style="flex:1">${esc(r.text)}</span><span class="pill plain">× ${r.count}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:0">Nothing yet. Add your script in Settings so calls are checked against it.</p>'}
+          ${d.weakest_skills.length ? `<h3 style="margin-top:18px">Weakest team skills</h3>${d.weakest_skills.map((w) => skillRow(w.skill, w.avg)).join('')}` : ''}</div>
+      </div>
+    </div>
+    <h2 style="margin:8px 0 14px">${ic('leak')} The leaks, biggest first</h2>
+    ${d.leaks.length ? d.leaks.map((l) => `<div class="panel leakcard"><div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap">
+        <div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:14px"><div class="tile" style="padding:0;border:0;box-shadow:none;background:none"><div class="ic ${l.severity === 'high' ? 'bad' : 'warn'}" style="margin:0">${ic(LEAK_ICON[l.key] || 'alert')}</div></div>
+          <div><div style="font-weight:700;font-size:16px">${esc(l.title)} <span class="pill ${l.severity === 'high' ? 'bad' : 'warn'}">${l.severity === 'high' ? 'High impact' : 'Medium'}</span></div>
+          <div class="muted small" style="margin:4px 0 8px">${esc(l.why)}</div><div class="small"><b>Fix:</b> ${esc(l.action)}</div></div></div>
+        <div style="text-align:right;flex:none"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--bad)">${l.count}</div><button class="link small" data-tog>Show ${l.items.length < l.count ? 'first ' + l.items.length : 'all'}</button></div></div>
+      <div class="scroll" hidden style="margin-top:14px"><table><tr><th>Lead</th><th>Detail</th>${isManager() ? '<th>Agent</th>' : ''}<th></th></tr>
+        ${l.items.map((i) => `<tr><td><b>${esc(i.name)}</b>${i.phone ? `<div class="small muted">${esc(i.phone)}</div>` : ''}</td><td class="small">${esc(i.note || '')}</td>${isManager() ? `<td class="small">${esc(agentName[i.owner_id] || (i.owner_id ? '' : 'Unassigned'))}</td>` : ''}<td class="n"><a class="btn" href="${leadLink(i)}">${i.call_id ? 'Open call' : 'Open lead'}</a></td></tr>`).join('')}</table></div></div>`).join('')
+      : `<div class="panel">${empty('check', 'No leaks found', 'Every lead in this range was called, followed up and handled. Nice work.')}</div>`}
+    <div class="grid g2">
+      ${isManager() ? `<div class="panel flush"><h2>Leaks by agent</h2><div class="scroll"><table><tr><th>Agent</th><th class="n">Leads</th><th class="n">Won</th><th class="n">Conv. %</th><th class="n">Leaks</th><th>Biggest leak</th></tr>
+        ${d.by_agent.map((a) => { const big = Object.entries(a.leaks).sort((x, y) => y[1] - x[1])[0]; const L = d.leaks.find((l) => l.key === big?.[0]);
+          return `<tr><td><div class="who">${avatar(a.name, true)}${esc(a.name)}</div></td><td class="n">${a.leads}</td><td class="n">${a.won}</td><td class="n">${a.conversion_pct}%</td><td class="n"><b style="color:${a.total_leaks ? 'var(--bad)' : 'inherit'}">${a.total_leaks}</b></td><td class="small">${big && big[1] ? `${esc(L?.title || big[0])} (${big[1]})` : '<span class="muted">–</span>'}</td></tr>`; }).join('') || '<tr><td colspan="6" class="muted">No data yet</td></tr>'}</table></div></div>` : ''}
+      <div class="panel flush"><h2>Lead sources: which convert?</h2><div class="scroll"><table><tr><th>Source</th><th class="n">Leads</th><th class="n">Won</th><th class="n">Lost</th><th class="n">Conv. %</th></tr>
+        ${d.by_source.map((s2) => `<tr><td>${esc(s2.source)}</td><td class="n">${s2.leads}</td><td class="n">${s2.won}</td><td class="n">${s2.lost}</td><td class="n"><b>${s2.conversion_pct}%</b></td></tr>`).join('') || '<tr><td colspan="5" class="muted">No leads yet</td></tr>'}</table></div></div>
+    </div>`);
+  document.getElementById('rng').onsubmit = (e) => { e.preventDefault(); location.hash = '#/leaks?' + new URLSearchParams(form(e.target)); };
+  document.querySelectorAll('[data-tog]').forEach((b) => { b.onclick = () => { const t = b.closest('.leakcard').querySelector('.scroll'); t.hidden = !t.hidden; b.textContent = t.hidden ? 'Show' : 'Hide'; }; });
+}
+
+// ------------------------------------------------------------ productivity
+async function productivityView(arg) {
+  const day = arg || me.today;
+  shell('productivity', loading());
+  const d = await api(`/api/productivity?day=${day}`);
+  const time = (ms) => (ms ? new Date(ms).toLocaleTimeString('en-IN', { timeZone: TZ, hour: 'numeric', minute: '2-digit' }) : '–');
+  const tot = d.agents.reduce((a, x) => ({ calls: a.calls + x.calls, talk: a.talk + x.talk_time_sec, conn: a.conn + x.connected }), { calls: 0, talk: 0, conn: 0 });
+  const HRS = Array.from({ length: 13 }, (_, i) => i + 8); // 8 am – 8 pm
+  const maxH = Math.max(1, ...d.agents.flatMap((a) => HRS.map((h) => a.hours[h])));
+  const hourLbl = (h) => `${h % 12 || 12}${h < 12 ? 'a' : 'p'}`;
+  setMain(`<div class="head"><div><h1>Productivity</h1><div class="muted">What each agent did, hour by hour · target ${d.target} calls/day</div></div>${dayNav('productivity', day)}</div>
+    <div class="grid g4">
+      ${tile('phone', tot.calls, 'Calls made today', '', true)}
+      ${tile('check', `${tot.conn}<small> · ${tot.calls ? Math.round((tot.conn / tot.calls) * 100) : 0}%</small>`, 'Connected (spoke to lead)', 'good')}
+      ${tile('clock', mins(tot.talk), 'Total talk time', 'info')}
+      ${tile('zap', d.best_hours[0] ? `${hourLbl(d.best_hours[0].hour)}–${hourLbl(d.best_hours[0].hour + 1)}` : '–', d.best_hours[0] ? `Best hour to call · ${d.best_hours[0].connect_pct}% pick up` : 'Best hour to call (needs more calls)', 'violet')}
+    </div><br>
+    <div class="panel flush"><h2>Agents today</h2><div class="scroll"><table>
+      <tr><th>Agent</th><th>Target</th><th class="n">Calls</th><th class="n">Connected</th><th class="n">Talk</th><th class="n">Converted</th><th>First call</th><th>Last call</th><th class="n">Calls / hr</th><th class="n">Longest break</th></tr>
+      ${d.agents.map((a) => `<tr class="click" data-href="#/calls?agent=${a.agent_id}&from=${day}&to=${day}"><td><div class="who">${avatar(a.name, true)}${esc(a.name)}</div></td>
+        <td style="min-width:140px"><div class="bar ${band(a.target_pct)}"><i style="width:${Math.min(100, a.target_pct)}%"></i></div><span class="small muted">${a.calls}/${a.target} · ${a.target_pct}%</span></td>
+        <td class="n"><b>${a.calls}</b></td><td class="n">${a.connected} <span class="muted small">${a.connect_pct}%</span></td><td class="n">${mins(a.talk_time_sec)}</td><td class="n">${a.converted}</td>
+        <td class="small">${time(a.first_call)}</td><td class="small">${time(a.last_call)}</td><td class="n">${a.calls ? a.calls_per_hour : '–'}</td>
+        <td class="n">${a.calls > 1 ? `<span class="${a.longest_gap_min > 60 ? 'pill warn' : ''}">${a.longest_gap_min} min</span>` : '–'}</td></tr>`).join('')}</table></div></div>
+    <div class="panel"><h2>${ic('chart')} Calls by hour</h2><div class="scroll"><table class="heat"><tr><th>Agent</th>${HRS.map((h) => `<th class="n">${hourLbl(h)}</th>`).join('')}</tr>
+      ${d.agents.map((a) => `<tr><td style="white-space:nowrap">${esc(a.name)}</td>${HRS.map((h) => { const n = a.hours[h]; return `<td class="n" style="background:${n ? `rgba(255,90,31,${0.12 + (n / maxH) * 0.75})` : 'transparent'};color:${n / maxH > 0.55 ? '#fff' : 'inherit'};font-weight:${n ? 700 : 400}">${n || ''}</td>`; }).join('')}</tr>`).join('')}</table></div>
+      <p class="small muted" style="margin:12px 0 0">Empty hours in the working day mean no calls were made. Breaks over 60 minutes are highlighted in the table above.</p></div>
+    ${d.hours.length ? `<div class="panel"><h2>${ic('target')} When leads pick up</h2><div class="row" style="align-items:flex-end;gap:6px;height:160px">
+      ${d.hours.map((h) => `<div style="flex:1;min-width:26px;text-align:center"><div class="small" style="font-weight:700">${h.connect_pct}%</div><div style="height:${Math.max(4, h.connect_pct)}px;max-height:110px;background:var(--grad);border-radius:6px 6px 0 0;margin:4px 0"></div><div class="small muted">${hourLbl(h.hour)}</div></div>`).join('')}</div>
+      <p class="small muted" style="margin:10px 0 0">Share of calls answered, by hour of the day. Call your hottest leads in the best hours.</p></div>` : ''}`);
+  document.getElementById('day').onchange = (e) => { location.hash = `#/productivity/${e.target.value}`; };
+  bindRowLinks();
+}
+
 // ------------------------------------------------------------ router
-const VIEWS = { dashboard: dashboardView, calls: callsView, leads: leadsView, upload: uploadView, reports: reportsView, team: teamView, settings: settingsView, guide: guideView };
+const VIEWS = { leaks: leaksView, productivity: productivityView, dashboard: dashboardView, calls: callsView, leads: leadsView, upload: uploadView, reports: reportsView, team: teamView, settings: settingsView, guide: guideView };
 async function route() {
   const [path, qs] = location.hash.replace(/^#\/?/, '').split('?');
   const [name, arg] = path.split('/');

@@ -3,6 +3,7 @@ import { hashPassword, readSession, requestToken, sessionCookie, signSession, ve
 import { LEAD_STATUSES } from './constants.js';
 import { mapIncomingLead } from './crm.js';
 import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
+import { productivity, salesLeaks } from './insights.js';
 import { serveStatic } from './static.js';
 import { teamStats } from './stats.js';
 import { exotelDial, exotelReady, fetchRecording, parseExotelCallback } from './telephony.js';
@@ -12,7 +13,7 @@ import { dayOf, fail, json, newId, normalizePhone, parseCsv, safeJson, sameSecre
 const MANAGERS = ['admin', 'manager'];
 const isManager = (u) => MANAGERS.includes(u.role);
 const publicUser = ({ pass_hash, ...u }) => u;
-const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url'];
+const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url', 'daily_call_target'];
 const MAX_UPLOAD = 25 * 1024 * 1024;
 
 async function currentUser(request, env) {
@@ -302,6 +303,46 @@ route('GET', '/api/dashboard', async (req, env, { user, url }) => {
   // Hide agents with no calls in the range from the leaderboard noise, but keep them listed last.
   return json({ from, to, ...stats, pipeline, follow_ups_due: due.n });
 });
+
+route('GET', '/api/leaks', async (req, env, { user, url }) => {
+  const to = url.searchParams.get('to') || today(env);
+  const from = url.searchParams.get('from') || dayOf(Date.parse(to + 'T12:00:00Z') - 29 * 86400000, env.TIMEZONE);
+  const startMs = Date.parse(from + 'T00:00:00+05:30'), endMs = Date.parse(to + 'T23:59:59+05:30');
+  const mgr = isManager(user);
+  const leadSt = env.DB.prepare(`SELECT id, name, phone, status, owner_id, source, created_at, next_follow_up FROM leads
+    WHERE created_at >= ? AND created_at <= ? ${mgr ? '' : 'AND owner_id = ?'}`);
+  const { results: leads } = await (mgr ? leadSt.bind(startMs, endMs) : leadSt.bind(startMs, endMs, user.id)).all();
+  const callSt = env.DB.prepare(`SELECT c.id, c.lead_id, c.agent_id, c.status, c.outcome, c.started_at, c.duration_sec, c.processing, c.skill_score, c.analysis, l.name AS lead_name
+    FROM calls c LEFT JOIN leads l ON l.id = c.lead_id WHERE c.started_at >= ? ${mgr ? '' : 'AND c.agent_id = ?'}`);
+  const { results: calls } = await (mgr ? callSt.bind(startMs) : callSt.bind(startMs, user.id)).all();
+  const ust = env.DB.prepare(mgr ? 'SELECT id, name FROM users WHERE active = 1' : 'SELECT id, name FROM users WHERE id = ?');
+  const { results: users } = await (mgr ? ust : ust.bind(user.id)).all();
+  return json({ from, to, ...salesLeaks({ leads, calls, users, today: today(env) }) });
+});
+
+route('GET', '/api/productivity', async (req, env, { user, url }) => {
+  const day = url.searchParams.get('day') || today(env);
+  const mgr = isManager(user);
+  const st = env.DB.prepare(`SELECT agent_id, status, outcome, started_at, duration_sec FROM calls WHERE day = ? ${mgr ? '' : 'AND agent_id = ?'}`);
+  const { results: calls } = await (mgr ? st.bind(day) : st.bind(day, user.id)).all();
+  const ust = env.DB.prepare(mgr ? 'SELECT id, name FROM users WHERE active = 1' : 'SELECT id, name FROM users WHERE id = ?');
+  const { results: users } = await (mgr ? ust : ust.bind(user.id)).all();
+  const target = Number((await getSettings(env.DB)).daily_call_target) || 60;
+  return json({ day, ...productivity({ calls, users, target }) });
+});
+
+// Public enquiry form on the home page: becomes a lead in this workspace.
+route('POST', '/api/enquiry', async (req, env) => {
+  const b = await body(req);
+  if (b.website) return json({ ok: true }); // honeypot: bots fill hidden fields
+  const phone = normalizePhone(b.phone);
+  const name = String(b.name || '').trim().slice(0, 80);
+  if (!name || phone.length < 11) return fail(400, 'Please enter your name and a valid phone number');
+  const plan = ['starter', 'growth', 'pro'].includes(b.plan) ? b.plan : 'demo';
+  const notes = [b.company && `Company: ${String(b.company).slice(0, 80)}`, b.team && `Team size: ${String(b.team).slice(0, 20)}`, b.message && String(b.message).slice(0, 500)].filter(Boolean).join(' · ');
+  const r = await insertLead(env, { name, phone, email: String(b.email || '').slice(0, 120), source: `Website · ${plan} plan`, notes, status: 'new' }, null);
+  return json({ ok: true, duplicate: !!r.duplicate });
+}, { public: true });
 
 route('GET', '/api/reports', async (req, env, { user, url }) => {
   const day = url.searchParams.get('day') || today(env);
