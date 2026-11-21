@@ -33,7 +33,7 @@ export const ANALYSIS_SCHEMA = obj({
   key_moments: { type: 'array', items: obj({ segment: { type: 'integer' }, note: str }) },
 });
 
-const SYSTEM = `You are SalePunch, a sales-call quality analyst for an Indian business. You read the transcript of one phone call between a company sales agent and a lead, and you judge it the way an experienced, fair sales manager would.
+export const SYSTEM = `You are SalePunch, a sales-call quality analyst for an Indian business. You read the transcript of one phone call between a company sales agent and a lead, and you judge it the way an experienced, fair sales manager would.
 
 The transcript comes from speech-to-text, so expect mistakes, missing punctuation and a mix of English, Malayalam, Hindi or Tamil. Work out who is speaking from what is said: the agent introduces the company, pitches and asks for the next step; the lead asks prices, raises doubts and answers questions.
 
@@ -42,9 +42,9 @@ Scoring rules:
 - overall_score: 0-100, your overall judgement of the agent's selling on this call (not of the lead).
 - conversion_chance: 0-100, how likely this lead is to buy, based on what the lead actually said.
 - outcome: "converted" only if the lead clearly agreed to buy, pay, book or visit. "interested" if positive but no commitment. "follow_up" if a callback or later decision was agreed. "not_interested" if the lead declined. "no_conversation" for voicemail, wrong number, silence or a call too short to judge.
-- script_adherence: compare against the company script when one is given; list the steps followed and missed. With no script, judge against a standard sales call (greet, introduce, discover needs, pitch, handle objections, close).
+- script_adherence: compare against the company script when one is given; list the steps followed and missed in plain words. score is a percentage 0-100 of steps followed. With no script, judge against a standard sales call (greet, introduce, discover needs, pitch, handle objections, close).
 - red_flags: rudeness, false promises, wrong prices, pressure tactics, sharing private data, or the lead being upset. Empty if none.
-- follow_up_date: YYYY-MM-DD if a date was agreed, else "".
+- follow_up_date: YYYY-MM-DD if a callback or visit day was agreed (look the day up in "Next 7 days", e.g. "Monday" = the Monday listed there), else "".
 - key_moments: up to 6 segment numbers worth a manager listening to, with a short note.
 - improvements: specific, practical coaching points the agent can use on the next call.
 
@@ -59,11 +59,16 @@ const fmtTime = (sec) => {
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 };
 
-export function buildPrompt({ segments, script, product, lead, agentName, durationSec }) {
+export function buildPrompt({ segments, script, product, lead, agentName, durationSec, today }) {
+  const day = today || new Date().toISOString().slice(0, 10);
+  const wd = (d) => d.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  const base = new Date(day + 'T12:00:00Z');
+  const weekday = wd(base);
+  const next = Array.from({ length: 7 }, (_, i) => { const d = new Date(base.getTime() + (i + 1) * 86400000); return `${wd(d)} ${d.toISOString().slice(0, 10)}`; }).join(', ');
   return [
     product ? `<company_and_product>\n${product}\n</company_and_product>` : '',
     script ? `<company_sales_script>\n${script}\n</company_sales_script>` : '<company_sales_script>(none given)</company_sales_script>',
-    `<call_details>\nAgent: ${agentName || 'unknown'}\nLead: ${lead?.name || 'unknown'} (status before call: ${lead?.status || 'unknown'})\nDuration: ${fmtTime(durationSec)}\n</call_details>`,
+    `<call_details>\nToday: ${day} (${weekday})\nNext 7 days: ${next}\nAgent: ${agentName || 'unknown'}\nLead: ${lead?.name || 'unknown'} (status before call: ${lead?.status || 'unknown'})\nDuration: ${fmtTime(durationSec)}\n</call_details>`,
     `<transcript>\n${formatSegments(segments)}\n</transcript>`,
     'Analyse this call. Return one speaker label per numbered segment, in order.',
   ].filter(Boolean).join('\n\n');
@@ -72,7 +77,14 @@ export function buildPrompt({ segments, script, product, lead, agentName, durati
 /** Clamp and fill a raw analysis so the rest of the app can trust its shape. */
 export function normalizeAnalysis(raw, segmentCount) {
   const a = raw && typeof raw === 'object' ? raw : {};
-  const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : []);
+  const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().replace(/^[/\-*•\s]*(\d+[.)]\s*)?/, '').trim()).filter(Boolean) : []);
+  const followed = list(a.script_adherence?.followed), missed = list(a.script_adherence?.missed);
+  let scriptScore = clampInt(a.script_adherence?.score, 0, 100);
+  // Small models sometimes score out of 10, or disagree with their own lists: trust the lists.
+  if (followed.length + missed.length) {
+    const fromLists = Math.round((followed.length / (followed.length + missed.length)) * 100);
+    if (scriptScore <= 10 || Math.abs(scriptScore - fromLists) > 40) scriptScore = fromLists;
+  }
   const skills = Object.fromEntries(SKILLS.map((k) => [k, clampInt(a.skills?.[k], 0, 10)]));
   const speakers = Array.from({ length: segmentCount }, (_, i) => (a.speakers?.[i] === 'lead' ? 'lead' : a.speakers?.[i] === 'agent' ? 'agent' : i % 2 ? 'lead' : 'agent'));
   const date = /^\d{4}-\d{2}-\d{2}$/.test(a.follow_up_date || '') ? a.follow_up_date : '';
@@ -86,11 +98,7 @@ export function normalizeAnalysis(raw, segmentCount) {
     sentiment: ['positive', 'neutral', 'negative'].includes(a.sentiment) ? a.sentiment : 'neutral',
     skills,
     overall_score: clampInt(a.overall_score, 0, 100),
-    script_adherence: {
-      score: clampInt(a.script_adherence?.score, 0, 100),
-      followed: list(a.script_adherence?.followed),
-      missed: list(a.script_adherence?.missed),
-    },
+    script_adherence: { score: scriptScore, followed, missed },
     objections: (Array.isArray(a.objections) ? a.objections : [])
       .filter((o) => o && o.objection)
       .map((o) => ({ objection: String(o.objection), agent_response: String(o.agent_response || ''), handled_well: !!o.handled_well })),
@@ -134,7 +142,29 @@ export async function analyzeWithClaude(input, env, client) {
   return normalizeAnalysis(JSON.parse(text), input.segments.length);
 }
 
-// --- Keyword fallback (no API key) ------------------------------------------
+// --- Free AI: Cloudflare Workers AI (Llama 3.3 70B) -----------------------------
+export const WORKERS_AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+
+/** Text (or already-parsed JSON) from a Workers AI chat response, whatever its shape. */
+export function workersAiContent(out) {
+  const c = out?.response ?? out?.choices?.[0]?.message?.content ?? out?.result?.response;
+  if (c && typeof c === 'object') return c;
+  const text = String(c || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const start = text.indexOf('{'), end = text.lastIndexOf('}');
+  return JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text);
+}
+
+export async function analyzeWithWorkersAI(input, env) {
+  const out = await env.AI.run(env.WORKERS_AI_MODEL || WORKERS_AI_MODEL, {
+    messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: buildPrompt(input) }],
+    response_format: { type: 'json_schema', json_schema: ANALYSIS_SCHEMA },
+    max_tokens: 3000,
+    temperature: 0.2,
+  });
+  return normalizeAnalysis(workersAiContent(out), input.segments.length);
+}
+
+// --- Keyword fallback (no AI available) -----------------------------------------
 const WORDS = {
   converted: /\b(book(ed)? it|confirm(ed)?|send (me )?the (payment|link)|i('ll| will) (pay|take it|buy)|done deal|let'?s go ahead)\b/i,
   interested: /\b(interested|sounds good|tell me more|send (me )?(details|brochure|quotation)|how much|price)\b/i,
@@ -185,23 +215,34 @@ export function heuristicAnalysis({ segments, durationSec }) {
 export async function analyzeCall(input, env, client) {
   if (!input.segments.length) return normalizeAnalysis({ outcome: 'no_conversation', summary: 'No speech was found in the recording.' }, 0);
   if (env.ANTHROPIC_API_KEY || client) return { ...(await analyzeWithClaude(input, env, client)), engine: 'claude' };
+  if (env.AI) {
+    try { return { ...(await analyzeWithWorkersAI(input, env)), engine: 'workers-ai' }; }
+    catch (e) { console.log('Workers AI analysis failed, using keywords', e.message); }
+  }
   return { ...heuristicAnalysis(input), engine: 'keywords' };
 }
 
 /** Short end-of-day coaching note for one agent from their call summaries. */
+const COACH_SYSTEM = 'You are a supportive, direct sales coach. Write a short end-of-day note (under 120 words, plain text, no markdown headings) for one sales agent: one thing they did well today, the two most important things to fix tomorrow with an example line they could say, and one lead to prioritise. Use simple English.';
+
 export async function coachingNote({ agentName, stats, calls }, env, client) {
-  if (!env.ANTHROPIC_API_KEY && !client) return '';
-  client ||= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const lines = calls.slice(0, 40).map((c, i) =>
     `${i + 1}. outcome=${c.outcome} score=${c.skill_score} chance=${c.conversion_chance}% — ${c.summary} | improve: ${(c.improvements || []).join('; ')}`);
+  const userText = `Agent: ${agentName}\nToday's numbers: ${JSON.stringify(stats)}\nCalls:\n${lines.join('\n')}`;
+  if (!env.ANTHROPIC_API_KEY && !client) {
+    if (!env.AI || !calls.length) return '';
+    const out = await env.AI.run(env.WORKERS_AI_MODEL || WORKERS_AI_MODEL, { messages: [{ role: 'system', content: COACH_SYSTEM }, { role: 'user', content: userText }], max_tokens: 400, temperature: 0.4 });
+    return String(out?.response ?? out?.choices?.[0]?.message?.content ?? '').trim();
+  }
+  client ||= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const response = await client.beta.messages.create({
     model: env.CLAUDE_MODEL || 'claude-opus-5-5',
     max_tokens: 4000,
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     output_config: { effort: 'low' },
-    system: 'You are a supportive, direct sales coach. Write a short end-of-day note (under 120 words, plain text, no markdown headings) for one sales agent: one thing they did well today, the two most important things to fix tomorrow with an example line they could say, and one lead to prioritise. Use simple English.',
-    messages: [{ role: 'user', content: `Agent: ${agentName}\nToday's numbers: ${JSON.stringify(stats)}\nCalls:\n${lines.join('\n')}` }],
+    system: COACH_SYSTEM,
+    messages: [{ role: 'user', content: userText }],
   });
   if (response.stop_reason === 'refusal') return '';
   return response.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();

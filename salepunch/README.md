@@ -199,6 +199,17 @@ setting up in Exotel. Calls are capped at one hour.
   "objections": ["Too expensive"], "red_flags": [] }
 ```
 
+### AI analysis: free by default
+
+Without any key, calls are analysed by **Llama 3.3 70B on Cloudflare Workers
+AI**, included with the Cloudflare account. The free allowance is 10,000
+"neurons" a day. One call uses about 100 neurons for the analysis plus about 45
+per minute of audio for speech-to-text, so roughly 40–50 calls a day are free.
+Above that, Cloudflare charges about $0.011 per 1,000 neurons (well under ₹1
+per call). Set `ANTHROPIC_API_KEY` to use Claude instead. If the free model
+fails or the allowance runs out, the call gets a keyword estimate, and
+**Re-analyse** can be run later.
+
 ### Language and AI settings
 
 - `CALL_LANGUAGE` (in `wrangler.toml` vars): force the speech-to-text language

@@ -38,7 +38,7 @@ const route = (method, pattern, handler, opts = {}) => {
 // --- setup & auth
 route('GET', '/api/status', async (req, env) => {
   const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM users').first();
-  return json({ needsSetup: !n.n, telephony: exotelReady(env), ai: !!env.ANTHROPIC_API_KEY, google: googleReady(env) });
+  return json({ needsSetup: !n.n, telephony: exotelReady(env), ai: !!(env.ANTHROPIC_API_KEY || env.AI), ai_engine: env.ANTHROPIC_API_KEY ? 'claude' : env.AI ? 'workers-ai' : '', google: googleReady(env) });
 }, { public: true });
 
 route('POST', '/api/setup', async (req, env) => {
@@ -132,7 +132,10 @@ route('GET', '/api/me', async (req, env, { user }) => {
   const s = await getSettings(env.DB);
   const callMode = s.call_mode === 'exotel' && exotelReady(env) ? 'exotel' : 'sim';
   const phone_online = await phoneOnline(env, user.id);
-  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, phone_online, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '/download/salepunch.apk' });
+  // Did this agent's last answered phone call arrive without a recording? (auto-record is off)
+  const last = await env.DB.prepare("SELECT recording_key, recording_url, processing, error FROM calls WHERE agent_id = ? AND provider = 'sim' AND status = 'completed' ORDER BY started_at DESC LIMIT 1").bind(user.id).first();
+  const recording_missing = !!last && last.processing === 'skipped' && !last.recording_key && !last.recording_url && /recording/i.test(last.error || '');
+  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, phone_online, recording_missing, ai: !!(env.ANTHROPIC_API_KEY || env.AI), ai_engine: env.ANTHROPIC_API_KEY ? 'claude' : env.AI ? 'workers-ai' : '', today: today(env), android_app: env.ANDROID_APP_URL || '/download/salepunch.apk' });
 });
 
 // --- team
@@ -516,7 +519,7 @@ route('GET', '/api/settings', async (req, env) => {
   return json({
     settings: Object.fromEntries(SETTING_KEYS.map((k) => [k, s[k] || ''])),
     lead_webhook: env.LEADS_WEBHOOK_KEY ? `${base}/hooks/leads?key=${env.LEADS_WEBHOOK_KEY}` : '',
-    telephony: exotelReady(env), ai: !!env.ANTHROPIC_API_KEY,
+    telephony: exotelReady(env), ai: !!(env.ANTHROPIC_API_KEY || env.AI), ai_engine: env.ANTHROPIC_API_KEY ? 'claude' : env.AI ? 'workers-ai' : '',
   });
 }, { manager: true });
 

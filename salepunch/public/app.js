@@ -182,8 +182,14 @@ async function refreshPhoneBadge() {
   el.textContent = me.phone_online ? 'Phone connected' : 'Phone not connected';
 }
 setInterval(refreshPhoneBadge, 10000);
+const recNotice = () => (me.recording_missing && me.call_mode === 'sim' ? `<div class="flag" style="align-items:center">${ic('mic')}<div style="flex:1"><b>Your last call arrived without a recording.</b> Turn on <b>automatic call recording</b> in your phone's dialer so every call is recorded and scored.
+  ${PHONE ? '' : 'Steps for each phone brand are in <a href="#/guide">How it works</a>.'}</div>${PHONE && PHONE.openRecorderSettings ? '<button class="primary" id="recFix">Turn on auto-record</button>' : ''}</div>` : '');
+function bindRecFix() {
+  const b = document.getElementById('recFix');
+  if (b) b.onclick = () => { PHONE.openRecorderSettings(); toast('Choose Call recording → Record all calls automatically'); };
+}
 function setupNotices() {
-  let h = simNotice();
+  let h = recNotice() + simNotice();
   if (!me.ai) h += `<div class="notice">${ic('brain')}<div>AI analysis isn't connected (no Claude API key), so calls only get a rough keyword estimate.</div></div>`;
   return h;
 }
@@ -234,6 +240,7 @@ async function dashboardView(arg) {
     </div>`);
   document.getElementById('day').onchange = (e) => { location.hash = `#/dashboard/${e.target.value}`; };
   bindRowLinks();
+  bindRecFix();
 }
 const skillRow = (k, v) => `<div class="skill"><span>${esc(SKILL_LABELS[k])}</span><div class="bar ${band((v || 0) * 10)}"><i style="width:${(v || 0) * 10}%"></i></div>${score(v, 10)}</div>`;
 function bindRowLinks() { document.querySelectorAll('tr[data-href]').forEach((tr) => { tr.onclick = () => { location.hash = tr.dataset.href; }; }); }
@@ -276,7 +283,7 @@ async function callView(id) {
       <div class="row">${c.lead_id ? `<a class="btn" href="#/calls?lead=${c.lead_id}&from=2000-01-01">All calls with this lead</a>` : ''}
       ${isManager() ? '<button id="re">Re-analyse</button>' : ''}</div></div>
     ${c.processing === 'error' ? `<div class="flag">${ic('alert')}<div>Analysis failed: ${esc(c.error)}</div></div>` : ''}
-    ${c.processing !== 'done' && c.processing !== 'error' && c.status === 'completed' ? `<div class="notice">${ic('clock')}<div>This call is being transcribed and analysed. It usually takes about a minute. <a href="javascript:location.reload()">Refresh</a></div></div>` : ''}
+    ${['pending', 'transcribing', 'analyzing'].includes(c.processing) && c.status === 'completed' ? `<div class="notice" style="background:var(--info-soft);color:var(--info)">${ic('clock')}<div><b>${c.processing === 'analyzing' ? 'AI is scoring the call…' : c.processing === 'transcribing' ? 'Writing out the conversation…' : 'Getting the recording…'}</b> This page updates by itself, usually within 30 seconds.</div></div>` : ''}
     ${a ? `<div class="panel"><div class="grid g4">
       ${ring(a.overall_score, 'Sales skill', 'Score out of 100')}
       ${ring(a.conversion_chance, 'Chance to convert', `${a.conversion_chance}% likely to buy`)}
@@ -293,7 +300,7 @@ async function callView(id) {
         <div class="panel"><h3>AI summary</h3><p style="margin-top:0;font-size:15px">${esc(a.summary)}</p>
           ${a.lead_intent ? `<p><b>What the lead wants:</b> ${esc(a.lead_intent)}</p>` : ''}
           ${a.next_action ? `<div class="notice" style="margin:0;background:var(--info-soft);color:var(--info)">${ic('calendar')}<div><b>Next step:</b> ${esc(a.next_action)}${a.follow_up_date ? ` (by ${esc(a.follow_up_date)})` : ''}</div></div>` : ''}
-          ${a.engine === 'keywords' ? '<p class="small muted">Keyword estimate. Connect Claude for a full analysis.</p>' : ''}</div>
+          <p class="small muted" style="margin-bottom:0">${a.engine === 'keywords' ? 'Keyword estimate only (AI was unavailable for this call). Use Re-analyse to try again.' : a.engine === 'workers-ai' ? 'Analysed by free AI (Llama 3.3 on Cloudflare).' : 'Analysed by Claude AI.'}</p></div>
         <div class="panel"><h3>Sales skills</h3>${Object.keys(SKILL_LABELS).map((k) => skillRow(k, a.skills[k])).join('')}</div>
         ${a.objections.length ? `<div class="panel"><h3>Objections from the lead</h3>${a.objections.map((o) => `<div style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><b>“${esc(o.objection)}”</b><span class="pill ${o.handled_well ? 'good' : 'bad'}">${o.handled_well ? 'Handled' : 'Not handled'}</span></div><div class="small muted">Agent's reply: ${esc(o.agent_response || '—')}</div></div>`).join('')}</div>` : ''}
         <div class="panel"><h3>Script check</h3><div class="grid g2"><div><b class="small">Done</b><ul class="clean small" style="margin-top:8px">${a.script_adherence.followed.map((x) => li('check', x)).join('') || '<li class="muted">–</li>'}</ul></div>
@@ -303,7 +310,12 @@ async function callView(id) {
       </div></div>`);
   document.querySelectorAll('[data-seek]').forEach((b) => { b.onclick = () => { const au = document.getElementById('aud'); au.currentTime = Number(b.dataset.seek); au.play(); }; });
   const re = document.getElementById('re');
-  if (re) re.onclick = async () => { await api(`/api/calls/${c.id}/reprocess`, { method: 'POST' }); toast('Re-analysing. Refresh in a minute.'); };
+  if (re) re.onclick = async () => { await api(`/api/calls/${c.id}/reprocess`, { method: 'POST' }); toast('Re-analysing…'); callView(id); };
+  // Keep refreshing while the call is being processed, so the report shows up by itself.
+  if (['pending', 'transcribing', 'analyzing'].includes(c.processing) && c.status === 'completed') {
+    const here = location.hash;
+    setTimeout(() => { if (location.hash === here) callView(id).catch(() => {}); }, 3000);
+  }
 }
 
 // ------------------------------------------------------------ live call tracker
@@ -333,7 +345,7 @@ function liveCall(callId, leadName, sim = false) { // sim: true (this phone) or 
   liveTimer = setInterval(async () => {
     if (Date.now() - started > 75 * 60000) return clearInterval(liveTimer);
     try { draw((await api(`/api/calls/${callId}`)).call); } catch { /* keep polling */ }
-  }, 4000);
+  }, 3000);
 }
 
 
@@ -376,7 +388,10 @@ function phoneHelp(msg) {
   dlg.showModal();
 }
 // The Android app calls this when it has uploaded the result.
-window.salepunchCallDone = () => { if (liveCall.poll) liveCall.poll(); };
+window.salepunchCallDone = () => {
+  if (liveCall.poll) liveCall.poll();
+  setTimeout(async () => { try { me = await api('/api/me'); } catch { /* ignore */ } }, 1500);
+};
 
 let asking = false;
 function askCallResult(id, name, t) {
@@ -418,7 +433,7 @@ async function leadsView(_, q) {
   const agentOpts = (sel) => `<option value="">Unassigned</option>${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${sel === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
   setMain(`<div class="head"><div><h1>Leads</h1><div class="muted">${leads.length} lead${leads.length === 1 ? '' : 's'}${q.get('due') ? ' · follow-ups due' : ''} · tap <b>Call</b> to start a recorded call</div></div>
       <div class="row">${phoneBadge()}<button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
-    ${simNotice()}
+    ${recNotice()}${simNotice()}
     <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">
       <select name="status"><option value="">All statuses</option>${LEAD_STATUSES.map((s) => `<option value="${s}" ${q.get('status') === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
       ${isManager() ? `<select name="owner"><option value="">All agents</option>${users.map((u) => `<option value="${u.id}" ${q.get('owner') === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}
@@ -433,6 +448,7 @@ async function leadsView(_, q) {
       : empty('users', 'No leads yet', 'Add a lead, import a CSV, or connect your lead forms in Settings.')}</div>
     <dialog id="dlg"></dialog>`);
   document.getElementById('flt').onsubmit = (e) => { e.preventDefault(); location.hash = '#/leads?' + new URLSearchParams(Object.entries(form(e.target)).filter(([, v]) => v)); };
+  bindRecFix();
   document.querySelectorAll('tr[data-id] [data-f]').forEach((el) => {
     el.onchange = async () => {
       try { await api(`/api/leads/${el.closest('tr').dataset.id}`, { method: 'PATCH', body: { [el.dataset.f]: el.value } }); toast('Saved'); } catch (e) { toast(e.message); }
@@ -565,7 +581,7 @@ async function settingsView() {
   const v = s.settings;
   const conn = (ok, name, text) => `<div class="tile" style="box-shadow:none"><div class="ic ${ok ? 'good' : 'bad'}">${ic(ok ? 'check' : 'x')}</div><div style="font-weight:700">${name}</div><div class="l">${ok ? 'Connected' : text}</div></div>`;
   setMain(`<div class="head"><div><h1>Settings</h1><div class="muted">Your script, product details and connections.</div></div></div>
-    <div class="grid g3" style="margin-bottom:18px">${conn(s.telephony, 'Exotel calling', 'Not connected: the Call button is off')}${conn(s.ai, 'Claude AI analysis', 'Not connected: keyword estimate only')}${conn(!!s.lead_webhook, 'Lead webhook', 'Set LEADS_WEBHOOK_KEY')}</div>
+    <div class="grid g3" style="margin-bottom:18px">${conn(s.telephony, 'Exotel calling', 'Not connected: the Call button is off')}${conn(s.ai, s.ai_engine === 'claude' ? 'AI analysis: Claude' : 'AI analysis: free (Llama 3.3)', 'Not connected: keyword estimate only')}${conn(!!s.lead_webhook, 'Lead webhook', 'Set LEADS_WEBHOOK_KEY')}</div>
     <form id="sf">
     <div class="panel"><h2>Your sales script</h2><p class="small muted" style="margin-top:-6px">The AI checks every call against this. Write it the way you train new agents, step by step.</p>
       <label>Company name<input name="company" value="${esc(v.company)}"></label>

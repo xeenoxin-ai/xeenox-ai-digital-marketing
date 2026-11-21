@@ -265,3 +265,33 @@ test('sign-in hand-off tokens are typed and can never be used as a session', asy
   assert.equal(await readToken('handoff', t, secret, 1000 + 61000), null);
   assert.equal(await readSession(t, secret, 2000), null);
 });
+
+// ---- free AI (Workers AI)
+import { analyzeWithWorkersAI, workersAiContent } from '../salepunch/src/analyze.js';
+
+test('Workers AI replies are read in every shape the models use', () => {
+  assert.deepEqual(workersAiContent({ response: { a: 1 } }), { a: 1 });
+  assert.deepEqual(workersAiContent({ response: '```json\n{"a":2}\n```' }), { a: 2 });
+  assert.deepEqual(workersAiContent({ choices: [{ message: { content: 'Here you go: {"a":3}' } }] }), { a: 3 });
+});
+
+test('free AI analysis: prompt has today, script score fixed when given out of 10', async () => {
+  let req;
+  const env = { AI: { run: async (model, body) => { req = { model, body }; return { response: {
+    speakers: ['agent', 'lead', 'agent', 'lead'], outcome: 'follow_up', conversion_chance: 40, overall_score: 60,
+    skills: { opening: 8, closing: 4 }, script_adherence: { score: 7, followed: ['/greet', '2. pitch', 'warranty'], missed: ['- ask booking'] },
+    objections: [], follow_up_date: '2026-11-23', summary: 's' } }; } } };
+  const a = await analyzeCall({ segments: segs, script: 'x', today: '2026-11-21', durationSec: 90 }, env);
+  assert.equal(a.engine, 'workers-ai');
+  assert.equal(req.model, '@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+  assert.match(req.body.messages[1].content, /Today: 2026-11-21 \(Saturday\)/);
+  assert.equal(req.body.response_format.type, 'json_schema');
+  assert.deepEqual(a.script_adherence, { score: 75, followed: ['greet', 'pitch', 'warranty'], missed: ['ask booking'] });
+  assert.equal(a.follow_up_date, '2026-11-23');
+});
+
+test('free AI failure falls back to the keyword estimate', async () => {
+  const env = { AI: { run: async () => { throw new Error('quota'); } } };
+  const a = await analyzeCall({ segments: segs, durationSec: 90 }, env);
+  assert.equal(a.engine, 'keywords');
+});

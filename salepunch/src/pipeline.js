@@ -62,7 +62,7 @@ export async function processCall(env, callId, { textSegments, audio, deps = {} 
       call.agent_id ? db.prepare('SELECT id, name, email FROM users WHERE id = ?').bind(call.agent_id).first() : null,
     ]);
     const durationSec = call.duration_sec || Math.round(segments.at(-1)?.end || 0);
-    const analysis = await analyzeCall({ segments, script: settings.script, product: settings.product, lead, agentName: agent?.name, durationSec }, env, deps.claude);
+    const analysis = await analyzeCall({ segments, script: settings.script, product: settings.product, lead, agentName: agent?.name, durationSec, today: call.day }, env, deps.claude);
     const labelled = segments.map((s, i) => ({ start: s.start, text: s.text, speaker: analysis.speakers[i] }));
     analysis.talk_ratio = talkRatio(segments, analysis.speakers);
     delete analysis.speakers;
