@@ -466,7 +466,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/hooks/')) {
-      return env.ASSETS ? env.ASSETS.fetch(request) : serveStatic(url.pathname);
+      return env.ASSETS ? env.ASSETS.fetch(request) : serveStatic(url.pathname, url.search);
     }
     const r = routes.find((x) => x.method === request.method && x.re.test(url.pathname));
     if (!r) return fail(404, 'Not found');
