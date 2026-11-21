@@ -86,6 +86,19 @@ Without Phone Link, put the phone on speaker and choose **Listen with the
 microphone only**. Both voices then come through one mic, and the AI works out
 who said what.
 
+### Internet call (no phone at all)
+
+Clicking the microphone button next to **Call** (or **Internet call** on a lead's
+page) starts a browser call. SalePunch makes a one-time link
+(`/talk/<token>`, valid for 3 hours), which the agent sends on WhatsApp. The lead
+taps **Join call** in their phone's browser, and the two are connected over
+WebRTC. The handshake uses `web_calls`; network relay is provided by Cloudflare
+Realtime TURN (`TURN_KEY_ID` / `TURN_KEY_SECRET` secrets), falling back to STUN
+only. The agent's headset mic and the lead's audio arrive as separate streams,
+so the live transcript, coaching, recording and report work as above, with no
+screen sharing. A normal mobile number can't be rung this way: that needs a
+licensed telecom provider (see Exotel below).
+
 ### 2. Company cloud line (Exotel)
 
 Exotel rings the agent's mobile, then connects the lead, showing the company

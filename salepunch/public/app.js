@@ -515,12 +515,19 @@ const rms = (a) => { let t = 0; for (let i = 0; i < a.length; i++) t += a[i] * a
 
 class LiveListener {
   constructor(callId, ui) { this.callId = callId; this.ui = ui; this.tracks = []; this.queue = Promise.resolve(); this.lastCoach = 0; this.stopped = false; }
-  async start({ systemAudio }) {
+  async start({ systemAudio, streams }) {
     this.ctx = new AudioContext({ sampleRate: 16000 });
     this.t0 = performance.now();
+    if (streams) { // internet call: both sides are already separate streams
+      this.streams = [streams.agent];
+      this.addTrack(streams.agent, 'agent');
+      this.addTrack(streams.lead, 'lead');
+      systemAudio = false;
+    } else {
     const mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     this.streams = [mic];
     this.addTrack(mic, systemAudio ? 'agent' : 'mixed'); // mic only: it hears both people
+    }
     if (systemAudio) {
       const disp = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, systemAudio: 'include' });
       disp.getVideoTracks().forEach((t) => t.stop()); // only the sound is needed
@@ -652,6 +659,103 @@ function openLivePanel(callId, leadName) {
 }
 window.addEventListener('beforeunload', (e) => { if (activeLive) { e.preventDefault(); e.returnValue = ''; } });
 
+
+// ------------------------------------------------------------ internet call (WebRTC)
+// The agent talks on the computer; the lead joins from a link in their phone's
+// browser. No phone line: SalePunch hears both voices directly.
+let activeWeb = null;
+async function startWebCall(leadId, leadName) {
+  if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) return toast('This browser cannot make internet calls. Use Chrome or Edge.');
+  let mic;
+  try { mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  catch { return toast('Allow the microphone to make internet calls.'); }
+  let r;
+  try { r = await api('/api/calls/web', { method: 'POST', body: { lead_id: leadId } }); } catch (e) { mic.getTracks().forEach((t) => t.stop()); return toast(e.message); }
+  const msg = `Hi ${leadName.split(' ')[0]}, this is ${me.user.name} from ${r.company}. Tap this link to talk to me now (free internet call, no charges): ${r.link}`;
+  let el = document.getElementById('livepanel');
+  if (!el) { el = document.createElement('aside'); el.id = 'livepanel'; document.body.appendChild(el); }
+  el.className = 'show'; document.body.classList.add('lp-open');
+  el.innerHTML = `<header><div><b>${esc(leadName)}</b><div class="small" id="lpStatus">Waiting for ${esc(leadName.split(' ')[0])} to join…</div></div><span class="lp-timer" id="lpTimer" style="background:var(--side-2)">0:00</span><button class="x" id="lpClose" aria-label="End">${ic('x')}</button></header>
+    <div class="lp-setup" id="lpInvite">
+      <p><b>Send the call link to ${esc(leadName)}</b>. When they tap it and press <b>Join call</b>, you are connected. Talk on your headset.</p>
+      <a class="btn primary" style="width:100%;justify-content:center;background:linear-gradient(135deg,#25d366,#128c4a)" target="_blank" rel="noopener" href="${waLink(r.phone, msg)}">Send on WhatsApp</a>
+      <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input readonly value="${esc(r.link)}" id="lpLink" style="flex:1;min-width:0"><button id="lpCopy">Copy</button></div>
+      <p class="small muted" id="lpLeadState" style="margin-top:12px">Link not opened yet.</p>
+      <button class="link small" id="lpCancel" style="color:var(--bad)">Cancel call</button>
+    </div>
+    <div id="lpLive" hidden>
+      <div class="lp-meters"><div><span>You</span><i><b id="mAgent"></b></i></div><div><span>Lead</span><i><b id="mLead"></b></i></div></div>
+      <div class="row"><button id="lpMute">${ic('mic')} Mute</button></div>
+      <div class="lp-tip" id="lpTip" hidden></div>
+      <div class="lp-lines" id="lpLines"><p class="small muted">Connected. What each side says appears here every few seconds.</p></div>
+      <button class="primary" id="lpEnd" style="width:100%;justify-content:center;background:#e0352b">${ic('phone')} Hang up &amp; analyse</button>
+    </div>
+    <audio id="lpRemote" autoplay></audio>`;
+  const $ = (id) => el.querySelector('#' + id);
+  const ui = {
+    level: (sp, v) => { const b = $(sp === 'lead' ? 'mLead' : 'mAgent'); if (b) b.style.width = Math.min(100, v * 600) + '%'; },
+    line: (x) => {
+      const box = $('lpLines'); if (box.querySelector('p.muted')) box.innerHTML = '';
+      box.insertAdjacentHTML('beforeend', `<div class="msg ${x.speaker === 'agent' ? 'agent' : ''}"><span class="t">${x.speaker === 'agent' ? 'You' : esc(leadName)}</span>${esc(x.text)}${x.en ? `<span class="note" style="color:var(--muted)">${esc(x.en)}</span>` : ''}</div>`);
+      box.scrollTop = box.scrollHeight;
+    },
+    tip: (t) => { const b = $('lpTip'); b.hidden = false; b.className = 'lp-tip ' + (t.kind === 'warning' ? 'warn' : ''); b.innerHTML = `${ic(t.kind === 'warning' ? 'alert' : 'zap')}<div><b>${t.kind === 'warning' ? 'Careful' : 'AI coach'}</b><br>${esc(t.text)}</div>`; },
+    warn: (m) => { $('lpStatus').textContent = m; },
+  };
+  const pc = new RTCPeerConnection({ iceServers: r.ice });
+  mic.getTracks().forEach((t) => pc.addTrack(t, mic));
+  let listener = null, timer = null, poll = null, done = false, connectedAt = 0;
+  const finish = async (why) => {
+    if (done) return; done = true;
+    clearInterval(timer); clearInterval(poll);
+    $('lpStatus').textContent = connectedAt ? 'Saving and analysing…' : (why || 'Call cancelled');
+    try { await api(`/api/calls/${r.id}/web-end`, { method: 'POST', body: {} }); } catch { /* ignore */ }
+    try { if (listener) await listener.stop(); } catch (e) { toast(e.message); }
+    try { pc.close(); } catch { /* ignore */ }
+    mic.getTracks().forEach((t) => t.stop());
+    activeWeb = null; activeLive = null;
+    el.className = ''; document.body.classList.remove('lp-open');
+    if (connectedAt) { location.hash = `#/calls/${r.id}`; toast('Call saved. The report appears in a few seconds.'); } else toast(why || 'Call cancelled');
+  };
+  activeWeb = { finish };
+  pc.ontrack = async (e) => {
+    const remote = e.streams[0];
+    const a = $('lpRemote'); a.srcObject = remote; a.play().catch(() => {});
+    if (listener) return;
+    listener = new LiveListener(r.id, ui); activeLive = listener;
+    try { await listener.start({ streams: { agent: mic, lead: remote } }); } catch (err) { toast(err.message); }
+  };
+  pc.onconnectionstatechange = () => {
+    const st = pc.connectionState;
+    if (st === 'connected' && !connectedAt) {
+      connectedAt = Date.now();
+      $('lpInvite').hidden = true; $('lpLive').hidden = false; $('lpTimer').style.background = '';
+      $('lpStatus').textContent = 'On call · listening to both sides';
+      timer = setInterval(() => { const sec = Math.round((Date.now() - connectedAt) / 1000); $('lpTimer').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }, 1000);
+    }
+    if (st === 'failed') finish('The connection failed. Try again, or ask the lead to switch between Wi-Fi and mobile data.');
+    if (st === 'disconnected' && connectedAt) setTimeout(() => pc.connectionState === 'disconnected' && finish(), 6000);
+  };
+  // Offer with all network routes included (no trickle), then wait for the lead.
+  await pc.setLocalDescription(await pc.createOffer({ offerToReceiveAudio: true }));
+  await new Promise((res) => { if (pc.iceGatheringState === 'complete') return res(); pc.addEventListener('icegatheringstatechange', () => pc.iceGatheringState === 'complete' && res()); setTimeout(res, 4000); });
+  await api(`/api/calls/${r.id}/web-offer`, { method: 'POST', body: { sdp: pc.localDescription.sdp } });
+  const states = { invited: 'Link not opened yet.', opened: `${leadName.split(' ')[0]} opened the link…`, joined: 'Joining…', left: `${leadName.split(' ')[0]} left the call.` };
+  poll = setInterval(async () => {
+    try {
+      const w = await api(`/api/calls/${r.id}/web`);
+      if ($('lpLeadState')) $('lpLeadState').textContent = states[w.lead_state] || '';
+      if (w.answer && !pc.currentRemoteDescription) await pc.setRemoteDescription({ type: 'answer', sdp: w.answer });
+      if (w.lead_state === 'left' && connectedAt) finish();
+    } catch { /* keep waiting */ }
+  }, 1500);
+  $('lpCopy').onclick = () => { navigator.clipboard?.writeText(r.link).then(() => toast('Link copied')).catch(() => { $('lpLink').select(); }); };
+  $('lpCancel').onclick = () => finish('Call cancelled');
+  $('lpEnd').onclick = () => finish();
+  $('lpClose').onclick = () => { if (connectedAt && !confirm('Hang up this call?')) return; finish(connectedAt ? undefined : 'Call cancelled'); };
+  $('lpMute').onclick = () => { const on = mic.getAudioTracks()[0].enabled; mic.getAudioTracks().forEach((t) => { t.enabled = !on; }); $('lpMute').innerHTML = `${ic('mic')} ${on ? 'Unmute' : 'Mute'}`; };
+}
+
 // ------------------------------------------------------------ leads
 async function leadsView(_, q) {
   shell('leads', loading());
@@ -672,7 +776,7 @@ async function leadsView(_, q) {
         ${isManager() ? `<td><select data-f="owner_id" style="width:auto">${agentOpts(l.owner_id)}</select></td>` : ''}
         <td class="n small">${inr(l.deal_value) || '<span class="muted">–</span>'}</td><td class="small">${esc(l.source || '')}</td><td><input type="date" data-f="next_follow_up" value="${esc(l.next_follow_up || '')}" style="width:auto"></td>
         <td class="n">${l.call_count ? `<a href="#/calls?lead=${l.id}&from=2000-01-01">${l.call_count}</a>` : '<span class="muted">0</span>'}</td>
-        <td class="n call-col"><button class="call" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')} Call</button></td></tr>`).join('')}</table>`
+        <td class="n call-col"><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><button class="btn" data-webcall="${l.id}" data-name="${esc(l.name)}" title="Internet call: talk on this computer, the lead joins from a link">${ic('mic')}</button><button class="call" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')} Call</button></div></td></tr>`).join('')}</table>`
       : empty('users', 'No leads yet', 'Add a lead, import a CSV, or connect your lead forms in Settings.')}</div>
     <dialog id="dlg"></dialog>`);
   document.getElementById('flt').onsubmit = (e) => { e.preventDefault(); location.hash = '#/leads?' + new URLSearchParams(Object.entries(form(e.target)).filter(([, v]) => v)); };
@@ -682,6 +786,7 @@ async function leadsView(_, q) {
       try { await api(`/api/leads/${el.closest('tr').dataset.id}`, { method: 'PATCH', body: { [el.dataset.f]: el.value } }); toast('Saved'); } catch (e) { toast(e.message); }
     };
   });
+  document.querySelectorAll('[data-webcall]').forEach((b) => { b.onclick = () => startWebCall(b.dataset.webcall, b.dataset.name); });
   document.querySelectorAll('[data-call]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
@@ -873,6 +978,13 @@ function guideView() {
         <li>${ic('mic')}<span>Every conversation, as audio and as a chat</span></li><li>${ic('target')}<span>Converted or not, with the chance to buy</span></li>
         <li>${ic('leak')}<span>Where sales leak, in <a href="#/leaks">Sales leaks</a></span></li><li>${ic('zap')}<span>Who is on a call right now, and each agent's day, in <a href="#/productivity">Productivity</a></span></li></ul></div>
     </div>
+    <div class="panel"><h2>${ic('mic')} Internet call: no phone at all</h2>
+      <div class="grid g2"><ol class="steps-list">
+        <li><div><b>Click the microphone button</b><p>Next to <b>Call</b> on a lead, or <b>Internet call</b> on the lead's page.</p></div></li>
+        <li><div><b>Send the link</b><p>Tap <b>Send on WhatsApp</b>. The lead gets "Tap this link to talk to me now".</p></div></li>
+        <li><div><b>The lead taps Join call</b><p>It opens in their phone's browser, with no app to install, over mobile data or Wi-Fi.</p></div></li>
+        <li><div><b>Talk on your headset</b><p>SalePunch hears both of you directly: live transcript, AI coach tips, recording and the full report when you hang up.</p></div></li></ol>
+      <p class="small muted">Use this for leads who are on WhatsApp or online. To ring a normal mobile number from the computer, a licensed calling line (Exotel) is needed; until then use <b>Call</b>, which dials from your phone.</p></div></div>
     <div class="panel"><h2>${ic('mic')} Talk through your computer headset, with live AI coaching</h2>
       <div class="grid g2"><ol class="steps-list">
         <li><div><b>Link your Android phone to Windows</b><p>On the PC open <b>Phone Link</b> (built into Windows 10/11). On the phone install <b>Link to Windows</b>, scan the QR code, and allow <b>Calls</b> (it pairs over Bluetooth).</p></div></li>
@@ -1050,7 +1162,7 @@ async function leadView(id) {
       <div class="row muted"><span class="pill ${esc(l.status)}">${esc(STATUS_LABEL[l.status] || l.status)}</span>${l.company ? `<span>${esc(l.company)}</span>·` : ''}<span>${esc(l.phone)}</span>
         ${l.deal_value ? `· <b style="color:var(--ink)">${inr(l.deal_value)}</b>` : ''}${l.owner_name ? `· ${avatar(l.owner_name, true)} ${esc(l.owner_name)}` : ''}</div>
       ${l.tags ? `<div style="margin-top:8px">${tagChips(l.tags)}</div>` : ''}</div>
-      <div class="row"><button class="call" id="callBtn">${ic('phone')} Call</button>
+      <div class="row"><button class="call" id="callBtn">${ic('phone')} Call</button>${ON_PHONE ? '' : `<button class="btn" id="webCallBtn" title="Talk on this computer; the lead joins from a link">${ic('mic')} Internet call</button>`}
         <a class="btn" target="_blank" rel="noopener" href="${waLink(l.phone, `Hi ${l.name.split(' ')[0]}, `)}">WhatsApp</a>
         ${l.email ? `<a class="btn" href="mailto:${esc(l.email)}">Email</a>` : ''}</div></div>
     ${recNotice()}
@@ -1083,6 +1195,8 @@ async function leadView(id) {
     </div>`);
   const reload = () => leadView(id);
   document.getElementById('callBtn').onclick = async () => { try { await startCall(l.id, l.name); } catch (e) { toast(e.message); } };
+  const wcb = document.getElementById('webCallBtn');
+  if (wcb) wcb.onclick = () => startWebCall(l.id, l.name);
   document.getElementById('noteF').onsubmit = async (e) => {
     e.preventDefault();
     try { await api(`/api/leads/${id}/notes`, { method: 'POST', body: form(e.target) }); reload(); } catch (err) { toast(err.message); }

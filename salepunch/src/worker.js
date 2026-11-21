@@ -598,6 +598,95 @@ route('POST', '/api/calls/:id/live-finish', async (req, env, { user, params, ctx
   return json({ ok: true, segments: segments.length });
 });
 
+// --- Internet calls (WebRTC): the agent talks on the computer, the lead joins from
+// a link in their phone's browser. No phone line or provider; SalePunch hears both.
+const WEB_TTL = 3 * 3600000;
+const sdpOk = (v) => typeof v === 'string' && v.startsWith('v=0') && v.length < 20000;
+async function iceServers(env) {
+  const stun = [{ urls: ['stun:stun.cloudflare.com:3478'] }];
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_SECRET) return stun;
+  try {
+    const r = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${env.TURN_KEY_ID}/credentials/generate-ice-servers`, {
+      method: 'POST', headers: { authorization: `Bearer ${env.TURN_KEY_SECRET}`, 'content-type': 'application/json' }, body: JSON.stringify({ ttl: 4 * 3600 }),
+    });
+    const j = await r.json();
+    return Array.isArray(j.iceServers) && j.iceServers.length ? j.iceServers : stun;
+  } catch (e) { console.log('TURN credentials failed', e.message); return stun; }
+}
+const webToken = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(18)))).replaceAll('+', '-').replaceAll('/', '_');
+
+route('POST', '/api/calls/web', async (req, env, { user }) => {
+  const b = await body(req);
+  const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(b.lead_id || '').first();
+  if (!lead || (!isManager(user) && lead.owner_id !== user.id)) return fail(404, 'Lead not found');
+  const id = newId(), token = webToken(), now = Date.now();
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, day) VALUES (?, ?, ?, ?, 'web', 'dialing', ?, ?)").bind(id, user.id, lead.id, lead.phone, now, today(env, now)),
+    env.DB.prepare('INSERT INTO web_calls (token, call_id, created_at) VALUES (?, ?, ?)').bind(token, id, now),
+  ]);
+  if (!lead.owner_id) await env.DB.prepare('UPDATE leads SET owner_id = ? WHERE id = ?').bind(user.id, lead.id).run();
+  const company = (await getSettings(env.DB)).company || 'our team';
+  return json({ id, link: `${origin(req, env)}/talk/${token}`, phone: lead.phone, name: lead.name, company, ice: await iceServers(env) });
+});
+
+async function ownWebCall(env, user, id) {
+  const w = await env.DB.prepare('SELECT w.*, c.agent_id, c.status FROM web_calls w JOIN calls c ON c.id = w.call_id WHERE w.call_id = ?').bind(id).first();
+  return w && w.agent_id === user.id ? w : null;
+}
+route('POST', '/api/calls/:id/web-offer', async (req, env, { user, params }) => {
+  const w = await ownWebCall(env, user, params.id);
+  if (!w) return fail(404, 'Call not found');
+  const b = await body(req);
+  if (!sdpOk(b.sdp)) return fail(400, 'Bad offer');
+  await env.DB.prepare('UPDATE web_calls SET offer = ?, answer = NULL WHERE token = ?').bind(b.sdp, w.token).run();
+  return json({ ok: true });
+});
+route('GET', '/api/calls/:id/web', async (req, env, { user, params }) => {
+  const w = await ownWebCall(env, user, params.id);
+  if (!w) return fail(404, 'Call not found');
+  return json({ answer: w.answer, lead_state: w.lead_state, ended: !!w.ended });
+});
+route('POST', '/api/calls/:id/web-end', async (req, env, { user, params }) => {
+  const w = await ownWebCall(env, user, params.id);
+  if (!w) return fail(404, 'Call not found');
+  await env.DB.prepare('UPDATE web_calls SET ended = 1 WHERE token = ?').bind(w.token).run();
+  if (w.lead_state !== 'joined' && w.lead_state !== 'left') {
+    await env.DB.prepare("UPDATE calls SET status = 'no_answer', processing = 'skipped', error = 'The lead did not join the internet call' WHERE id = ? AND status = 'dialing'").bind(w.call_id).run();
+  }
+  return json({ ok: true });
+});
+
+// Public: the lead's side (the secret link is the only key).
+async function talkCall(env, token) {
+  const w = await env.DB.prepare(`SELECT w.*, u.name AS agent_name FROM web_calls w JOIN calls c ON c.id = w.call_id LEFT JOIN users u ON u.id = c.agent_id WHERE w.token = ?`).bind(String(token || '').slice(0, 64)).first();
+  return w && Date.now() - w.created_at < WEB_TTL ? w : null;
+}
+route('GET', '/api/talk/:token', async (req, env, { params }) => {
+  const w = await talkCall(env, params.token);
+  if (!w || w.ended) return json({ ended: true });
+  if (w.lead_state === 'invited') await env.DB.prepare("UPDATE web_calls SET lead_state = 'opened' WHERE token = ?").bind(w.token).run();
+  const company = (await getSettings(env.DB)).company || '';
+  return json({ ended: false, company, agent: w.agent_name || '', offer: w.offer, answered: !!w.answer });
+}, { public: true });
+route('GET', '/api/talk/:token/ice', async (req, env, { params }) => {
+  const w = await talkCall(env, params.token);
+  if (!w || w.ended) return fail(404, 'This call has ended');
+  return json({ ice: await iceServers(env) });
+}, { public: true });
+route('POST', '/api/talk/:token/answer', async (req, env, { params }) => {
+  const w = await talkCall(env, params.token);
+  if (!w || w.ended) return fail(404, 'This call has ended');
+  const b = await body(req);
+  if (!sdpOk(b.sdp)) return fail(400, 'Bad answer');
+  await env.DB.prepare("UPDATE web_calls SET answer = ?, lead_state = 'joined' WHERE token = ?").bind(b.sdp, w.token).run();
+  return json({ ok: true });
+}, { public: true });
+route('POST', '/api/talk/:token/leave', async (req, env, { params }) => {
+  const w = await talkCall(env, params.token);
+  if (w) await env.DB.prepare("UPDATE web_calls SET lead_state = 'left' WHERE token = ?").bind(w.token).run();
+  return json({ ok: true });
+}, { public: true });
+
 // Calls happening right now (for the "Live now" strip).
 route('GET', '/api/calls/live', async (req, env, { user }) => {
   const st = env.DB.prepare(`SELECT c.id, c.agent_id, c.provider, c.started_at, u.name AS agent_name, l.name AS lead_name, c.lead_phone

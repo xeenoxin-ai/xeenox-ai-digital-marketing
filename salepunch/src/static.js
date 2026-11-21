@@ -2,6 +2,7 @@
 import indexHtml from '../public/index.html';
 import landingHtml from '../public/landing.html';
 import downloadHtml from '../public/download.html';
+import talkHtml from '../public/talk.html';
 import appJs from '../public/app.js';
 import appCss from '../public/app.css';
 import logoSvg from '../public/logo.svg';
@@ -39,6 +40,10 @@ export function serveStatic(pathname, search = '') {
         'x-content-type-options': 'nosniff',
       },
     });
+  }
+  // The lead's side of an internet call: /talk/<secret token>
+  if (/^\/talk\/[A-Za-z0-9_-]{10,64}$/.test(pathname)) {
+    return new Response(talkHtml, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'referrer-policy': 'no-referrer', 'x-robots-tag': 'noindex' } });
   }
   const f = FILES[pathname];
   if (!f) return new Response('Not found', { status: 404 });

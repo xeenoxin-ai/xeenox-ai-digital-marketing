@@ -138,3 +138,16 @@ CREATE TABLE IF NOT EXISTS live_segments (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS live_call ON live_segments(call_id, start);
+
+-- Internet calls: the lead joins from a link in their phone's browser
+-- (WebRTC, no phone line needed). Holds the connection handshake.
+CREATE TABLE IF NOT EXISTS web_calls (
+  token TEXT PRIMARY KEY,           -- secret part of the lead's link
+  call_id TEXT NOT NULL,
+  offer TEXT,                       -- agent's connection offer (SDP)
+  answer TEXT,                      -- lead's answer (SDP)
+  lead_state TEXT NOT NULL DEFAULT 'invited', -- invited | opened | joined | left
+  ended INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS web_calls_call ON web_calls(call_id);
