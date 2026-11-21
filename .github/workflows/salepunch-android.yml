@@ -39,3 +39,13 @@ jobs:
           name: SalePunch-android-app
           path: salepunch/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      # Lets the SalePunch site host the APK at /download/salepunch.apk
+      # (copied from this log when publishing a new app version).
+      - name: Print APK for the download page
+        run: |
+          f=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          sha256sum "$f"
+          echo "APK_BASE64_BEGIN"
+          base64 -w 100 "$f"
+          echo "APK_BASE64_END"
