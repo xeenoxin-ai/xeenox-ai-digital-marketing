@@ -1,5 +1,6 @@
 // SalePunch — sales call monitoring. Cloudflare Worker: API + dashboard.
-import { hashPassword, readSession, requestToken, sessionCookie, signSession, verifyPassword } from './auth.js';
+import { hashPassword, readSession, readToken, requestToken, sessionCookie, signSession, signToken, verifyPassword } from './auth.js';
+import { authUrl, exchangeCode, googleReady } from './google.js';
 import { LEAD_STATUSES } from './constants.js';
 import { mapIncomingLead } from './crm.js';
 import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
@@ -37,7 +38,7 @@ const route = (method, pattern, handler, opts = {}) => {
 // --- setup & auth
 route('GET', '/api/status', async (req, env) => {
   const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM users').first();
-  return json({ needsSetup: !n.n, telephony: exotelReady(env), ai: !!env.ANTHROPIC_API_KEY });
+  return json({ needsSetup: !n.n, telephony: exotelReady(env), ai: !!env.ANTHROPIC_API_KEY, google: googleReady(env) });
 }, { public: true });
 
 route('POST', '/api/setup', async (req, env) => {
@@ -59,6 +60,72 @@ route('POST', '/api/login', async (req, env) => {
   return json({ user: publicUser(u) }, 200, { 'set-cookie': sessionCookie(await signSession(u.id, env.SESSION_SECRET)) });
 }, { public: true });
 
+// --- Continue with Google
+const OAUTH_COOKIE = 'sp_oauth';
+const redirectTo = (location, cookies = []) => {
+  const h = new Headers({ location, 'cache-control': 'no-store' });
+  for (const c of cookies) h.append('set-cookie', c);
+  return new Response(null, { status: 302, headers: h });
+};
+const loginError = (code) => redirectTo(`/app?login_error=${encodeURIComponent(code)}`, [`${OAUTH_COOKIE}=; Path=/api/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=0`]);
+const googleRedirectUri = (req, env) => `${origin(req, env)}/api/auth/google/callback`;
+
+route('GET', '/api/auth/google/start', async (req, env, { url }) => {
+  if (!googleReady(env)) return loginError('google_off');
+  const nonce = crypto.randomUUID();
+  const state = await signToken('oauth', { n: nonce, app: url.searchParams.get('app') === '1' }, env.SESSION_SECRET, 10 * 60000);
+  return redirectTo(authUrl({ clientId: env.GOOGLE_CLIENT_ID, redirectUri: googleRedirectUri(req, env), state }),
+    [`${OAUTH_COOKIE}=${nonce}; Path=/api/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=600`]);
+}, { public: true });
+
+route('GET', '/api/auth/google/callback', async (req, env, { url }) => {
+  if (!googleReady(env)) return loginError('google_off');
+  if (url.searchParams.get('error')) return loginError('cancelled');
+  const st = await readToken('oauth', url.searchParams.get('state'), env.SESSION_SECRET);
+  const nonce = ((req.headers.get('cookie') || '').match(/(?:^|;\s*)sp_oauth=([^;]+)/) || [])[1];
+  if (!st || !nonce || !sameSecret(st.n, nonce)) return loginError('expired');
+  let profile;
+  try {
+    profile = await exchangeCode({ code: url.searchParams.get('code') || '', clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, redirectUri: googleRedirectUri(req, env) });
+  } catch (e) {
+    console.log('google exchange failed', e.message);
+    return loginError('google_failed');
+  }
+  let user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(profile.email).first();
+  if (!user) {
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM users').first();
+    if (n.n) return loginError('not_invited');
+    // Brand-new workspace: the first Google sign-in becomes the admin.
+    const id = newId();
+    await env.DB.prepare("INSERT INTO users (id, name, email, role, pass_hash, created_at) VALUES (?, ?, ?, 'admin', '!google-only', ?)")
+      .bind(id, profile.name, profile.email, Date.now()).run();
+    user = { id, active: 1 };
+  }
+  if (!user.active) return loginError('disabled');
+  const clear = `${OAUTH_COOKIE}=; Path=/api/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+  if (st.app) {
+    // Started in the Android app: hand the login back to the app (Google
+    // doesn't allow its sign-in page inside an app's built-in browser).
+    const t = await signToken('handoff', { uid: user.id }, env.SESSION_SECRET, 2 * 60000);
+    const link = `salepunch://login?t=${encodeURIComponent(t)}`;
+    const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SalePunch</title>
+<body style="font:16px system-ui;background:#0d1020;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center">
+<div><p>Signed in. Returning to the SalePunch app…</p><p><a href="${link}" style="display:inline-block;background:#ff4d1a;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700">Open SalePunch app</a></p></div>
+<script>location.href=${JSON.stringify(link)}</script></body>`;
+    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'set-cookie': clear } });
+  }
+  return redirectTo('/app', [sessionCookie(await signSession(user.id, env.SESSION_SECRET)), clear]);
+}, { public: true });
+
+// The Android app opens this in its own web view with the hand-off token.
+route('GET', '/api/auth/google/app-exchange', async (req, env, { url }) => {
+  const t = await readToken('handoff', url.searchParams.get('t'), env.SESSION_SECRET);
+  if (!t) return loginError('expired');
+  const u = await env.DB.prepare('SELECT id FROM users WHERE id = ? AND active = 1').bind(t.uid).first();
+  if (!u) return loginError('disabled');
+  return redirectTo('/app', [sessionCookie(await signSession(u.id, env.SESSION_SECRET))]);
+}, { public: true });
+
 route('POST', '/api/logout', async () => json({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0) }), { public: true });
 
 route('GET', '/api/me', async (req, env, { user }) => {
@@ -78,11 +145,12 @@ route('GET', '/api/users', async (req, env, { user }) => {
 
 route('POST', '/api/users', async (req, env) => {
   const b = await body(req);
-  if (!b.name || !b.email || String(b.password || '').length < 8) return fail(400, 'Name, email and an 8+ character password are needed');
+  if (!b.name || !b.email) return fail(400, 'Name and email are needed');
+  if (b.password && String(b.password).length < 8) return fail(400, 'Password must be 8+ characters (or leave it empty for Google sign-in only)');
   const role = ['admin', 'manager', 'agent'].includes(b.role) ? b.role : 'agent';
   try {
     await env.DB.prepare('INSERT INTO users (id, name, email, phone, role, pass_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(newId(), b.name.trim(), b.email.trim().toLowerCase(), normalizePhone(b.phone), role, await hashPassword(b.password), Date.now()).run();
+      .bind(newId(), b.name.trim(), b.email.trim().toLowerCase(), normalizePhone(b.phone), role, b.password ? await hashPassword(b.password) : '!google-only', Date.now()).run();
   } catch { return fail(409, 'That email is already used'); }
   return json({ ok: true });
 }, { manager: true });

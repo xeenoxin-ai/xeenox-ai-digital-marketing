@@ -116,7 +116,7 @@ function authShell(inner) {
       <a class="brand" href="/" style="text-decoration:none"><img src="/logo.svg" alt="">SalePunch</a>
       <div><h1>Hear every sales call. <em>Know who's converting.</em></h1>
         <p>Every call your team makes is recorded, written out from hello to goodbye, and scored by AI, so you know what was said and who is closing.</p>
-        <ul><li><span>${ic('mic')}</span>Calls recorded through your company number</li>
+        <ul><li><span>${ic('mic')}</span>Calls from your own SIMs, recorded automatically</li>
           <li><span>${ic('brain')}</span>AI scores selling skills and conversion chance</li>
           <li><span>${ic('chart')}</span>Daily reports and coaching for every agent</li>
           <li><span>${ic('users')}</span>Built-in CRM that connects to your lead forms</li></ul></div>
@@ -124,10 +124,29 @@ function authShell(inner) {
     </section>
     <section class="auth-form"><div>${inner}</div></section></div>`;
 }
+const LOGIN_ERRORS = {
+  not_invited: "This Google account isn't part of the workspace yet. Ask your admin to add your email on the Team page, then try again.",
+  disabled: 'Your account is switched off. Ask your admin.',
+  cancelled: 'Google sign-in was cancelled.',
+  expired: 'The sign-in took too long. Please try again.',
+  google_failed: "Google sign-in didn't work. Please try again.",
+  google_off: "Google sign-in isn't set up yet. Use your email and password.",
+};
+const GOOGLE_G = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+const googleButton = (label) => `<a class="btn" href="/api/auth/google/start${PHONE ? '?app=1' : ''}" style="width:100%;justify-content:center;padding:12px;margin-bottom:6px">${GOOGLE_G} ${label}</a>
+  <div class="row" style="gap:12px;margin:14px 0;color:var(--muted);font-size:13px"><span style="flex:1;height:1px;background:var(--line)"></span>or<span style="flex:1;height:1px;background:var(--line)"></span></div>`;
+function loginErrorNotice() {
+  const code = new URLSearchParams(location.search).get('login_error');
+  if (!code) return '';
+  history.replaceState(null, '', location.pathname + location.hash);
+  return `<div class="flag">${ic('alert')}<div>${esc(LOGIN_ERRORS[code] || 'Sign-in failed. Please try again.')}</div></div>`;
+}
 async function authView() {
   const st = await api('/api/status', { quiet: true });
+  const err = loginErrorNotice();
   if (st.needsSetup) {
-    authShell(`<h2>Set up your workspace</h2><p class="muted">Create the admin account. You can add your agents next.</p>
+    authShell(`<h2>Set up your workspace</h2><p class="muted">Create the admin account. You can add your agents next.</p>${err}
+      ${st.google ? googleButton('Sign up with Google') : ''}
       <form id="f"><label>Company name<input name="company" required></label><label>Your name<input name="name" required></label>
       <label>Email<input name="email" type="email" required></label><label>Your mobile (rings when you call)<input name="phone" placeholder="98xxxxxxxx"></label>
       <label>Password<input name="password" type="password" minlength="8" required placeholder="8+ characters"></label>
@@ -138,7 +157,8 @@ async function authView() {
     };
     return;
   }
-  authShell(`<h2>Welcome back</h2><p class="muted">Sign in to your SalePunch workspace.</p>
+  authShell(`<h2>Welcome back</h2><p class="muted">Sign in to your SalePunch workspace.</p>${err}
+    ${st.google ? googleButton('Continue with Google') : ''}
     <form id="f"><label>Email<input name="email" type="email" autocomplete="username" required></label>
     <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
     <button class="primary">Sign in</button></form>`);
@@ -514,11 +534,11 @@ async function teamView() {
     const self = u && u.id === me.user.id;
     dlg.innerHTML = `<h2>${u ? 'Edit ' + esc(u.name) : 'Add agent'}</h2><form id="uf">
       <label>Name<input name="name" value="${esc(u?.name || '')}" required></label>
-      ${u ? '' : '<label>Email (used to sign in)<input name="email" type="email" required></label>'}
+      ${u ? '' : '<label>Email (used to sign in: their Gmail / Google Workspace address for Google sign-in)<input name="email" type="email" required></label>'}
       <label>Mobile (rings when they tap Call)<input name="phone" value="${esc(u?.phone || '')}" placeholder="98xxxxxxxx"></label>
       ${isManager() && !self ? `<label>Role<select name="role">${['agent', 'manager', 'admin'].map((r) => `<option ${u?.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></label>` : ''}
       ${u && isManager() && !self ? `<label class="row"><input type="checkbox" name="active" ${u.active ? 'checked' : ''} style="width:auto"> Active (can sign in)</label>` : ''}
-      <label>${u ? 'New password (leave blank to keep)' : 'Password (8+ characters)'}<input name="password" type="password" ${u ? '' : 'required minlength="8"'}></label>
+      <label>${u ? 'New password (leave blank to keep)' : 'Password (optional: leave blank if they sign in with Google)'}<input name="password" type="password" minlength="8"></label>
       <div class="row" style="justify-content:flex-end"><button type="button" onclick="this.closest('dialog').close()">Cancel</button><button class="primary">Save</button></div></form>`;
     dlg.showModal();
     document.getElementById('uf').onsubmit = async (e) => {

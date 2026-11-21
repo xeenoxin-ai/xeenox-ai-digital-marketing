@@ -232,3 +232,36 @@ test('productivity: activity, gaps, target and best hour', () => {
   assert.deepEqual(p.hours.map((h) => [h.hour, h.calls, h.connected]), [[10, 3, 2], [12, 1, 1]]);
   assert.equal(p.best_hours[0].hour, 10);
 });
+
+// ---- Google sign-in
+import { profileFromIdToken, authUrl } from '../salepunch/src/google.js';
+import { signToken, readToken } from '../salepunch/src/auth.js';
+
+const fakeIdToken = (claims) => ['e30', Buffer.from(JSON.stringify(claims)).toString('base64url'), 'sig'].join('.');
+
+test('Google ID token: accepted only for our app, fresh and verified', () => {
+  const now = Date.parse('2026-11-21T10:00:00Z');
+  const ok = { iss: 'https://accounts.google.com', aud: 'cid', exp: now / 1000 + 300, email: 'Anu@Gmail.com', email_verified: true, name: 'Anu', sub: '1' };
+  assert.deepEqual(profileFromIdToken(fakeIdToken(ok), 'cid', now), { email: 'anu@gmail.com', name: 'Anu', sub: '1' });
+  assert.throws(() => profileFromIdToken(fakeIdToken({ ...ok, aud: 'other' }), 'cid', now), /another app/);
+  assert.throws(() => profileFromIdToken(fakeIdToken({ ...ok, iss: 'evil.com' }), 'cid', now), /not from Google/);
+  assert.throws(() => profileFromIdToken(fakeIdToken({ ...ok, exp: now / 1000 - 1 }), 'cid', now), /expired/);
+  assert.throws(() => profileFromIdToken(fakeIdToken({ ...ok, email_verified: false }), 'cid', now), /not verified/);
+});
+
+test('Google auth URL asks for email and picks an account', () => {
+  const u = new URL(authUrl({ clientId: 'cid', redirectUri: 'https://x/api/auth/google/callback', state: 's' }));
+  assert.equal(u.hostname, 'accounts.google.com');
+  assert.equal(u.searchParams.get('scope'), 'openid email profile');
+  assert.equal(u.searchParams.get('redirect_uri'), 'https://x/api/auth/google/callback');
+  assert.equal(u.searchParams.get('prompt'), 'select_account');
+});
+
+test('sign-in hand-off tokens are typed and can never be used as a session', async () => {
+  const secret = 'x'.repeat(32);
+  const t = await signToken('handoff', { uid: 'u1' }, secret, 60000, 1000);
+  assert.equal((await readToken('handoff', t, secret, 2000)).uid, 'u1');
+  assert.equal(await readToken('oauth', t, secret, 2000), null);
+  assert.equal(await readToken('handoff', t, secret, 1000 + 61000), null);
+  assert.equal(await readSession(t, secret, 2000), null);
+});

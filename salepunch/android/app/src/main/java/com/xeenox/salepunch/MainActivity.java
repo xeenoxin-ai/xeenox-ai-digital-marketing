@@ -60,7 +60,14 @@ public class MainActivity extends Activity {
                     return true;
                 }
                 Uri home = Uri.parse(BuildConfig.APP_URL);
-                if (home.getHost() != null && home.getHost().equals(uri.getHost())) return false;
+                boolean ours = home.getHost() != null && home.getHost().equals(uri.getHost());
+                // Google blocks its sign-in page inside apps' web views: use the browser,
+                // which hands the login back through salepunch://login.
+                if (ours && uri.getPath() != null && uri.getPath().startsWith("/api/auth/google/start")) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (ActivityNotFoundException ignored) { }
+                    return true;
+                }
+                if (ours) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (ActivityNotFoundException ignored) { }
                 return true;
             }
@@ -88,8 +95,28 @@ public class MainActivity extends Activity {
         askPermissions();
         ReadyService.start(this); // take calls clicked on the computer
         askBatteryOnce();
-        if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(BuildConfig.APP_URL);
+        if (!handleLoginLink(getIntent())) {
+            if (savedInstanceState != null) web.restoreState(savedInstanceState);
+            else web.loadUrl(BuildConfig.APP_URL);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleLoginLink(intent);
+    }
+
+    /** salepunch://login?t=… comes back from Google sign-in in the browser. */
+    private boolean handleLoginLink(Intent intent) {
+        Uri data = intent == null ? null : intent.getData();
+        if (data == null || !"salepunch".equals(data.getScheme()) || !"login".equals(data.getHost())) return false;
+        String t = data.getQueryParameter("t");
+        if (t == null) return false;
+        Uri home = Uri.parse(BuildConfig.APP_URL);
+        web.loadUrl(home.getScheme() + "://" + home.getHost() + "/api/auth/google/app-exchange?t=" + Uri.encode(t));
+        return true;
     }
 
     @Override

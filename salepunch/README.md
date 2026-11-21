@@ -133,6 +133,29 @@ Open the URL it prints, create the admin account, then:
 Set `APP_URL` in `wrangler.toml` to your final address (for example a custom
 domain) so links in reports and CRM events point to the right place.
 
+### Sign in with Google
+
+People can sign in with **Continue with Google** (Gmail or Google Workspace)
+as well as with an email and password.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   create or pick a project. Set up the **OAuth consent screen** (External, app
+   name "SalePunch", your support email), then **Create credentials → OAuth
+   client ID → Web application**.
+2. Under **Authorized redirect URIs**, add
+   `https://salepunch.xeenox-in.workers.dev/api/auth/google/callback`
+   (or your own domain + `/api/auth/google/callback`).
+3. In the Cloudflare dashboard → Workers & Pages → **salepunch** → Settings →
+   Variables and Secrets, add two **Secrets**: `GOOGLE_CLIENT_ID` and
+   `GOOGLE_CLIENT_SECRET`. The **Continue with Google** button appears once
+   both are set.
+
+Only people already in the workspace can sign in: the admin adds them on
+**Team** with their Gmail address, and the password can be left empty. In a
+brand-new workspace, the first Google sign-in becomes the admin. In the Android
+app, Google sign-in opens in the phone's browser (Google blocks it inside
+apps' built-in browsers) and returns to the app via `salepunch://login`.
+
 ### Connect Exotel (the Call button)
 
 1. Sign up at exotel.com, finish KYC and buy an **ExoPhone** (virtual number).

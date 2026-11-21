@@ -41,7 +41,25 @@ export async function readSession(token, secret, now = Date.now()) {
   try {
     if (!(await crypto.subtle.verify('HMAC', await hmacKey(secret), unb64u(sig), enc.encode(body)))) return null;
     const p = JSON.parse(new TextDecoder().decode(unb64u(body)));
+    if (p.kind) return null; // other signed tokens (OAuth state, app hand-off) are never sessions
     return p.exp > now ? p : null;
+  } catch { return null; }
+}
+
+/** Short-lived signed token of a given kind (not usable as a session). */
+export async function signToken(kind, data, secret, ttlMs, now = Date.now()) {
+  const body = b64u(enc.encode(JSON.stringify({ ...data, kind, exp: now + ttlMs })));
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), enc.encode(body));
+  return `${body}.${b64u(sig)}`;
+}
+
+export async function readToken(kind, token, secret, now = Date.now()) {
+  const [body, sig] = String(token || '').split('.');
+  if (!body || !sig) return null;
+  try {
+    if (!(await crypto.subtle.verify('HMAC', await hmacKey(secret), unb64u(sig), enc.encode(body)))) return null;
+    const p = JSON.parse(new TextDecoder().decode(unb64u(body)));
+    return p.kind === kind && p.exp > now ? p : null;
   } catch { return null; }
 }
 
