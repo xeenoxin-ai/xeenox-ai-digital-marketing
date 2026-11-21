@@ -24,27 +24,58 @@ convert the lead.
 
 ## How calls get recorded
 
-Calls from a normal SIM can't be recorded by a server, so SalePunch places
-calls through **cloud telephony**:
+SalePunch has two ways to call. Choose one in **Settings → How agents call**.
 
-1. The agent presses **Call** on a lead.
-2. Exotel rings the agent's mobile. When the agent answers, Exotel dials the
-   lead and shows your **company number** (ExoPhone) as the caller ID.
-3. Exotel records both sides (agent and lead on separate channels).
-4. When the call ends, Exotel sends SalePunch the recording. SalePunch stores
-   it, transcribes it, analyses it and updates the lead.
+### 1. Agent's own SIM: the SalePunch Android app (default)
 
-Agents keep using their own phones, and the lead sees your company number.
-(Calls that leads make *to* your number are not in SalePunch yet; that is a
-likely next step.)
+This works the same way as TeleCRM, Callyzer and Salestrail. Android doesn't let
+ordinary apps record calls, but the phone's own dialer can, so:
 
-**Calls made outside SalePunch** (for example from a phone's own dialer) can be
-added on **Add a call**: upload the phone's recording file, or paste what was
-said.
+1. The agent opens the **SalePunch app** (`salepunch/android`) and taps **Call** on a lead.
+2. The app dials the lead straight from the SIM in the phone (`ACTION_CALL`, no typing).
+3. The phone's **built-in call recorder** records both voices. Set it to
+   auto-record all calls once per phone. The steps for each brand are in the
+   app under *How it works*.
+4. When the call ends, the app reads the **call log** (real length, answered or
+   not), finds the newest **call recording** in the phone's storage, and uploads
+   both to `POST /api/calls/{id}/finish`.
+5. SalePunch transcribes it, scores it and updates the lead. Managers see who
+   is on a call right now in the **Live now** strip on the Dashboard.
 
-> **Recording consent (India):** tell leads the call is recorded. Set an Exotel
-> greeting such as "This call may be recorded for quality and training". Keep
-> recordings only as long as you need them (DPDP Act 2023).
+If the app is closed during the call, the result is picked up the next time it
+opens. If a phone has no recorder, the call is still logged (time, length,
+answered) and shows "No recording found".
+
+In a plain phone **browser**, Call opens the dialer with the number filled in.
+When the agent comes back, a "How did the call go?" box asks for the result and
+an optional recording file.
+
+### 2. Company cloud line (Exotel)
+
+Exotel rings the agent's mobile, then connects the lead, showing the company
+number. Exotel records the call and sends it to SalePunch. Use this if you want
+a single company caller ID or to listen to calls live. Setup is below.
+
+### The Android app
+
+- Code: `salepunch/android` (plain Java, no extra libraries). It opens the
+  SalePunch web app and adds the `window.SalePunchPhone` bridge.
+- **Build:** every push that changes `salepunch/android` runs the GitHub Actions
+  workflow *Build SalePunch Android app*. Download `SalePunch-android-app` (the
+  APK) from that run's *Artifacts*, or run the workflow by hand from the Actions tab.
+- **Install:** send the APK to agents (WhatsApp or Drive). They open it, allow
+  "install unknown apps" once, sign in, and allow Phone, Call logs and Music &
+  audio. Apps that read the call log are installed this way, outside Play Store,
+  because Google restricts that permission to approved apps.
+- **Download link:** to show a *Download the Android app* button in SalePunch,
+  host the APK somewhere and set `ANDROID_APP_URL` in `wrangler.toml` vars.
+- The address the app opens is `APP_URL` in `salepunch/android/app/build.gradle`.
+- The APK is signed with a debug key, which is fine for installing directly. For
+  Play Store or long-term updates, add your own signing key.
+
+> **Recording consent (India):** tell leads the call is recorded. Many phones
+> announce it automatically. Keep recordings only as long as you need them
+> (DPDP Act 2023).
 
 ## Running it (Cloudflare)
 
@@ -170,4 +201,5 @@ Tests: `npm test` (`tests/salepunch.test.js`).
 | `public/landing.html` | Public home page with pricing |
 | `src/crm.js` | Lead webhook mapping, CRM event, lead status rules |
 | `schema.sql` | Database tables |
+| `android/` | SalePunch Android app: SIM dialing, call-log reading, recording upload |
 | `public/` | The dashboard (plain HTML/CSS/JS, no build step), bundled into the worker by `src/static.js` |

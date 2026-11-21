@@ -149,16 +149,16 @@ async function authView() {
 }
 
 // ------------------------------------------------------------ dashboard
+const simNotice = () => (!PHONE && me.call_mode === 'sim' ? `<div class="notice">${ic('phone')}<div>Calls go out from your own SIM. For <b>automatic recording</b>, install the <b>SalePunch phone app</b> on your Android phone. In a browser, Call opens your phone's dialer and asks how the call went. <a href="#/guide">How it works</a></div></div>` : '');
 function setupNotices() {
-  let h = '';
-  if (!me.telephony) h += `<div class="notice">${ic('phone')}<div>The <b>Call</b> button turns on once Exotel is connected. Until then, add calls with <a href="#/upload">Add a call</a>. <a href="#/guide">How it works</a></div></div>`;
+  let h = simNotice();
   if (!me.ai) h += `<div class="notice">${ic('brain')}<div>AI analysis isn't connected (no Claude API key), so calls only get a rough keyword estimate.</div></div>`;
   return h;
 }
 async function dashboardView(arg) {
   const day = arg || me.today;
   shell('dashboard', loading());
-  const d = await api(`/api/dashboard?from=${day}`);
+  const [d, live] = await Promise.all([api(`/api/dashboard?from=${day}`), day === me.today ? api('/api/calls/live').then((x) => x.calls).catch(() => []) : []]);
   const t = d.team;
   const pipe = Object.fromEntries(d.pipeline.map((p) => [p.status, p.n]));
   const pipeTotal = LEAD_STATUSES.reduce((s, k) => s + (pipe[k] || 0), 0);
@@ -167,6 +167,8 @@ async function dashboardView(arg) {
     <div class="head"><div><h1>${hello}, ${esc(me.user.name.split(' ')[0])}</h1><div class="muted">${isManager() ? 'Your team' : 'Your calls'} · ${new Date(day + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
       ${dayNav('dashboard', day)}</div>
     ${setupNotices()}
+    ${live.length ? `<div class="panel" style="padding:14px 18px"><div class="row" style="gap:12px"><span class="pill bad" style="background:var(--good-soft);color:var(--good)">LIVE NOW</span>
+      ${live.map((c) => `<span class="row" style="gap:8px">${avatar(c.agent_name, true)}<span><b>${esc(c.agent_name || '')}</b> <span class="muted">on a call with</span> <b>${esc(c.lead_name || c.lead_phone || 'a lead')}</b> <span class="muted small">· ${Math.max(0, Math.round((Date.now() - c.started_at) / 60000))} min</span></span></span>`).join('')}</div></div>` : ''}
     <div class="grid g4">
       ${tile('trophy', `${t.converted} <small>${t.conversion_pct}%</small>`, 'Converted · of connected calls', '', true)}
       ${tile('phone', `${t.connected}<small> / ${t.dialed}</small>`, `Connected / dialed · ${mins(t.talk_time_sec)} talk`, 'good')}
@@ -274,7 +276,7 @@ async function callView(id) {
 
 // ------------------------------------------------------------ live call tracker
 let liveTimer = null;
-function liveCall(callId, leadName) {
+function liveCall(callId, leadName, sim = false) {
   const el = document.getElementById('live');
   const started = Date.now();
   clearInterval(liveTimer);
@@ -286,20 +288,78 @@ function liveCall(callId, leadName) {
     const ended = st !== 'dialing';
     el.className = `show ${done ? 'done' : ''} ${fail ? 'fail' : ''}`;
     el.innerHTML = `<div class="top"><div class="pulse">${ic('phone')}</div><div><b>${esc(leadName)}</b><div class="small" style="color:var(--side-muted)">${
-      fail ? esc(CALL_STATUS[st] || st) : done ? 'Call analysed' : ended ? 'Call ended, processing' : 'Answer your phone. SalePunch connects the lead'}</div></div>
+      fail ? esc(CALL_STATUS[st] || st) : done ? 'Call analysed' : pr === 'skipped' ? esc(c?.error || 'Call saved, no recording') : ended ? 'Call ended, processing' : sim ? 'Calling from your SIM…' : 'Answer your phone. SalePunch connects the lead'}</div></div>
       <button class="x" aria-label="Close">${ic('x')}</button></div>
-      ${fail ? '' : `<div class="steps">${step(!ended, ended, 'Your phone rings, then the lead is connected')}${step(ended && pr === 'pending', ended && pr !== 'pending', 'Recording saved')}
+      ${fail ? '' : `<div class="steps">${step(!ended, ended, sim ? 'Your phone calls the lead from your SIM' : 'Your phone rings, then the lead is connected')}${step(ended && pr === 'pending', ended && pr !== 'pending', 'Recording saved')}
         ${step(pr === 'transcribing', ['analyzing', 'done'].includes(pr), 'Writing out the conversation')}${step(pr === 'analyzing', done, 'AI scoring the call')}</div>`}
       ${done ? `<a class="btn primary" style="width:100%;justify-content:center;margin-top:10px" href="#/calls/${callId}">Open call report</a>` : ''}`;
     el.querySelector('.x').onclick = () => { el.className = ''; clearInterval(liveTimer); };
-    if (done || fail || pr === 'error') clearInterval(liveTimer);
+    if (done || fail || pr === 'error' || pr === 'skipped') clearInterval(liveTimer);
   };
   draw(null);
+  liveCall.poll = async () => { try { draw((await api(`/api/calls/${callId}`)).call); } catch { /* keep polling */ } };
   liveTimer = setInterval(async () => {
     if (Date.now() - started > 75 * 60000) return clearInterval(liveTimer);
     try { draw((await api(`/api/calls/${callId}`)).call); } catch { /* keep polling */ }
   }, 4000);
 }
+
+
+// ------------------------------------------------------------ calling
+// Three ways to call, picked automatically:
+//  1. SalePunch Android app (window.SalePunchPhone): dials from the agent's SIM,
+//     then uploads the phone's own call recording when the call ends.
+//  2. Exotel cloud line (call_mode "exotel"): rings the agent, then the lead.
+//  3. Plain browser: opens the phone dialer (tel:) and asks how the call went.
+const PHONE = window.SalePunchPhone || null;
+async function startCall(leadId, name) {
+  if (me.call_mode === 'exotel' && me.telephony) {
+    const r = await api('/api/calls/dial', { method: 'POST', body: { lead_id: leadId } });
+    return liveCall(r.id, name);
+  }
+  const r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId } });
+  if (PHONE) {
+    if (PHONE.ready && !PHONE.ready()) { PHONE.askPermissions && PHONE.askPermissions(); toast('Allow Phone, Call logs and Music & audio, then tap Call again.'); return; }
+    PHONE.call(r.id, r.phone);
+    return liveCall(r.id, name, true);
+  }
+  try { sessionStorage.setItem('sp_pending', JSON.stringify({ id: r.id, name, t: Date.now() })); } catch { /* private mode */ }
+  location.href = 'tel:' + r.phone;
+  setTimeout(() => askCallResult(r.id, name, Date.now()), 1500);
+}
+// The Android app calls this when it has uploaded the result.
+window.salepunchCallDone = () => { if (liveCall.poll) liveCall.poll(); };
+
+let asking = false;
+function askCallResult(id, name, t) {
+  if (asking && document.getElementById('calldlg')?.open) return; asking = true;
+  let dlg = document.getElementById('calldlg');
+  if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'calldlg'; document.body.appendChild(dlg); }
+  if (dlg.open) return;
+  const away = Math.max(0, Math.round((Date.now() - t) / 60000));
+  dlg.innerHTML = `<h2>How did the call with ${esc(name)} go?</h2><p class="small muted" style="margin-top:-6px">Calls from a browser can't be recorded automatically. For automatic recording, use the SalePunch Android app.</p>
+    <form id="cr"><div class="row" style="margin-bottom:14px">${[['completed', 'Spoke to them'], ['no_answer', 'No answer'], ['busy', 'Busy / cut']].map(([v, l], i) => `<label class="row" style="margin:0;font-weight:600"><input type="radio" name="status" value="${v}" ${i ? '' : 'checked'} style="width:auto"> ${l}</label>`).join('')}</div>
+    <label>Call length (minutes)<input type="number" name="minutes" min="0" step="0.5" value="${away}" style="max-width:140px"></label>
+    <label>Recording from your phone (optional)<input type="file" name="audio" accept="audio/*,.m4a,.amr,.mp3,.wav,.ogg"></label>
+    <div class="row" style="justify-content:flex-end"><button type="button" id="crSkip">Later</button><button class="primary">Save call</button></div></form>`;
+  dlg.showModal();
+  const done = () => { asking = false; try { sessionStorage.removeItem('sp_pending'); } catch { /* ignore */ } dlg.close(); };
+  dlg.querySelector('#crSkip').onclick = done;
+  dlg.querySelector('#cr').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    fd.set('duration_sec', String(Math.round(Number(fd.get('minutes') || 0) * 60))); fd.delete('minutes');
+    if (!(fd.get('audio') && fd.get('audio').size)) fd.delete('audio');
+    try { await api(`/api/calls/${id}/finish`, { method: 'POST', form: fd }); done(); toast('Call saved'); liveCall(id, name, true); } catch (err) { toast(err.message); }
+  };
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || PHONE) return;
+  try {
+    const p = JSON.parse(sessionStorage.getItem('sp_pending') || 'null');
+    if (p && Date.now() - p.t > 3000) askCallResult(p.id, p.name, p.t);
+  } catch { /* ignore */ }
+});
 
 // ------------------------------------------------------------ leads
 async function leadsView(_, q) {
@@ -310,18 +370,18 @@ async function leadsView(_, q) {
   const agentOpts = (sel) => `<option value="">Unassigned</option>${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${sel === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
   setMain(`<div class="head"><div><h1>Leads</h1><div class="muted">${leads.length} lead${leads.length === 1 ? '' : 's'}${q.get('due') ? ' · follow-ups due' : ''} · tap <b>Call</b> to start a recorded call</div></div>
       <div class="row"><button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
-    ${!me.telephony ? setupNotices() : ''}
+    ${simNotice()}
     <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">
       <select name="status"><option value="">All statuses</option>${LEAD_STATUSES.map((s) => `<option value="${s}" ${q.get('status') === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
       ${isManager() ? `<select name="owner"><option value="">All agents</option>${users.map((u) => `<option value="${u.id}" ${q.get('owner') === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}
       <label class="row" style="margin:0"><input type="checkbox" name="due" value="1" ${q.get('due') ? 'checked' : ''} style="width:auto"> Due today</label><button class="primary">${ic('search')} Search</button></form>
     <div class="panel flush scroll">${leads.length ? `<table><tr><th>Lead</th><th>Status</th>${isManager() ? '<th>Agent</th>' : ''}<th>Source</th><th>Follow-up</th><th class="n">Calls</th><th></th></tr>
-      ${leads.map((l) => `<tr data-id="${l.id}"><td><div class="who">${avatar(l.name, true)}<div>${esc(l.name)}<span>${esc(l.phone)}${l.notes ? ' · ' + esc(l.notes.slice(0, 60)) : ''}</span></div></div></td>
+      ${leads.map((l) => `<tr data-id="${l.id}"><td><div class="who">${avatar(l.name, true)}<div style="flex:1">${esc(l.name)}<span>${esc(l.phone)}${l.notes ? ' · ' + esc(l.notes.slice(0, 60)) : ''}</span></div><button class="call call-m" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')}</button></div></td>
         <td><select data-f="status" style="width:auto">${LEAD_STATUSES.map((s) => `<option value="${s}" ${l.status === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></td>
         ${isManager() ? `<td><select data-f="owner_id" style="width:auto">${agentOpts(l.owner_id)}</select></td>` : ''}
         <td class="small">${esc(l.source || '')}</td><td><input type="date" data-f="next_follow_up" value="${esc(l.next_follow_up || '')}" style="width:auto"></td>
         <td class="n">${l.call_count ? `<a href="#/calls?lead=${l.id}&from=2000-01-01">${l.call_count}</a>` : '<span class="muted">0</span>'}</td>
-        <td class="n"><button class="call" data-call="${l.id}" data-name="${esc(l.name)}" ${me.telephony ? '' : 'disabled title="Connect telephony first"'}>${ic('phone')} Call</button></td></tr>`).join('')}</table>`
+        <td class="n call-col"><button class="call" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')} Call</button></td></tr>`).join('')}</table>`
       : empty('users', 'No leads yet', 'Add a lead, import a CSV, or connect your lead forms in Settings.')}</div>
     <dialog id="dlg"></dialog>`);
   document.getElementById('flt').onsubmit = (e) => { e.preventDefault(); location.hash = '#/leads?' + new URLSearchParams(Object.entries(form(e.target)).filter(([, v]) => v)); };
@@ -333,7 +393,7 @@ async function leadsView(_, q) {
   document.querySelectorAll('[data-call]').forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
-      try { const r = await api('/api/calls/dial', { method: 'POST', body: { lead_id: b.dataset.call } }); liveCall(r.id, b.dataset.name); } catch (e) { toast(e.message); }
+      try { await startCall(b.dataset.call, b.dataset.name); } catch (e) { toast(e.message); }
       setTimeout(() => { b.disabled = false; }, 8000);
     };
   });
@@ -461,6 +521,9 @@ async function settingsView() {
     <div class="panel"><h2>Your sales script</h2><p class="small muted" style="margin-top:-6px">The AI checks every call against this. Write it the way you train new agents, step by step.</p>
       <label>Company name<input name="company" value="${esc(v.company)}"></label>
       <label>What you sell (products, prices, offers, common questions)<textarea name="product">${esc(v.product)}</textarea></label>
+      <label>How agents call<select name="call_mode" style="max-width:420px">
+        <option value="sim" ${me.call_mode !== 'exotel' ? 'selected' : ''}>Agent's own SIM (SalePunch Android app)</option>
+        <option value="exotel" ${me.call_mode === 'exotel' ? 'selected' : ''} ${s.telephony ? '' : 'disabled'}>Company cloud line (Exotel)${s.telephony ? '' : ': not connected'}</option></select></label>
       <label>Daily call target per agent (used on Productivity)<input name="daily_call_target" type="number" min="1" max="1000" value="${esc(v.daily_call_target || 60)}" style="max-width:160px"></label>
       <label>Sales script<textarea name="script" style="min-height:220px" placeholder="1. Greet: 'Good morning, this is <name> from <company>…'&#10;2. Confirm you are speaking to the right person&#10;3. Ask what they are looking for&#10;4. …">${esc(v.script)}</textarea></label></div>
     <div class="panel"><h2>${ic('link')} CRM connection</h2>
@@ -478,40 +541,52 @@ async function settingsView() {
 // ------------------------------------------------------------ guide
 function guideView() {
   shell('guide', '');
-  setMain(`<div class="head"><div><h1>How SalePunch works</h1><div class="muted">From tapping Call to a scored call report, in about a minute.</div></div></div>
+  const exo = me.call_mode === 'exotel';
+  setMain(`<div class="head"><div><h1>How SalePunch works</h1><div class="muted">From tapping Call to a scored call report, in about a minute.</div></div>
+      ${me.android_app ? `<a class="btn primary" href="${esc(me.android_app)}">${ic('upload')} Download the Android app</a>` : ''}</div>
+    ${PHONE ? `<div class="notice" style="background:var(--good-soft);color:var(--good)">${ic('check')}<div>You're using the <b>SalePunch phone app</b>. Calls go out from your SIM and recordings upload automatically.
+      ${PHONE.ready && !PHONE.ready() ? ' <button class="link" id="perm">Allow phone permissions</button>' : ''} <button class="link" id="recset">Open call-recording settings</button></div></div>` : ''}
     <div class="panel"><h2>What happens on every call</h2><div class="flow">
-      <div><div class="ic">${ic('users')}</div><b>Agent taps Call</b><p>On the lead's row in <a href="#/leads">Leads</a>.</p></div>
-      <div><div class="ic">${ic('phone')}</div><b>Agent's phone rings</b><p>The agent answers. SalePunch then rings the lead, who sees your company number.</p></div>
-      <div><div class="ic">${ic('mic')}</div><b>Whole call recorded</b><p>Both voices are recorded from "hello" to hang-up, on your company line.</p></div>
-      <div><div class="ic">${ic('brain')}</div><b>AI listens</b><p>The recording becomes a written conversation and the AI scores it.</p></div>
-      <div><div class="ic">${ic('chart')}</div><b>Report ready</b><p>Outcome, chance to convert, skills, objections and next step appear in Calls.</p></div>
+      <div><div class="ic">${ic('users')}</div><b>Agent taps Call</b><p>On the lead in <a href="#/leads">Leads</a>, inside the SalePunch phone app.</p></div>
+      <div><div class="ic">${ic('phone')}</div><b>${exo ? 'Company line connects' : 'SIM dials the lead'}</b><p>${exo ? 'The agent\'s phone rings, then the lead. The lead sees your company number.' : 'The app dials straight away from the company SIM in the agent\'s phone. No typing the number.'}</p></div>
+      <div><div class="ic">${ic('mic')}</div><b>Call recorded automatically</b><p>${exo ? 'The company line records both voices.' : 'The phone\'s own call recorder records both voices, hello to goodbye.'}</p></div>
+      <div><div class="ic">${ic('upload')}</div><b>Uploaded on hang-up</b><p>${exo ? 'The line sends the recording to SalePunch.' : 'The app reads the call length from the call log, finds the recording and uploads it.'}</p></div>
+      <div><div class="ic">${ic('brain')}</div><b>AI report ready</b><p>Conversation, outcome, chance to convert, skills and next step appear in Calls.</p></div>
     </div></div>
     <div class="grid g2">
-      <div class="panel"><h2>${ic('phone')} For agents: how to call a lead</h2><ol class="steps-list">
-        <li><div><b>Open Leads</b><p>Your assigned leads are listed, with follow-ups due today at the top of the filter.</p></div></li>
-        <li><div><b>Tap the green Call button</b><p>Don't dial from your phone's keypad. Calls made that way aren't recorded.</p></div></li>
-        <li><div><b>Answer your phone</b><p>It rings within a few seconds from the company number. Pick up and wait a moment while the lead is connected.</p></div></li>
-        <li><div><b>Talk normally</b><p>Follow the script. A live card on screen shows the call's progress.</p></div></li>
-        <li><div><b>Hang up</b><p>About a minute later, the full conversation and your scores appear. Tap <i>Open call report</i>.</p></div></li>
-        <li><div><b>Set the follow-up</b><p>The AI fills in the next step and date. Check it on the lead.</p></div></li></ol></div>
-      <div class="panel"><h2>${ic('chart')} For managers: what you see</h2><ul class="clean">
-        <li>${ic('mic')}<span><b>Every conversation:</b> play the recording or read it like a chat. Tap a timestamp to jump to that moment.</span></li>
-        <li>${ic('target')}<span><b>Converting or not:</b> each call is marked Converted, Interested, Follow-up or Not interested, with the lead's % chance to buy.</span></li>
-        <li>${ic('star')}<span><b>Sales skills:</b> opening, questions, pitch, objection handling, closing, tone and listening, each scored out of 10.</span></li>
-        <li>${ic('check')}<span><b>Script check:</b> which steps of your script were followed or skipped.</span></li>
-        <li>${ic('flag')}<span><b>Red flags:</b> rudeness, false promises, wrong prices, upset leads.</span></li>
-        <li>${ic('trophy')}<span><b>Leaderboard:</b> calls, talk time, conversions and conversion % per agent per day.</span></li>
-        <li>${ic('file')}<span><b>Daily report:</b> 9 pm summary with a coaching note for each agent, sent to Slack or WhatsApp if you like.</span></li></ul></div>
+      <div class="panel"><h2>${ic('phone')} One-time phone setup (each agent)</h2><ol class="steps-list">
+        <li><div><b>Install the SalePunch app</b><p>Your admin shares the APK file. Open it and allow "install unknown apps" for that one install.</p></div></li>
+        <li><div><b>Sign in</b><p>Use the same email and password as on the website.</p></div></li>
+        <li><div><b>Allow the permissions</b><p><b>Phone</b> (to dial), <b>Call logs</b> (to read the call length) and <b>Music & audio</b> (to find the recording).</p></div></li>
+        <li><div><b>Turn on automatic call recording</b> in the phone's own dialer:<p>
+          <b>Samsung:</b> Phone → ⋮ → Settings → Record calls → Auto record calls → All calls.<br>
+          <b>Xiaomi / Redmi / POCO:</b> Phone → Settings → Call recording → Record calls automatically → All numbers.<br>
+          <b>Google Phone</b> (Pixel, Motorola, Nokia, many others in India): Phone → Settings → Call recording → "Numbers not in your contacts" → Always record.<br>
+          <b>OnePlus / OPPO / Realme / Vivo:</b> Phone → Settings → Call recording → Auto-record → All calls.</p></div></li>
+        <li><div><b>Make a test call</b><p>Call a colleague from Leads, then check the call appears in Calls with its recording.</p></div></li></ol></div>
+      <div class="panel"><h2>${ic('users')} For agents: every call</h2><ol class="steps-list">
+        <li><div><b>Open Leads in the app</b><p>Follow-ups due today are under "Due today".</p></div></li>
+        <li><div><b>Tap the green Call button</b><p>The call starts from your SIM straight away. Never dial from the keypad: those calls aren't tracked.</p></div></li>
+        <li><div><b>Talk normally</b><p>Follow the script. The phone records the call.</p></div></li>
+        <li><div><b>Hang up and come back to the app</b><p>The recording uploads by itself. About a minute later your scores and coaching appear.</p></div></li>
+        <li><div><b>Check the follow-up</b><p>The AI fills in the next step and date on the lead.</p></div></li></ol>
+        <h3 style="margin-top:18px">Managers see</h3><ul class="clean small">
+        <li>${ic('mic')}<span>Every conversation, as audio and as a chat</span></li><li>${ic('target')}<span>Converted or not, with the chance to buy</span></li>
+        <li>${ic('leak')}<span>Where sales leak, in <a href="#/leaks">Sales leaks</a></span></li><li>${ic('zap')}<span>Who is on a call right now, and each agent's day, in <a href="#/productivity">Productivity</a></span></li></ul></div>
     </div>
     <div class="panel"><h2>${ic('shield')} Questions</h2>
-      <details><summary>How does SalePunch catch the conversation?</summary><p>The call doesn't go directly from the agent's SIM to the lead. It goes through your company phone line (Exotel). Exotel connects both people and records both sides of the call. When the call ends, it sends the recording to SalePunch. SalePunch turns the speech into text, works out which lines are the agent's and which are the lead's, and has the AI analyse the call.</p></details>
-      <details><summary>What if an agent calls from their own phone dialer?</summary><p>Those calls can't be recorded automatically. Upload the phone's own call recording on <a href="#/upload">Add a call</a>, or paste what was said. To get every call, ask agents to always use the Call button. You can see who calls through SalePunch and who doesn't on the leaderboard.</p></details>
-      <details><summary>Which languages work?</summary><p>English, Malayalam, Hindi, Tamil and mixed speech. The summary and coaching are always in simple English.</p></details>
-      <details><summary>Does the lead know the call is recorded?</summary><p>You should tell them. Set a short Exotel greeting such as "This call may be recorded for quality". Indian law (DPDP Act 2023) expects you to inform people and to keep recordings only as long as needed.</p></details>
-      <details><summary>What do I need to connect?</summary><p>1) An Exotel account with a company number (ExoPhone), for the Call button. 2) A Claude API key, for the AI analysis. 3) Optionally, your CRM or lead forms through the webhook in Settings. Each agent also needs their mobile number on the Team page.</p></details>
+      <details><summary>How does SalePunch catch the conversation?</summary><p>Android doesn't let ordinary apps record calls, but the phone's own dialer can. So SalePunch works like TeleCRM, Callyzer or Salestrail. The SalePunch app dials the lead from the agent's SIM, and the phone's built-in recorder records both voices. When the call ends, the app reads the call log (length, answered or not) and uploads the newest call recording. SalePunch then writes out the conversation, separates the agent's and the lead's lines, and the AI scores it.</p></details>
+      <details><summary>Can managers listen to the call while it is happening?</summary><p>Not with SIM calling: the recording is uploaded the moment the call ends. Managers can see who is on a call right now in the "Live now" strip on the Dashboard. To listen in live, use a company cloud line (Exotel), which Settings supports as the other calling mode.</p></details>
+      <details><summary>What if a phone has no automatic call recorder?</summary><p>The call is still logged (time, length, answered) but without audio or AI analysis, and shows "No recording found". Most Samsung, Xiaomi, Vivo, OPPO, Realme and OnePlus phones sold in India have one, and so does the Google Phone app in India. iPhones can't record calls automatically.</p></details>
+      <details><summary>Can agents use the website in a phone browser instead of the app?</summary><p>Yes. Tapping Call opens the phone dialer with the number filled in. When the agent comes back, SalePunch asks how the call went and lets them attach the recording. Only the app does all of this automatically.</p></details>
+      <details><summary>Which languages work?</summary><p>English, Malayalam, Hindi, Tamil and mixed speech. Summaries and coaching are always in simple English.</p></details>
+      <details><summary>Does the lead know the call is recorded?</summary><p>Some phones announce the recording to both sides. Either way, tell leads early in the call ("this call is recorded for quality"). Indian law (DPDP Act 2023) expects you to inform people and to keep recordings only as long as needed.</p></details>
     </div>`);
+  const perm = document.getElementById('perm');
+  if (perm) perm.onclick = () => PHONE.askPermissions();
+  const rs = document.getElementById('recset');
+  if (rs) rs.onclick = () => PHONE.openRecorderSettings && PHONE.openRecorderSettings();
 }
-
 
 // ------------------------------------------------------------ sales leaks
 const LEAK_ICON = { never_called: 'users', slow_first_call: 'clock', missed_follow_ups: 'calendar', not_retried: 'phone', no_close: 'target', objections: 'alert', early_hangup: 'zap', red_flags: 'flag' };

@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.xeenox.salepunch'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.xeenox.salepunch'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        // The SalePunch web app this phone app opens. Change it for a custom domain.
+        buildConfigField 'String', 'APP_URL', '"https://salepunch.xeenox-in.workers.dev/app"'
+    }
+
+    buildFeatures { buildConfig true }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signed with the debug key unless you add your own keystore (see README).
+            signingConfig signingConfigs.debug
+        }
+    }
+}

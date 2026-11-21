@@ -13,7 +13,7 @@ import { dayOf, fail, json, newId, normalizePhone, parseCsv, safeJson, sameSecre
 const MANAGERS = ['admin', 'manager'];
 const isManager = (u) => MANAGERS.includes(u.role);
 const publicUser = ({ pass_hash, ...u }) => u;
-const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url', 'daily_call_target'];
+const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url', 'daily_call_target', 'call_mode'];
 const MAX_UPLOAD = 25 * 1024 * 1024;
 
 async function currentUser(request, env) {
@@ -63,7 +63,8 @@ route('POST', '/api/logout', async () => json({ ok: true }, 200, { 'set-cookie':
 
 route('GET', '/api/me', async (req, env, { user }) => {
   const s = await getSettings(env.DB);
-  return json({ user, company: s.company || '', telephony: exotelReady(env), ai: !!env.ANTHROPIC_API_KEY, today: today(env) });
+  const callMode = s.call_mode === 'exotel' && exotelReady(env) ? 'exotel' : 'sim';
+  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '' });
 });
 
 // --- team
@@ -197,6 +198,59 @@ route('POST', '/api/calls/dial', async (req, env, { user }) => {
     await env.DB.prepare("UPDATE calls SET status = 'failed', processing = 'skipped', error = ? WHERE id = ?").bind(e.message, id).run();
     return fail(502, e.message);
   }
+});
+
+// SIM calling: the agent's own phone places the call (SalePunch Android app,
+// or the phone dialer from a browser). The phone's built-in recorder saves the
+// call and the app uploads it to /api/calls/:id/finish when the call ends.
+route('POST', '/api/calls/sim', async (req, env, { user }) => {
+  const b = await body(req);
+  const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(b.lead_id || '').first();
+  if (!lead || (!isManager(user) && lead.owner_id !== user.id)) return fail(404, 'Lead not found');
+  const id = newId(), now = Date.now();
+  await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, day) VALUES (?, ?, ?, ?, 'sim', 'dialing', ?, ?)")
+    .bind(id, user.id, lead.id, lead.phone, now, today(env, now)).run();
+  if (!lead.owner_id) await env.DB.prepare('UPDATE leads SET owner_id = ? WHERE id = ?').bind(user.id, lead.id).run();
+  return json({ id, phone: lead.phone, name: lead.name });
+});
+
+const SIM_STATUS = ['completed', 'no_answer', 'busy', 'failed'];
+route('POST', '/api/calls/:id/finish', async (req, env, { user, params, ctx }) => {
+  const call = await env.DB.prepare('SELECT * FROM calls WHERE id = ?').bind(params.id).first();
+  if (!call || (call.agent_id !== user.id && !isManager(user))) return fail(404, 'Call not found');
+  if (call.provider === 'exotel') return fail(400, 'This call is tracked by the phone line');
+  const form = await req.formData();
+  const file = form.get('audio');
+  const hasAudio = !!(file && typeof file === 'object' && file.size);
+  if (hasAudio && file.size > MAX_UPLOAD) return fail(413, 'Recording is too large (25 MB max)');
+  const status = SIM_STATUS.includes(String(form.get('status'))) ? String(form.get('status')) : (hasAudio ? 'completed' : call.status === 'dialing' ? 'completed' : call.status);
+  const duration = Math.max(0, Math.round(Number(form.get('duration_sec')) || 0)) || call.duration_sec || 0;
+  const startedAt = Date.parse(String(form.get('started_at') || '')) || call.started_at;
+  let key = null, audio;
+  if (hasAudio) {
+    if (env.RECORDINGS) {
+      const ext = (String(file.name || '').split('.').pop() || 'm4a').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'm4a';
+      key = `calls/${call.day}/${call.id}.${ext}`;
+      await env.RECORDINGS.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'audio/mp4' } });
+    } else audio = new Uint8Array(await file.arrayBuffer());
+  }
+  const processing = hasAudio ? 'pending' : 'skipped';
+  const note = !hasAudio && status === 'completed' ? 'No recording found on the phone. Turn on automatic call recording in the phone dialer (see How it works).' : null;
+  await env.DB.prepare('UPDATE calls SET status = ?, duration_sec = ?, started_at = ?, recording_key = COALESCE(?, recording_key), processing = ?, error = ?, transcript = CASE WHEN ? THEN NULL ELSE transcript END WHERE id = ?')
+    .bind(status, duration, startedAt, key, processing, note, hasAudio ? 1 : 0, call.id).run();
+  if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
+  if (hasAudio) ctx.waitUntil(processCall(env, call.id, { audio }));
+  return json({ ok: true, status, recording: hasAudio });
+});
+
+// Calls happening right now (for the "Live now" strip).
+route('GET', '/api/calls/live', async (req, env, { user }) => {
+  const st = env.DB.prepare(`SELECT c.id, c.agent_id, c.provider, c.started_at, u.name AS agent_name, l.name AS lead_name, c.lead_phone
+    FROM calls c LEFT JOIN users u ON u.id = c.agent_id LEFT JOIN leads l ON l.id = c.lead_id
+    WHERE c.status = 'dialing' AND c.started_at > ? ${isManager(user) ? '' : 'AND c.agent_id = ?'} ORDER BY c.started_at DESC`);
+  const since = Date.now() - 60 * 60000;
+  const { results } = await (isManager(user) ? st.bind(since) : st.bind(since, user.id)).all();
+  return json({ calls: results });
 });
 
 route('POST', '/api/calls/upload', async (req, env, { user, ctx }) => {

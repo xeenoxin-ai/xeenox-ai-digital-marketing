@@ -97,6 +97,9 @@ export async function processCall(env, callId, { textSegments, audio, deps = {} 
 
 /** Retries calls that got stuck (worker restarted mid-way). */
 export async function retryStuck(env, now = Date.now()) {
+  // Phone calls whose result never came back (app closed, no network): close them.
+  await env.DB.prepare("UPDATE calls SET status = 'failed', processing = 'skipped', error = 'The phone never reported how this call ended' WHERE status = 'dialing' AND started_at < ?")
+    .bind(now - 3 * 3600000).run();
   const { results } = await env.DB.prepare(
     "SELECT id FROM calls WHERE processing IN ('pending','transcribing','analyzing') AND status = 'completed' AND started_at < ? LIMIT 10",
   ).bind(now - 20 * 60000).all();
