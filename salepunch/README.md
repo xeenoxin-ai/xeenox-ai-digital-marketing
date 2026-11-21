@@ -43,8 +43,13 @@ said.
 
 ## Running it (Cloudflare)
 
-Everything runs on Cloudflare: Workers (app and API), D1 (database), R2
-(recordings) and Workers AI (speech-to-text). Claude does the call analysis.
+Everything runs on Cloudflare: Workers (app and API), D1 (database) and
+Workers AI (speech-to-text). Claude does the call analysis. R2 file storage is
+optional. With it, SalePunch keeps its own copy of every recording. Without
+it, Exotel recordings are played straight from Exotel, and uploaded audio is
+transcribed but not kept. To turn it on, enable R2 in the Cloudflare dashboard,
+run `npx wrangler r2 bucket create salepunch-recordings`, and uncomment the
+`r2_buckets` block in `wrangler.toml`.
 
 ```bash
 npm install
@@ -54,11 +59,8 @@ npm install
 npx wrangler d1 create salepunch
 ```
 
-Copy the `database_id` it prints into `salepunch/wrangler.toml`, then:
-
-```bash
-npx wrangler r2 bucket create salepunch-recordings
-```
+Copy the `database_id` it prints into `salepunch/wrangler.toml` (the current
+one is already set for the Xeenox account), then:
 
 ```bash
 npx wrangler d1 execute salepunch --remote --config salepunch/wrangler.toml --file salepunch/schema.sql

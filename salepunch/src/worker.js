@@ -4,7 +4,7 @@ import { LEAD_STATUSES } from './constants.js';
 import { mapIncomingLead } from './crm.js';
 import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
 import { teamStats } from './stats.js';
-import { exotelDial, exotelReady, parseExotelCallback } from './telephony.js';
+import { exotelDial, exotelReady, fetchRecording, parseExotelCallback } from './telephony.js';
 import { parseTextTranscript } from './transcribe.js';
 import { dayOf, fail, json, newId, normalizePhone, parseCsv, safeJson, sameSecret } from './util.js';
 
@@ -210,15 +210,17 @@ route('POST', '/api/calls/upload', async (req, env, { user, ctx }) => {
   const when = Date.parse(String(form.get('started_at') || '')) || Date.now();
   const id = newId();
   const day = dayOf(when, env.TIMEZONE || 'Asia/Kolkata');
-  let key = null;
+  let key = null, audio;
   if (file && file.size) {
-    const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
-    key = `calls/${day}/${id}.${ext}`;
-    await env.RECORDINGS.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'audio/mpeg' } });
+    if (env.RECORDINGS) {
+      const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
+      key = `calls/${day}/${id}.${ext}`;
+      await env.RECORDINGS.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'audio/mpeg' } });
+    } else audio = new Uint8Array(await file.arrayBuffer()); // no storage: transcribe, don't keep
   }
   await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, duration_sec, recording_key, day) VALUES (?, ?, ?, ?, 'upload', 'completed', ?, ?, ?, ?)")
     .bind(id, agentId, leadId, phone || null, when, Math.max(0, Number(form.get('duration_sec')) || 0), key, day).run();
-  ctx.waitUntil(processCall(env, id, { textSegments: key ? undefined : parseTextTranscript(text) }));
+  ctx.waitUntil(processCall(env, id, (key || audio) ? { audio } : { textSegments: parseTextTranscript(text) }));
   return json({ id });
 });
 
@@ -260,10 +262,15 @@ route('GET', '/api/calls/:id', async (req, env, { user, params }) => {
 
 route('GET', '/api/calls/:id/audio', async (req, env, { user, params }) => {
   const c = await visibleCall(env, user, params.id);
-  if (!c?.recording_key) return fail(404, 'No recording stored');
-  const obj = await env.RECORDINGS.get(c.recording_key);
-  if (!obj) return fail(404, 'No recording stored');
-  return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType || 'audio/mpeg', 'cache-control': 'private, max-age=3600' } });
+  if (c?.recording_key && env.RECORDINGS) {
+    const obj = await env.RECORDINGS.get(c.recording_key);
+    if (obj) return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType || 'audio/mpeg', 'cache-control': 'private, max-age=3600' } });
+  }
+  if (c?.recording_url) { // played straight from the telephony provider
+    const rec = await fetchRecording(c.recording_url, env);
+    return new Response(rec.bytes, { headers: { 'content-type': rec.type, 'cache-control': 'private, max-age=3600' } });
+  }
+  return fail(404, 'No recording stored');
 });
 
 route('POST', '/api/calls/:id/reprocess', async (req, env, { user, params, ctx }) => {

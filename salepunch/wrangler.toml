@@ -12,11 +12,15 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "salepunch"
-database_id = "REPLACE_WITH_D1_DATABASE_ID" # npx wrangler d1 create salepunch
+database_id = "d808f24d-5146-4835-9f20-c40f920427c3"
 
-[[r2_buckets]]
-binding = "RECORDINGS"
-bucket_name = "salepunch-recordings" # npx wrangler r2 bucket create salepunch-recordings
+# Optional: keep our own copy of every recording in R2 (enable R2 in the
+# Cloudflare dashboard, run `npx wrangler r2 bucket create salepunch-recordings`,
+# then uncomment). Without it, Exotel recordings are played from Exotel and
+# uploaded audio is transcribed but not kept.
+# [[r2_buckets]]
+# binding = "RECORDINGS"
+# bucket_name = "salepunch-recordings"
 
 [ai]
 binding = "AI"

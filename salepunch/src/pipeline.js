@@ -21,7 +21,7 @@ const setCall = (db, id, fields) => {
  * Processes one call. `textSegments` is set for pasted transcripts.
  * Safe to run again (Reprocess button / retry job).
  */
-export async function processCall(env, callId, { textSegments, deps = {} } = {}) {
+export async function processCall(env, callId, { textSegments, audio, deps = {} } = {}) {
   const db = env.DB;
   const call = await db.prepare('SELECT * FROM calls WHERE id = ?').bind(callId).first();
   if (!call) return;
@@ -29,22 +29,26 @@ export async function processCall(env, callId, { textSegments, deps = {} } = {})
     let segments = textSegments || safeJson(call.transcript, null);
     let language = call.language || '';
     if (!segments) {
-      if (!call.recording_key && !call.recording_url) {
+      if (!call.recording_key && !call.recording_url && !audio) {
         await setCall(db, callId, { processing: 'skipped', error: null });
         return;
       }
       await setCall(db, callId, { processing: 'transcribing', error: null });
       let bytes;
-      if (call.recording_key) {
+      if (audio) {
+        bytes = audio; // uploaded file, no file storage configured
+      } else if (call.recording_key && env.RECORDINGS) {
         const obj = await env.RECORDINGS.get(call.recording_key);
         if (!obj) throw new Error('Recording file missing from storage');
         bytes = new Uint8Array(await obj.arrayBuffer());
       } else {
         const rec = await (deps.fetchRecording || fetchRecording)(call.recording_url, env);
         bytes = rec.bytes;
-        const key = `calls/${call.day}/${call.id}.${rec.type.includes('wav') ? 'wav' : 'mp3'}`;
-        await env.RECORDINGS.put(key, bytes, { httpMetadata: { contentType: rec.type } });
-        await setCall(db, callId, { recording_key: key });
+        if (env.RECORDINGS) { // keep our own copy; without R2 we play it from the provider
+          const key = `calls/${call.day}/${call.id}.${rec.type.includes('wav') ? 'wav' : 'mp3'}`;
+          await env.RECORDINGS.put(key, bytes, { httpMetadata: { contentType: rec.type } });
+          await setCall(db, callId, { recording_key: key });
+        }
       }
       const t = await (deps.transcribe || transcribe)(bytes, env, { language: env.CALL_LANGUAGE || undefined });
       segments = t.segments;
