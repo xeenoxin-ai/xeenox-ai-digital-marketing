@@ -1,5 +1,7 @@
 # SalePunch: sales call monitoring
 
+**Live:** https://salepunch.xeenox-in.workers.dev
+
 SalePunch records every sales call from "hello" to the end, turns it into a
 written conversation, and tells you whether the agent is actually trying to
 convert the lead.
@@ -163,4 +165,4 @@ Tests: `npm test` (`tests/salepunch.test.js`).
 | `src/stats.js` | Per-agent and team numbers |
 | `src/crm.js` | Lead webhook mapping, CRM event, lead status rules |
 | `schema.sql` | Database tables |
-| `public/` | The dashboard (plain HTML/CSS/JS, no build step) |
+| `public/` | The dashboard (plain HTML/CSS/JS, no build step), bundled into the worker by `src/static.js` |

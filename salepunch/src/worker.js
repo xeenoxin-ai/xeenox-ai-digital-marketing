@@ -3,6 +3,7 @@ import { hashPassword, readSession, requestToken, sessionCookie, signSession, ve
 import { LEAD_STATUSES } from './constants.js';
 import { mapIncomingLead } from './crm.js';
 import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
+import { serveStatic } from './static.js';
 import { teamStats } from './stats.js';
 import { exotelDial, exotelReady, fetchRecording, parseExotelCallback } from './telephony.js';
 import { parseTextTranscript } from './transcribe.js';
@@ -370,7 +371,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/hooks/')) {
-      return env.ASSETS ? env.ASSETS.fetch(request) : new Response('Not found', { status: 404 });
+      return env.ASSETS ? env.ASSETS.fetch(request) : serveStatic(url.pathname);
     }
     const r = routes.find((x) => x.method === request.method && x.re.test(url.pathname));
     if (!r) return fail(404, 'Not found');

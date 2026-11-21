@@ -4,10 +4,14 @@ name = "salepunch"
 main = "src/worker.js"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
 
-[assets]
-directory = "public"
-binding = "ASSETS"
+# The dashboard (public/) is bundled into the worker as text.
+[[rules]]
+type = "Text"
+globs = ["**/public/*.html", "**/public/*.css", "**/public/*.svg", "**/public/*.js"]
+fallthrough = false
 
 [[d1_databases]]
 binding = "DB"
@@ -31,7 +35,7 @@ crons = ["0 * * * *"] # hourly: retry stuck calls; daily report at REPORT_HOUR
 [vars]
 TIMEZONE = "Asia/Kolkata"
 REPORT_HOUR = "21"
-# APP_URL = "https://salepunch.example.com"
+APP_URL = "https://salepunch.xeenox-in.workers.dev"
 # CALL_LANGUAGE = "ml"   # force Whisper language (ml, hi, ta, en); blank = auto
 # CLAUDE_MODEL = "claude-opus-5-5"
 
