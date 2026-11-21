@@ -267,3 +267,7 @@ button.call { border-radius: 999px; }
 .lp-lines .msg { max-width: 92%; }
 body.lp-open #live { right: 422px; }
 @media (max-width: 900px) { body.lp-open #live { display: none; } }
+.choice { display: flex; gap: 14px; align-items: flex-start; width: 100%; text-align: left; padding: 14px; margin-bottom: 10px; border-radius: 14px; white-space: normal; }
+.choice:hover { border-color: var(--brand); }
+.choice .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+.choice b { display: block; font-size: 15px; margin-bottom: 2px; } .choice .small { display: block; font-weight: 400; }

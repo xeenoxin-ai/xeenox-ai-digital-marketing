@@ -423,7 +423,10 @@ function liveCall(callId, leadName, sim = false) { // sim: true (this phone) or 
 //  2. Exotel cloud line (call_mode "exotel"): rings the agent, then the lead.
 //  3. Plain browser: opens the phone dialer (tel:) and asks how the call went.
 const PHONE = window.SalePunchPhone || null;
-async function startCall(leadId, name) {
+async function startCall(leadId, name, how) {
+  // On a computer, ask how to call: talk here (internet call) or ring their mobile from the phone.
+  if (!how && !PHONE && !ON_PHONE && !(me.call_mode === 'exotel' && me.telephony)) return chooseCall(leadId, name);
+  if (how === 'web') return startWebCall(leadId, name);
   if (me.call_mode === 'exotel' && me.telephony) {
     const r = await api('/api/calls/dial', { method: 'POST', body: { lead_id: leadId } });
     return liveCall(r.id, name);
@@ -445,6 +448,19 @@ async function startCall(leadId, name) {
   try { sessionStorage.setItem('sp_pending', JSON.stringify({ id: r.id, name, t: Date.now() })); } catch { /* private mode */ }
   location.href = 'tel:' + r.phone;
   setTimeout(() => askCallResult(r.id, name, Date.now()), 1500);
+}
+function chooseCall(leadId, name) {
+  let dlg = document.getElementById('choosedlg');
+  if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'choosedlg'; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<h2>Call ${esc(name)}</h2>
+    <button class="choice" id="chWeb"><span class="ic" style="background:var(--grad);color:#fff">${ic('mic')}</span><span><b>Talk on this computer</b><span class="small muted">Internet call. You use your headset here, and ${esc(name.split(' ')[0])} joins from a WhatsApp link on their phone. SalePunch hears both of you live.</span></span></button>
+    <button class="choice" id="chPhone"><span class="ic" style="background:var(--good-soft);color:var(--good)">${ic('phone')}</span><span><b>Ring their mobile from my phone</b><span class="small muted">Your phone dials their number from its SIM. You talk on the phone. Here SalePunch hears only you, unless Phone Link plays the call on this computer.</span></span></button>
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button type="button" id="chCancel">Cancel</button></div>`;
+  dlg.showModal();
+  const go = (how) => { dlg.close(); startCall(leadId, name, how).catch((e) => toast(e.message)); };
+  dlg.querySelector('#chWeb').onclick = () => go('web');
+  dlg.querySelector('#chPhone').onclick = () => go('phone');
+  dlg.querySelector('#chCancel').onclick = () => dlg.close();
 }
 function phoneHelp(msg) {
   let dlg = document.getElementById('phonedlg');
@@ -647,6 +663,17 @@ function openLivePanel(callId, leadName) {
       timer = setInterval(() => { const sec = Math.round((Date.now() - t0) / 1000); $('lpTimer').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }, 1000);
       // Stop by itself when the phone reports the call has ended.
       poll = setInterval(async () => { try { const r = await api(`/api/calls/${callId}/live?after=999999999`); if (!['dialing', 'queued'].includes(r.status)) setTimeout(finish, 2500); } catch { /* keep going */ } }, 4000);
+      // Hearing you but never the lead? The call is playing on the phone, not this computer.
+      if (systemAudio) {
+        let leadPeak = 0;
+        const origLevel = ui.level;
+        ui.level = (sp, v) => { if (sp === 'lead') leadPeak = Math.max(leadPeak, v); origLevel(sp, v); };
+        setTimeout(() => {
+          if (!activeLive || leadPeak > 0.01) return;
+          const t = $('lpTip'); t.hidden = false; t.className = 'lp-tip warn';
+          t.innerHTML = `${ic('alert')}<div><b>SalePunch can't hear the lead.</b><br>This call is playing on your phone, not on this computer. To talk and listen here, end this call and use <b>Talk on this computer</b> (internet call), or set up Phone Link.</div>`;
+        }, 20000);
+      }
     } catch (e) {
       activeLive = null;
       toast(e.name === 'NotAllowedError' ? 'Permission was not given. Allow the microphone (and screen sound) to listen live.' : e.message);
