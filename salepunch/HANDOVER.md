@@ -58,9 +58,17 @@ Truly phone-free calling to normal mobile numbers needs a paid licensed provider
 
 - A local copy of SalePunch opened its home page, app, and Android download page. It read its local database and served the Android installer bundled with the project.
 - A local test created an admin account, saved a sample customer, and analyzed a pasted conversation from that customer's call record.
+- A local test created a call record, confirmed the app warns when the Android phone is disconnected, and opened the internet call's join page. No phone rang during the test.
 - All 97 automated repository tests passed, including 34 SalePunch tests.
 - The cloud development environment blocked access to the live SalePunch site, so the live site and Google sign-in still need a check.
 - A real call with Windows Phone Link still needs to confirm two things. The salesperson can hear the customer in the headset, and the recording contains both voices.
+
+### How to check the headset with a real call
+
+1. Pair the Android phone with Windows Phone Link over Bluetooth and turn on **Calls**. Connect the headset to the computer.
+2. In SalePunch, use a test contact who agrees to the recording. Click **Call**, then **Call their mobile, talk on this headset**.
+3. Click **Start listening** in Chrome or Edge. Choose **Entire screen** and turn on **Share system audio**. Have each person say a short sentence and confirm you can hear the other person through the headset.
+4. End the call and play back the recording in SalePunch. Mark the check as passed when you can hear both sentences in the recording.
 
 ## Not built yet (ideas offered)
 
