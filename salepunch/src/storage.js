@@ -27,7 +27,7 @@ export async function saveRecording(env, call, bytes, type = 'audio/mpeg', name 
   }
   const stmts = [env.DB.prepare('DELETE FROM recording_chunks WHERE call_id = ?').bind(call.id)];
   for (let i = 0, seq = 0; i < bytes.length; i += CHUNK, seq++) {
-    stmts.push(env.DB.prepare('INSERT INTO recording_chunks (call_id, seq, data) VALUES (?, ?, ?)').bind(call.id, seq, bytes.subarray(i, i + CHUNK)));
+    stmts.push(env.DB.prepare('INSERT INTO recording_chunks (call_id, seq, data) VALUES (?, ?, ?)').bind(call.id, seq, bytes.slice(i, i + CHUNK).buffer)); // ArrayBuffer = D1 BLOB
   }
   await env.DB.batch(stmts);
   return `db:${type}`;

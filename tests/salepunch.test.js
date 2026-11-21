@@ -335,7 +335,7 @@ function fakeD1() {
     async batch(list) {
       for (const s of list) {
         if (s.sql.startsWith('DELETE')) for (const k of [...rows.keys()]) if (k.startsWith(s.args[0] + '#')) rows.delete(k);
-        if (s.sql.startsWith('INSERT')) { assert.ok(s.args[2].length <= 2000000, 'D1 row limit'); rows.set(`${s.args[0]}#${s.args[1]}`, new Uint8Array(s.args[2])); }
+        if (s.sql.startsWith('INSERT')) { assert.ok(s.args[2].byteLength <= 2000000, 'D1 row limit'); rows.set(`${s.args[0]}#${s.args[1]}`, new Uint8Array(s.args[2])); }
       }
     },
   };
