@@ -10,7 +10,7 @@ Live app: https://salepunch.xeenox-in.workers.dev
 
 ## Where things are
 
-- Code: GitHub repo `xeenoxin-ai/xeenox-ai-digital-marketing`, folder `salepunch/`, branch `claude/zen-hopper-l3xf70` (pull request #36 — merge it into `main` so `main` has the latest).
+- Code: GitHub repo `xeenoxin-ai/xeenox-ai-digital-marketing`, folder `salepunch/`. Pull request #36 was merged into `main`.
 - Tests: `tests/salepunch.test.js` (run `node --test tests/salepunch.test.js` from the repo root).
 - Android app source: `salepunch/android/`. GitHub Actions workflow `.github/workflows/salepunch-android.yml` builds the APK. The built APK is `salepunch/public/salepunch.apk`, served at `/download`.
 
@@ -53,6 +53,13 @@ On the Android app itself, calls dial from the SIM and the recording is uploaded
 The owner tested on a PC and **could not hear the lead in the headset**. Database showed: SIM calls captured only the agent's voice (lead audio never reached the PC); the two internet-call attempts ended before the lead opened the link. The fix just shipped is option 1 above (Phone Link) with a setup guide in the app. Next step: owner sets up Phone Link (Bluetooth needed) and tests a real call.
 
 Truly phone-free calling to normal mobile numbers needs a paid licensed provider (Exotel is partly integrated in `src/telephony.js`; would need its WebRTC softphone). The owner wants free for now.
+
+## Working status on 21 November 2026
+
+- A local copy of SalePunch opened its home page, app, and Android download page. It read its local database and served the Android installer bundled with the project.
+- All 97 automated repository tests passed, including 34 SalePunch tests.
+- The cloud development environment blocked access to the live SalePunch site, so the live site and Google sign-in still need a check.
+- A real call with Windows Phone Link still needs to confirm two things. The salesperson can hear the customer in the headset, and the recording contains both voices.
 
 ## Not built yet (ideas offered)
 
