@@ -46,7 +46,9 @@ public class MainActivity extends Activity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
 
-        tracker = new CallTracker(this, web);
+        tracker = CallTracker.get(this);
+        CallTracker.onDone = (id, ok) -> web.evaluateJavascript(
+                "window.salepunchCallDone && window.salepunchCallDone('" + id.replaceAll("[^A-Za-z0-9]", "") + "', " + ok + ")", null);
         web.addJavascriptInterface(new Bridge(), "SalePunchPhone");
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -84,6 +86,8 @@ public class MainActivity extends Activity {
         });
         setContentView(web);
         askPermissions();
+        ReadyService.start(this); // take calls clicked on the computer
+        askBatteryOnce();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(BuildConfig.APP_URL);
     }
@@ -97,7 +101,25 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        tracker.onAppResumed(); // finish a call whose end we missed
+        tracker.checkPending(); // finish a call whose end we missed
+    }
+
+    @Override
+    protected void onDestroy() {
+        CallTracker.onDone = null;
+        super.onDestroy();
+    }
+
+    /** Ask once to run without battery limits, so calls from the computer keep arriving. */
+    private void askBatteryOnce() {
+        android.content.SharedPreferences p = getSharedPreferences("salepunch_app", 0);
+        if (p.getBoolean("battery_asked", false)) return;
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+        if (pm.isIgnoringBatteryOptimizations(getPackageName())) return;
+        p.edit().putBoolean("battery_asked", true).apply();
+        try {
+            startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName())));
+        } catch (Exception ignored) { }
     }
 
     @Override
@@ -120,7 +142,10 @@ public class MainActivity extends Activity {
         p.add(Manifest.permission.CALL_PHONE);
         p.add(Manifest.permission.READ_PHONE_STATE);
         p.add(Manifest.permission.READ_CALL_LOG);
-        if (Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.READ_MEDIA_AUDIO);
+        if (Build.VERSION.SDK_INT >= 33) {
+            p.add(Manifest.permission.READ_MEDIA_AUDIO);
+            p.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
         else p.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         return p.toArray(new String[0]);
     }

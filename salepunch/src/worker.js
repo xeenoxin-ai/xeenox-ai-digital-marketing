@@ -64,7 +64,8 @@ route('POST', '/api/logout', async () => json({ ok: true }, 200, { 'set-cookie':
 route('GET', '/api/me', async (req, env, { user }) => {
   const s = await getSettings(env.DB);
   const callMode = s.call_mode === 'exotel' && exotelReady(env) ? 'exotel' : 'sim';
-  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '' });
+  const phone_online = await phoneOnline(env, user.id);
+  return json({ user, company: s.company || '', telephony: exotelReady(env), call_mode: callMode, phone_online, ai: !!env.ANTHROPIC_API_KEY, today: today(env), android_app: env.ANDROID_APP_URL || '' });
 });
 
 // --- team
@@ -208,10 +209,40 @@ route('POST', '/api/calls/sim', async (req, env, { user }) => {
   const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(b.lead_id || '').first();
   if (!lead || (!isManager(user) && lead.owner_id !== user.id)) return fail(404, 'Lead not found');
   const id = newId(), now = Date.now();
-  await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, day) VALUES (?, ?, ?, ?, 'sim', 'dialing', ?, ?)")
-    .bind(id, user.id, lead.id, lead.phone, now, today(env, now)).run();
+  // via "phone": clicked on a computer, so hand the call to the agent's phone app.
+  const toPhone = b.via === 'phone';
+  if (toPhone && !(await phoneOnline(env, user.id, now))) {
+    return fail(409, 'Your phone is not connected. Open the SalePunch app on your phone and stay signed in, then click Call again.');
+  }
+  await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, day) VALUES (?, ?, ?, ?, 'sim', ?, ?, ?)")
+    .bind(id, user.id, lead.id, lead.phone, toPhone ? 'queued' : 'dialing', now, today(env, now)).run();
   if (!lead.owner_id) await env.DB.prepare('UPDATE leads SET owner_id = ? WHERE id = ?').bind(user.id, lead.id).run();
-  return json({ id, phone: lead.phone, name: lead.name });
+  return json({ id, phone: lead.phone, name: lead.name, queued: toPhone });
+});
+
+const PHONE_ONLINE_MS = 30000;
+async function phoneOnline(env, userId, now = Date.now()) {
+  const d = await env.DB.prepare('SELECT seen_at FROM devices WHERE user_id = ?').bind(userId).first();
+  return !!d && now - d.seen_at < PHONE_ONLINE_MS;
+}
+
+route('GET', '/api/phone/status', async (req, env, { user }) => json({ online: await phoneOnline(env, user.id) }));
+
+// The phone app asks every few seconds: "anything for me to dial?"
+route('POST', '/api/phone/next', async (req, env, { user }) => {
+  const now = Date.now();
+  const b = await body(req);
+  await env.DB.prepare('INSERT INTO devices (user_id, seen_at, app_version) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET seen_at = excluded.seen_at, app_version = excluded.app_version')
+    .bind(user.id, now, String(b.version || '').slice(0, 20)).run();
+  await env.DB.prepare("UPDATE calls SET status = 'failed', processing = 'skipped', error = 'The phone did not pick up this call in time' WHERE agent_id = ? AND status = 'queued' AND started_at < ?")
+    .bind(user.id, now - 90000).run();
+  if (b.busy === true) return json({ call: null }); // on a call right now: just check in
+  const c = await env.DB.prepare(`SELECT c.id, c.lead_phone, l.name AS lead_name FROM calls c LEFT JOIN leads l ON l.id = c.lead_id
+    WHERE c.agent_id = ? AND c.status = 'queued' ORDER BY c.started_at LIMIT 1`).bind(user.id).first();
+  if (!c) return json({ call: null });
+  const claimed = await env.DB.prepare("UPDATE calls SET status = 'dialing', started_at = ? WHERE id = ? AND status = 'queued'").bind(now, c.id).run();
+  if (!claimed.meta?.changes) return json({ call: null });
+  return json({ call: { id: c.id, phone: c.lead_phone, name: c.lead_name || '' } });
 });
 
 const SIM_STATUS = ['completed', 'no_answer', 'busy', 'failed'];

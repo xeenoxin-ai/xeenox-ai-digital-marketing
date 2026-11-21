@@ -2,6 +2,7 @@ package com.xeenox.salepunch;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.ContentUris;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -14,10 +15,10 @@ import android.provider.CallLog;
 import android.provider.MediaStore;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
+import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.webkit.CookieManager;
-import android.webkit.WebView;
 
 import java.io.DataOutputStream;
 import java.io.InputStream;
@@ -30,6 +31,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 
 /**
  * Follows one call from dial to hang-up:
@@ -46,8 +48,11 @@ class CallTracker {
     private static final String PREFS = "salepunch_call";
     private static final int MAX_TRIES = 5;
 
-    private final MainActivity activity;
-    private final WebView web;
+    private static CallTracker instance;
+    /** Told when a call has been uploaded (callId, ok). Set by the screen when it is open. */
+    static volatile BiConsumer<String, Boolean> onDone;
+
+    private final Context ctx;
     private final SharedPreferences prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Executor io = Executors.newSingleThreadExecutor();
@@ -55,10 +60,24 @@ class CallTracker {
     private boolean finishing = false;
     private Object listener; // PhoneStateListener or TelephonyCallback
 
-    CallTracker(MainActivity activity, WebView web) {
-        this.activity = activity;
-        this.web = web;
-        this.prefs = activity.getSharedPreferences(PREFS, 0);
+    static synchronized CallTracker get(Context context) {
+        if (instance == null) instance = new CallTracker(context.getApplicationContext());
+        return instance;
+    }
+
+    private CallTracker(Context ctx) {
+        this.ctx = ctx;
+        this.prefs = ctx.getSharedPreferences(PREFS, 0);
+    }
+
+    private boolean has(String permission) {
+        return ctx.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    }
+
+    /** True while a call is being dialled, talked or uploaded. */
+    boolean busy() {
+        String id = prefs.getString("id", null);
+        return id != null && System.currentTimeMillis() - prefs.getLong("start", 0) < 3 * 3600000L;
     }
 
     // ---------------------------------------------------------------- start
@@ -72,29 +91,37 @@ class CallTracker {
         offhookSeen = false;
         finishing = false;
         listen();
-        Uri tel = Uri.parse("tel:" + Uri.encode(phone));
-        boolean canCall = activity.has(Manifest.permission.CALL_PHONE);
+        Uri tel = Uri.fromParts("tel", phone, null);
         try {
-            activity.startActivity(new Intent(canCall ? Intent.ACTION_CALL : Intent.ACTION_DIAL, tel));
+            if (has(Manifest.permission.CALL_PHONE)) {
+                // Works from the background too (calls sent from the computer).
+                TelecomManager tm = (TelecomManager) ctx.getSystemService(Context.TELECOM_SERVICE);
+                tm.placeCall(tel, new android.os.Bundle());
+                return;
+            }
         } catch (Exception e) {
-            Log.w(TAG, "dial failed", e);
-            activity.startActivity(new Intent(Intent.ACTION_DIAL, tel));
+            Log.w(TAG, "placeCall failed", e);
+        }
+        try {
+            ctx.startActivity(new Intent(Intent.ACTION_DIAL, tel).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            Log.w(TAG, "dialer failed", e);
         }
     }
 
-    /** The app came back to the front: maybe the call ended while we were not listening. */
-    void onAppResumed() {
+    /** Finish a call whose end we missed (app reopened, or checked by the ready service). */
+    void checkPending() {
         if (prefs.getString("id", null) == null || finishing) return;
         long started = prefs.getLong("start", 0);
-        if (System.currentTimeMillis() - started < 5000) return;
-        if (callState() == TelephonyManager.CALL_STATE_IDLE) scheduleFinish(3000);
+        if (System.currentTimeMillis() - started < 20000) return;
+        if (callState() == TelephonyManager.CALL_STATE_IDLE) main.post(() -> scheduleFinish(3000));
     }
 
     // ---------------------------------------------------------------- call state
     private int callState() {
         try {
-            TelephonyManager tm = (TelephonyManager) activity.getSystemService(android.content.Context.TELEPHONY_SERVICE);
-            if (Build.VERSION.SDK_INT >= 31 && !activity.has(Manifest.permission.READ_PHONE_STATE)) return TelephonyManager.CALL_STATE_IDLE;
+            TelephonyManager tm = (TelephonyManager) ctx.getSystemService(Context.TELEPHONY_SERVICE);
+            if (Build.VERSION.SDK_INT >= 31 && !has(Manifest.permission.READ_PHONE_STATE)) return TelephonyManager.CALL_STATE_IDLE;
             return tm.getCallState();
         } catch (Exception e) {
             return TelephonyManager.CALL_STATE_IDLE;
@@ -110,12 +137,12 @@ class CallTracker {
     }
 
     private void listen() {
-        if (listener != null || !activity.has(Manifest.permission.READ_PHONE_STATE)) return;
-        TelephonyManager tm = (TelephonyManager) activity.getSystemService(android.content.Context.TELEPHONY_SERVICE);
+        if (listener != null || !has(Manifest.permission.READ_PHONE_STATE)) return;
+        TelephonyManager tm = (TelephonyManager) ctx.getSystemService(Context.TELEPHONY_SERVICE);
         try {
             if (Build.VERSION.SDK_INT >= 31) {
                 Cb cb = new Cb();
-                tm.registerTelephonyCallback(activity.getMainExecutor(), cb);
+                tm.registerTelephonyCallback(ctx.getMainExecutor(), cb);
                 listener = cb;
             } else {
                 PhoneStateListener l = new PhoneStateListener() {
@@ -165,8 +192,8 @@ class CallTracker {
         boolean ok = upload(id, status, duration, startedAt, rec);
         if (ok || tries >= MAX_TRIES + 3) prefs.edit().clear().apply();
         finishing = false;
-        String js = "window.salepunchCallDone && window.salepunchCallDone('" + id.replaceAll("[^A-Za-z0-9]", "") + "', " + ok + ")";
-        main.post(() -> web.evaluateJavascript(js, null));
+        BiConsumer<String, Boolean> cb = onDone;
+        if (cb != null) main.post(() -> cb.accept(id, ok));
     }
 
     private static class CallInfo { long date; long durationSec; }
@@ -177,10 +204,10 @@ class CallTracker {
     }
 
     private CallInfo readCallLog(String phone, long start) {
-        if (!activity.has(Manifest.permission.READ_CALL_LOG)) return null;
+        if (!has(Manifest.permission.READ_CALL_LOG)) return null;
         String want = last10(phone);
         String[] cols = { CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.DURATION, CallLog.Calls.TYPE };
-        try (Cursor c = activity.getContentResolver().query(CallLog.Calls.CONTENT_URI, cols,
+        try (Cursor c = ctx.getContentResolver().query(CallLog.Calls.CONTENT_URI, cols,
                 CallLog.Calls.DATE + " >= ? AND " + CallLog.Calls.TYPE + " = ?",
                 new String[] { String.valueOf(start - 15000), String.valueOf(CallLog.Calls.OUTGOING_TYPE) },
                 CallLog.Calls.DATE + " DESC")) {
@@ -202,7 +229,7 @@ class CallTracker {
     /** Newest audio file saved since the call started, preferring call-recorder folders. */
     private Recording findRecording(String phone, long start) {
         String perm = Build.VERSION.SDK_INT >= 33 ? Manifest.permission.READ_MEDIA_AUDIO : Manifest.permission.READ_EXTERNAL_STORAGE;
-        if (!activity.has(perm)) return null;
+        if (!has(perm)) return null;
         Uri coll = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         String pathCol = Build.VERSION.SDK_INT >= 29 ? MediaStore.Audio.Media.RELATIVE_PATH : MediaStore.Audio.Media.DATA;
         String[] cols = { MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME, MediaStore.Audio.Media.MIME_TYPE,
@@ -210,7 +237,7 @@ class CallTracker {
         String digits = last10(phone);
         Recording best = null;
         int bestScore = -1;
-        try (Cursor c = activity.getContentResolver().query(coll, cols,
+        try (Cursor c = ctx.getContentResolver().query(coll, cols,
                 MediaStore.Audio.Media.DATE_ADDED + " >= ?", new String[] { String.valueOf(start / 1000 - 10) },
                 MediaStore.Audio.Media.DATE_ADDED + " DESC")) {
             while (c != null && c.moveToNext()) {
@@ -264,7 +291,7 @@ class CallTracker {
                 if (rec != null) {
                     out.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"audio\"; filename=\""
                             + rec.name.replace("\"", "") + "\"\r\nContent-Type: " + rec.mime + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-                    ContentResolver cr = activity.getContentResolver();
+                    ContentResolver cr = ctx.getContentResolver();
                     try (InputStream in = cr.openInputStream(rec.uri)) {
                         byte[] buf = new byte[64 * 1024];
                         int n;

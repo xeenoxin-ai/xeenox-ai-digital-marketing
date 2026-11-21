@@ -71,3 +71,10 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- Agents' phones running the SalePunch app (computer → phone calling).
+CREATE TABLE IF NOT EXISTS devices (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  seen_at INTEGER NOT NULL,
+  app_version TEXT
+);

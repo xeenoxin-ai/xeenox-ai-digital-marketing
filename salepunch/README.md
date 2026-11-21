@@ -42,6 +42,14 @@ ordinary apps record calls, but the phone's own dialer can, so:
 5. SalePunch transcribes it, scores it and updates the lead. Managers see who
    is on a call right now in the **Live now** strip on the Dashboard.
 
+**Calling from a computer:** the app keeps a "Ready for calls" notification
+running and checks in with SalePunch every few seconds. When the agent clicks
+**Call** on a computer, the call waits for the phone (`POST /api/calls/sim`
+with `via: "phone"`). The phone collects it (`POST /api/phone/next`) and dials
+straight away with `TelecomManager.placeCall`, even when locked. The Leads
+page shows **Phone connected** when the phone has checked in within the last
+30 seconds.
+
 If the app is closed during the call, the result is picked up the next time it
 opens. If a phone has no recorder, the call is still logged (time, length,
 answered) and shows "No recording found".

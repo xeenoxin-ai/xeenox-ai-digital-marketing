@@ -149,7 +149,19 @@ async function authView() {
 }
 
 // ------------------------------------------------------------ dashboard
-const simNotice = () => (!PHONE && me.call_mode === 'sim' ? `<div class="notice">${ic('phone')}<div>Calls go out from your own SIM. For <b>automatic recording</b>, install the <b>SalePunch phone app</b> on your Android phone. In a browser, Call opens your phone's dialer and asks how the call went. <a href="#/guide">How it works</a></div></div>` : '');
+const ON_PHONE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const simNotice = () => (PHONE || me.call_mode !== 'sim' ? '' : ON_PHONE
+  ? `<div class="notice">${ic('phone')}<div>Calls go out from your own SIM. For <b>automatic recording</b>, use the <b>SalePunch phone app</b> instead of the browser. <a href="#/guide">How it works</a></div></div>`
+  : `<div class="notice" style="background:var(--info-soft);color:var(--info)">${ic('phone')}<div>Click <b>Call</b> here and <b>your phone dials the lead</b> from its SIM. The call is recorded and uploaded automatically. Keep the <b>SalePunch app</b> open and signed in on your phone. <a href="#/guide">How it works</a></div></div>`);
+const phoneBadge = () => (PHONE || ON_PHONE || me.call_mode !== 'sim' ? '' : `<span class="pill ${me.phone_online ? 'good' : ''}" id="phoneBadge" title="The SalePunch app on your phone">${me.phone_online ? 'Phone connected' : 'Phone not connected'}</span>`);
+async function refreshPhoneBadge() {
+  const el = document.getElementById('phoneBadge');
+  if (!el) return;
+  try { me.phone_online = (await api('/api/phone/status')).online; } catch { return; }
+  el.className = `pill ${me.phone_online ? 'good' : ''}`;
+  el.textContent = me.phone_online ? 'Phone connected' : 'Phone not connected';
+}
+setInterval(refreshPhoneBadge, 10000);
 function setupNotices() {
   let h = simNotice();
   if (!me.ai) h += `<div class="notice">${ic('brain')}<div>AI analysis isn't connected (no Claude API key), so calls only get a rough keyword estimate.</div></div>`;
@@ -276,21 +288,21 @@ async function callView(id) {
 
 // ------------------------------------------------------------ live call tracker
 let liveTimer = null;
-function liveCall(callId, leadName, sim = false) {
+function liveCall(callId, leadName, sim = false) { // sim: true (this phone) or 'phone' (sent to the agent's phone)
   const el = document.getElementById('live');
   const started = Date.now();
   clearInterval(liveTimer);
   const draw = (c) => {
-    const st = c?.status || 'dialing', pr = c?.processing || 'pending';
+    const st = c?.status || (sim === 'phone' ? 'queued' : 'dialing'), pr = c?.processing || 'pending';
     const fail = ['no_answer', 'busy', 'failed'].includes(st);
     const done = pr === 'done';
     const step = (on, ok, text) => `<div class="${ok ? 'ok' : on ? 'on' : ''}">${ic(ok ? 'check' : 'clock')}${text}</div>`;
-    const ended = st !== 'dialing';
+    const ended = st !== 'dialing' && st !== 'queued';
     el.className = `show ${done ? 'done' : ''} ${fail ? 'fail' : ''}`;
     el.innerHTML = `<div class="top"><div class="pulse">${ic('phone')}</div><div><b>${esc(leadName)}</b><div class="small" style="color:var(--side-muted)">${
-      fail ? esc(CALL_STATUS[st] || st) : done ? 'Call analysed' : pr === 'skipped' ? esc(c?.error || 'Call saved, no recording') : ended ? 'Call ended, processing' : sim ? 'Calling from your SIM…' : 'Answer your phone. SalePunch connects the lead'}</div></div>
+      fail ? esc(CALL_STATUS[st] || st) : done ? 'Call analysed' : pr === 'skipped' ? esc(c?.error || 'Call saved, no recording') : ended ? 'Call ended, processing' : st === 'queued' ? 'Sent to your phone. It dials in a few seconds…' : sim === 'phone' ? 'Your phone is calling the lead…' : sim ? 'Calling from your SIM…' : 'Answer your phone. SalePunch connects the lead'}</div></div>
       <button class="x" aria-label="Close">${ic('x')}</button></div>
-      ${fail ? '' : `<div class="steps">${step(!ended, ended, sim ? 'Your phone calls the lead from your SIM' : 'Your phone rings, then the lead is connected')}${step(ended && pr === 'pending', ended && pr !== 'pending', 'Recording saved')}
+      ${fail ? '' : `<div class="steps">${(sim === 'phone' ? step(st === 'queued', st !== 'queued', 'Sent to your phone') : '') + step(!ended && st !== 'queued', ended, sim ? 'Your phone calls the lead from its SIM' : 'Your phone rings, then the lead is connected')}${step(ended && pr === 'pending', ended && pr !== 'pending', 'Recording saved')}
         ${step(pr === 'transcribing', ['analyzing', 'done'].includes(pr), 'Writing out the conversation')}${step(pr === 'analyzing', done, 'AI scoring the call')}</div>`}
       ${done ? `<a class="btn primary" style="width:100%;justify-content:center;margin-top:10px" href="#/calls/${callId}">Open call report</a>` : ''}`;
     el.querySelector('.x').onclick = () => { el.className = ''; clearInterval(liveTimer); };
@@ -317,6 +329,12 @@ async function startCall(leadId, name) {
     const r = await api('/api/calls/dial', { method: 'POST', body: { lead_id: leadId } });
     return liveCall(r.id, name);
   }
+  if (!PHONE && !ON_PHONE) { // on a computer: the agent's phone app dials
+    let r;
+    try { r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId, via: 'phone' } }); }
+    catch (e) { refreshPhoneBadge(); return phoneHelp(e.message); }
+    return liveCall(r.id, name, 'phone');
+  }
   const r = await api('/api/calls/sim', { method: 'POST', body: { lead_id: leadId } });
   if (PHONE) {
     if (PHONE.ready && !PHONE.ready()) { PHONE.askPermissions && PHONE.askPermissions(); toast('Allow Phone, Call logs and Music & audio, then tap Call again.'); return; }
@@ -326,6 +344,16 @@ async function startCall(leadId, name) {
   try { sessionStorage.setItem('sp_pending', JSON.stringify({ id: r.id, name, t: Date.now() })); } catch { /* private mode */ }
   location.href = 'tel:' + r.phone;
   setTimeout(() => askCallResult(r.id, name, Date.now()), 1500);
+}
+function phoneHelp(msg) {
+  let dlg = document.getElementById('phonedlg');
+  if (!dlg) { dlg = document.createElement('dialog'); dlg.id = 'phonedlg'; document.body.appendChild(dlg); }
+  dlg.innerHTML = `<h2>${ic('phone')} Connect your phone first</h2><p>${esc(msg)}</p><ol class="steps-list">
+    <li><div><b>Open the SalePunch app on your Android phone</b><p>Sign in with the same email as here. A "Ready for calls" notification shows it's connected.</p></div></li>
+    <li><div><b>Keep it running</b><p>You can lock the phone. If calls stop arriving, set the app's battery use to "Unrestricted" (the app asks once).</p></div></li>
+    <li><div><b>Click Call again</b><p>Your phone dials the lead within a few seconds.</p></div></li></ol>
+    <div class="row" style="justify-content:flex-end"><a class="btn" href="#/guide" onclick="this.closest('dialog').close()">How it works</a><button class="primary" onclick="this.closest('dialog').close()">OK</button></div>`;
+  dlg.showModal();
 }
 // The Android app calls this when it has uploaded the result.
 window.salepunchCallDone = () => { if (liveCall.poll) liveCall.poll(); };
@@ -369,7 +397,7 @@ async function leadsView(_, q) {
   const [{ leads }, { users }] = await Promise.all([api('/api/leads?' + p), api('/api/users')]);
   const agentOpts = (sel) => `<option value="">Unassigned</option>${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${sel === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
   setMain(`<div class="head"><div><h1>Leads</h1><div class="muted">${leads.length} lead${leads.length === 1 ? '' : 's'}${q.get('due') ? ' · follow-ups due' : ''} · tap <b>Call</b> to start a recorded call</div></div>
-      <div class="row"><button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
+      <div class="row">${phoneBadge()}<button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
     ${simNotice()}
     <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">
       <select name="status"><option value="">All statuses</option>${LEAD_STATUSES.map((s) => `<option value="${s}" ${q.get('status') === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
@@ -565,8 +593,8 @@ function guideView() {
           <b>OnePlus / OPPO / Realme / Vivo:</b> Phone → Settings → Call recording → Auto-record → All calls.</p></div></li>
         <li><div><b>Make a test call</b><p>Call a colleague from Leads, then check the call appears in Calls with its recording.</p></div></li></ol></div>
       <div class="panel"><h2>${ic('users')} For agents: every call</h2><ol class="steps-list">
-        <li><div><b>Open Leads in the app</b><p>Follow-ups due today are under "Due today".</p></div></li>
-        <li><div><b>Tap the green Call button</b><p>The call starts from your SIM straight away. Never dial from the keypad: those calls aren't tracked.</p></div></li>
+        <li><div><b>Open Leads, in the app or on your computer</b><p>Follow-ups due today are under "Due today". On a computer, check that the Leads page says <b>Phone connected</b>.</p></div></li>
+        <li><div><b>Tap or click the green Call button</b><p>Your phone dials the lead from its SIM straight away, even when you click on the computer and the phone is locked. Never dial from the keypad: those calls aren't tracked.</p></div></li>
         <li><div><b>Talk normally</b><p>Follow the script. The phone records the call.</p></div></li>
         <li><div><b>Hang up and come back to the app</b><p>The recording uploads by itself. About a minute later your scores and coaching appear.</p></div></li>
         <li><div><b>Check the follow-up</b><p>The AI fills in the next step and date on the lead.</p></div></li></ol>
