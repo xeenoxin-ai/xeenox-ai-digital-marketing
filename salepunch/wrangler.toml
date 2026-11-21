@@ -13,6 +13,12 @@ type = "Text"
 globs = ["**/public/*.html", "**/public/*.css", "**/public/*.svg", "**/public/*.js"]
 fallthrough = false
 
+# The Android app (built by GitHub Actions), served at /download/salepunch.apk
+[[rules]]
+type = "Data"
+globs = ["**/public/*.apk"]
+fallthrough = false
+
 [[d1_databases]]
 binding = "DB"
 database_name = "salepunch"

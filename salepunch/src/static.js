@@ -4,6 +4,7 @@ import landingHtml from '../public/landing.html';
 import appJs from '../public/app.js';
 import appCss from '../public/app.css';
 import logoSvg from '../public/logo.svg';
+import apk from '../public/salepunch.apk';
 
 // Short content hash, so each deploy gets new script/style URLs and browsers
 // never keep running an old copy of the app after an update.
@@ -26,6 +27,16 @@ const FILES = {
 };
 
 export function serveStatic(pathname, search = '') {
+  if (pathname === '/download/salepunch.apk' || pathname === '/download') {
+    return new Response(apk, {
+      headers: {
+        'content-type': 'application/vnd.android.package-archive',
+        'content-disposition': 'attachment; filename="SalePunch.apk"',
+        'cache-control': 'no-cache',
+        'x-content-type-options': 'nosniff',
+      },
+    });
+  }
   const f = FILES[pathname];
   if (!f) return new Response('Not found', { status: 404 });
   // Pages are always re-checked. Versioned script/style URLs can be cached for a
