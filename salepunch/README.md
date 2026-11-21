@@ -20,6 +20,8 @@ convert the lead.
 | **Sales leak finder** | Shows where sales are lost: the lead funnel with drop-off at each step, and leaks ranked by impact. Leaks include leads never called, slow first calls, missed follow-ups, unanswered leads never retried, interested leads not asked to buy, objections left unanswered, calls lost in the first minute and red flags. Each leak lists the leads affected and a fix. It also shows why leads said no, the script steps most often skipped, leaks per agent and conversion by lead source. |
 | **Productivity** | Per agent per day: calls against target, connect rate, talk time, conversions, first and last call, calls per hour and longest break. Also an hour-by-hour heatmap and the hours when leads actually pick up. |
 | **Home page & plans** | A public home page at `/` with Starter ₹4,999, Growth ₹6,999 and Pro ₹8,999 per month (+ GST). Its demo and plan forms create a lead in your own SalePunch CRM, with the source "Website · <plan> plan". |
+| **CRM (Salesforce-style)** | Each lead has its own page with every call (and its AI summary), note, task and change in one timeline, plus editable details: company, city, stage, agent, deal value, expected close date, next follow-up, source and tags. There's a **Pipeline** board to drag deals between stages (New → Contacted → Follow-up → Interested → Proposal sent → Negotiation → Won / Lost) with value totals per stage. **Tasks** have due times, are assigned to agents and show as overdue, today or upcoming, with today's tasks on the Dashboard. Also: round-robin auto-assignment of new leads, duplicate-phone protection, tag and company search, one-tap WhatsApp and email, and CSV export. |
+| **Recordings kept inside SalePunch** | Every call's audio, whether uploaded by the phone app, added by hand or fetched from Exotel, is stored in SalePunch. It goes in R2 if you bind a bucket, otherwise in the D1 database in 1 MB pieces. Playback supports jumping to any moment. |
 | **Roles** | Admins and managers see the whole team. Agents see only their own leads and calls. |
 
 ## How calls get recorded
@@ -217,6 +219,12 @@ fails or the allowance runs out, the call gets a keyword estimate, and
 - `CLAUDE_MODEL`: defaults to `claude-opus-5-5`.
 - Without `ANTHROPIC_API_KEY` the app still works, but calls get only a rough
   keyword estimate instead of a real analysis.
+
+### Database updates
+
+`schema.sql` creates everything for a new install. A database created before
+the CRM fields existed also needs `migrations/0002_crm_lead_fields.sql`, run
+once. (It was applied to the live database on 21 Nov 2026.)
 
 ## Local development
 

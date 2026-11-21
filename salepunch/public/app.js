@@ -6,8 +6,11 @@ const SKILL_LABELS = {
   objection_handling: 'Objection handling', closing: 'Closing & next step', tone: 'Tone & politeness', listening: 'Listening',
 };
 const OUTCOME_LABEL = { converted: 'Converted', interested: 'Interested', follow_up: 'Follow-up', not_interested: 'Not interested', no_conversation: 'No conversation' };
-const LEAD_STATUSES = ['new', 'contacted', 'interested', 'follow_up', 'won', 'lost'];
-const STATUS_LABEL = { new: 'New', contacted: 'Contacted', interested: 'Interested', follow_up: 'Follow-up', won: 'Won', lost: 'Lost' };
+const LEAD_STATUSES = ['new', 'contacted', 'follow_up', 'interested', 'proposal', 'negotiation', 'won', 'lost'];
+const STATUS_LABEL = { new: 'New', contacted: 'Contacted', follow_up: 'Follow-up', interested: 'Interested', proposal: 'Proposal sent', negotiation: 'Negotiation', won: 'Won', lost: 'Lost' };
+const STAGE_COLOR = { new: 'violet', contacted: 'warn', follow_up: 'warn', interested: 'info', proposal: 'info', negotiation: 'violet', won: 'good', lost: 'bad' };
+const inr = (n) => (n ? '₹' + Number(n).toLocaleString('en-IN') : '');
+const tagChips = (t) => String(t || '').split(',').map((x) => x.trim()).filter(Boolean).map((x) => `<a class="pill plain" href="#/leads?tag=${encodeURIComponent(x)}">#${esc(x)}</a>`).join(' ');
 const CALL_STATUS = { dialing: 'Dialing…', no_answer: 'No answer', busy: 'Busy', failed: 'Failed' };
 let me = null;
 
@@ -92,7 +95,7 @@ const empty = (icon, title, text) => `<div class="empty">${ic(icon)}<div style="
 
 // ------------------------------------------------------------ shell
 const NAV = [
-  ['Workspace'], ['dashboard', 'Dashboard', 'grid'], ['leads', 'Leads', 'users'], ['calls', 'Calls', 'phone'], ['upload', 'Add a call', 'upload'],
+  ['Workspace'], ['dashboard', 'Dashboard', 'grid'], ['leads', 'Leads', 'users'], ['pipeline', 'Pipeline', 'trend'], ['tasks', 'Tasks', 'check'], ['calls', 'Calls', 'phone'], ['upload', 'Add a call', 'upload'],
   ['Insights'], ['leaks', 'Sales leaks', 'leak'], ['productivity', 'Productivity', 'zap'], ['reports', 'Daily reports', 'file'], ['team', 'Team', 'team'], ['settings', 'Settings', 'cog', true], ['guide', 'How it works', 'book'],
 ];
 function shell(active, content) {
@@ -196,7 +199,9 @@ function setupNotices() {
 async function dashboardView(arg) {
   const day = arg || me.today;
   shell('dashboard', loading());
-  const [d, live] = await Promise.all([api(`/api/dashboard?from=${day}`), day === me.today ? api('/api/calls/live').then((x) => x.calls).catch(() => []) : []]);
+  const [d, live, myTasks] = await Promise.all([api(`/api/dashboard?from=${day}`), day === me.today ? api('/api/calls/live').then((x) => x.calls).catch(() => []) : [],
+    api('/api/tasks?user=me&done=0').then((x) => x.tasks).catch(() => [])]);
+  const dueNow = myTasks.filter((t) => t.due_at && t.due_at.slice(0, 10) <= me.today);
   const t = d.team;
   const pipe = Object.fromEntries(d.pipeline.map((p) => [p.status, p.n]));
   const pipeTotal = LEAD_STATUSES.reduce((s, k) => s + (pipe[k] || 0), 0);
@@ -207,6 +212,8 @@ async function dashboardView(arg) {
     ${setupNotices()}
     ${live.length ? `<div class="panel" style="padding:14px 18px"><div class="row" style="gap:12px"><span class="pill bad" style="background:var(--good-soft);color:var(--good)">LIVE NOW</span>
       ${live.map((c) => `<span class="row" style="gap:8px">${avatar(c.agent_name, true)}<span><b>${esc(c.agent_name || '')}</b> <span class="muted">on a call with</span> <b>${esc(c.lead_name || c.lead_phone || 'a lead')}</b> <span class="muted small">· ${Math.max(0, Math.round((Date.now() - c.started_at) / 60000))} min</span></span></span>`).join('')}</div></div>` : ''}
+    ${dueNow.length ? `<div class="panel" style="padding:16px 18px"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">${ic('check')} Your tasks for today · ${dueNow.length}</h2><a href="#/tasks" class="small">All tasks →</a></div>
+      <ul class="clean" id="dashTasks">${dueNow.slice(0, 5).map((t) => taskRow(t, { showLead: true })).join('')}</ul></div>` : ''}
     <div class="grid g4">
       ${tile('trophy', `${t.converted} <small>${t.conversion_pct}%</small>`, 'Converted · of connected calls', '', true)}
       ${tile('phone', `${t.connected}<small> / ${t.dialed}</small>`, `Connected / dialed · ${mins(t.talk_time_sec)} talk`, 'good')}
@@ -233,7 +240,7 @@ async function dashboardView(arg) {
       <div>
         <div class="panel"><h2>Top objections from leads</h2>${t.top_objections.length ? `<ul class="clean">${t.top_objections.map((o) => `<li>${ic('alert')}<span style="flex:1">${esc(o.objection)}</span><span class="pill plain">× ${o.count}</span></li>`).join('')}</ul>` : '<p class="muted" style="margin:0">No objections recorded for this day.</p>'}</div>
         <div class="panel"><h2>Lead pipeline</h2>
-          <div class="bar" style="height:12px;display:flex;margin-bottom:14px">${LEAD_STATUSES.map((s) => pipe[s] ? `<i style="width:${(pipe[s] / pipeTotal) * 100}%;border-radius:0;background:var(--${{ new: 'violet', contacted: 'warn', interested: 'info', follow_up: 'warn', won: 'good', lost: 'bad' }[s]})"></i>` : '').join('')}</div>
+          <div class="bar" style="height:12px;display:flex;margin-bottom:14px">${LEAD_STATUSES.map((s) => pipe[s] ? `<i style="width:${(pipe[s] / pipeTotal) * 100}%;border-radius:0;background:var(--${STAGE_COLOR[s]})"></i>` : '').join('')}</div>
           <div class="row">${LEAD_STATUSES.map((s) => `<a class="pill ${s}" href="#/leads?status=${s}">${STATUS_LABEL[s]} ${pipe[s] || 0}</a>`).join('')}</div>
           ${d.follow_ups_due ? `<p style="margin:14px 0 0"><a class="btn" href="#/leads?due=1">${ic('calendar')} ${d.follow_ups_due} follow-up${d.follow_ups_due > 1 ? 's' : ''} due today</a></p>` : ''}</div>
       </div>
@@ -241,6 +248,8 @@ async function dashboardView(arg) {
   document.getElementById('day').onchange = (e) => { location.hash = `#/dashboard/${e.target.value}`; };
   bindRowLinks();
   bindRecFix();
+  const dt = document.getElementById('dashTasks');
+  if (dt) bindTasks(dt, () => dashboardView(arg));
 }
 const skillRow = (k, v) => `<div class="skill"><span>${esc(SKILL_LABELS[k])}</span><div class="bar ${band((v || 0) * 10)}"><i style="width:${(v || 0) * 10}%"></i></div>${score(v, 10)}</div>`;
 function bindRowLinks() { document.querySelectorAll('tr[data-href]').forEach((tr) => { tr.onclick = () => { location.hash = tr.dataset.href; }; }); }
@@ -280,7 +289,7 @@ async function callView(id) {
   const li = (icon, x) => `<li>${ic(icon)}<span>${esc(x)}</span></li>`;
   setMain(`<div class="head"><div><a href="#/calls" class="crumb">${ic('left')} Calls</a><h1>${esc(c.lead_name || c.lead_phone || 'Call')}</h1>
       <div class="row muted">${avatar(c.agent_name, true)} ${esc(c.agent_name || '')} · ${when(c.started_at)} · ${dur(c.duration_sec)}${c.language ? ' · ' + esc(c.language) : ''} ${outcomePill(c)}</div></div>
-      <div class="row">${c.lead_id ? `<a class="btn" href="#/calls?lead=${c.lead_id}&from=2000-01-01">All calls with this lead</a>` : ''}
+      <div class="row">${c.lead_id ? `<a class="btn" href="#/lead/${c.lead_id}">${ic('users')} Open lead</a>` : ''}
       ${isManager() ? '<button id="re">Re-analyse</button>' : ''}</div></div>
     ${c.processing === 'error' ? `<div class="flag">${ic('alert')}<div>Analysis failed: ${esc(c.error)}</div></div>` : ''}
     ${['pending', 'transcribing', 'analyzing'].includes(c.processing) && c.status === 'completed' ? `<div class="notice" style="background:var(--info-soft);color:var(--info)">${ic('clock')}<div><b>${c.processing === 'analyzing' ? 'AI is scoring the call…' : c.processing === 'transcribing' ? 'Writing out the conversation…' : 'Getting the recording…'}</b> This page updates by itself, usually within 30 seconds.</div></div>` : ''}
@@ -428,21 +437,21 @@ document.addEventListener('visibilitychange', () => {
 async function leadsView(_, q) {
   shell('leads', loading());
   const p = new URLSearchParams();
-  for (const k of ['status', 'q', 'due', 'owner']) if (q.get(k)) p.set(k, q.get(k));
+  for (const k of ['status', 'q', 'due', 'owner', 'tag']) if (q.get(k)) p.set(k, q.get(k));
   const [{ leads }, { users }] = await Promise.all([api('/api/leads?' + p), api('/api/users')]);
   const agentOpts = (sel) => `<option value="">Unassigned</option>${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${sel === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
   setMain(`<div class="head"><div><h1>Leads</h1><div class="muted">${leads.length} lead${leads.length === 1 ? '' : 's'}${q.get('due') ? ' · follow-ups due' : ''} · tap <b>Call</b> to start a recorded call</div></div>
-      <div class="row">${phoneBadge()}<button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
+      <div class="row">${phoneBadge()}<a class="btn" href="/api/leads/export">${ic('file')} Export</a><button id="imp">${ic('upload')} Import CSV</button><button class="primary" id="add">${ic('plus')} Add lead</button></div></div>
     ${recNotice()}${simNotice()}
-    <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">
+    <form class="row panel" id="flt" style="padding:14px"><input name="q" placeholder="Search name, phone, email, company, tag" value="${esc(q.get('q') || '')}" style="flex:1;min-width:180px">${q.get('tag') ? `<input type="hidden" name="tag" value="${esc(q.get('tag'))}"><a class="pill" href="#/leads">#${esc(q.get('tag'))} ✕</a>` : ''}
       <select name="status"><option value="">All statuses</option>${LEAD_STATUSES.map((s) => `<option value="${s}" ${q.get('status') === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
       ${isManager() ? `<select name="owner"><option value="">All agents</option>${users.map((u) => `<option value="${u.id}" ${q.get('owner') === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}
       <label class="row" style="margin:0"><input type="checkbox" name="due" value="1" ${q.get('due') ? 'checked' : ''} style="width:auto"> Due today</label><button class="primary">${ic('search')} Search</button></form>
-    <div class="panel flush scroll">${leads.length ? `<table><tr><th>Lead</th><th>Status</th>${isManager() ? '<th>Agent</th>' : ''}<th>Source</th><th>Follow-up</th><th class="n">Calls</th><th></th></tr>
-      ${leads.map((l) => `<tr data-id="${l.id}"><td><div class="who">${avatar(l.name, true)}<div style="flex:1">${esc(l.name)}<span>${esc(l.phone)}${l.notes ? ' · ' + esc(l.notes.slice(0, 60)) : ''}</span></div><button class="call call-m" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')}</button></div></td>
+    <div class="panel flush scroll">${leads.length ? `<table><tr><th>Lead</th><th>Stage</th>${isManager() ? '<th>Agent</th>' : ''}<th class="n">Value</th><th>Source</th><th>Follow-up</th><th class="n">Calls</th><th></th></tr>
+      ${leads.map((l) => `<tr data-id="${l.id}"><td><div class="who">${avatar(l.name, true)}<div style="flex:1"><a href="#/lead/${l.id}" style="color:inherit">${esc(l.name)}</a><span>${esc(l.phone)}${l.company ? ' · ' + esc(l.company) : ''}</span>${l.tags ? `<div style="margin-top:4px">${tagChips(l.tags)}</div>` : ''}</div><button class="call call-m" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')}</button></div></td>
         <td><select data-f="status" style="width:auto">${LEAD_STATUSES.map((s) => `<option value="${s}" ${l.status === s ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></td>
         ${isManager() ? `<td><select data-f="owner_id" style="width:auto">${agentOpts(l.owner_id)}</select></td>` : ''}
-        <td class="small">${esc(l.source || '')}</td><td><input type="date" data-f="next_follow_up" value="${esc(l.next_follow_up || '')}" style="width:auto"></td>
+        <td class="n small">${inr(l.deal_value) || '<span class="muted">–</span>'}</td><td class="small">${esc(l.source || '')}</td><td><input type="date" data-f="next_follow_up" value="${esc(l.next_follow_up || '')}" style="width:auto"></td>
         <td class="n">${l.call_count ? `<a href="#/calls?lead=${l.id}&from=2000-01-01">${l.call_count}</a>` : '<span class="muted">0</span>'}</td>
         <td class="n call-col"><button class="call" data-call="${l.id}" data-name="${esc(l.name)}">${ic('phone')} Call</button></td></tr>`).join('')}</table>`
       : empty('users', 'No leads yet', 'Add a lead, import a CSV, or connect your lead forms in Settings.')}</div>
@@ -464,13 +473,15 @@ async function leadsView(_, q) {
   const dlg = document.getElementById('dlg');
   document.getElementById('add').onclick = () => {
     dlg.innerHTML = `<h2>Add lead</h2><form id="lf"><label>Name<input name="name" required></label><label>Phone<input name="phone" required placeholder="98xxxxxxxx"></label>
-      <label>Email<input name="email" type="email"></label><label>Source<input name="source" placeholder="Meta ad, website, referral…"></label>
+      <label>Email<input name="email" type="email"></label>
+      <div class="grid g2" style="gap:12px"><label>Company<input name="company"></label><label>Deal value (₹)<input name="deal_value" inputmode="numeric" placeholder="25000"></label></div>
+      <label>Source<input name="source" placeholder="Meta ad, website, referral…"></label><label>Tags (comma separated)<input name="tags" placeholder="hot, swift, palakkad"></label>
       ${isManager() ? `<label>Agent<select name="owner_id">${agentOpts('')}</select></label>` : ''}<label>Notes<textarea name="notes" style="min-height:60px"></textarea></label>
       <div class="row" style="justify-content:flex-end"><button type="button" onclick="this.closest('dialog').close()">Cancel</button><button class="primary">Save lead</button></div></form>`;
     dlg.showModal();
     document.getElementById('lf').onsubmit = async (e) => {
       e.preventDefault();
-      try { await api('/api/leads', { method: 'POST', body: form(e.target) }); dlg.close(); route(); } catch (err) { toast(err.message); }
+      try { const r = await api('/api/leads', { method: 'POST', body: form(e.target) }); dlg.close(); location.hash = `#/lead/${r.id}`; } catch (err) { toast(err.message); }
     };
   };
   document.getElementById('imp').onclick = () => {
@@ -589,6 +600,9 @@ async function settingsView() {
       <label>How agents call<select name="call_mode" style="max-width:420px">
         <option value="sim" ${me.call_mode !== 'exotel' ? 'selected' : ''}>Agent's own SIM (SalePunch Android app)</option>
         <option value="exotel" ${me.call_mode === 'exotel' ? 'selected' : ''} ${s.telephony ? '' : 'disabled'}>Company cloud line (Exotel)${s.telephony ? '' : ': not connected'}</option></select></label>
+      <label>Assign new leads<select name="auto_assign" style="max-width:420px">
+        <option value="" ${v.auto_assign !== 'round_robin' ? 'selected' : ''}>Leave unassigned (manager assigns)</option>
+        <option value="round_robin" ${v.auto_assign === 'round_robin' ? 'selected' : ''}>Automatically, in turn to each agent (round-robin)</option></select></label>
       <label>Daily call target per agent (used on Productivity)<input name="daily_call_target" type="number" min="1" max="1000" value="${esc(v.daily_call_target || 60)}" style="max-width:160px"></label>
       <label>Sales script<textarea name="script" style="min-height:220px" placeholder="1. Greet: 'Good morning, this is <name> from <company>…'&#10;2. Confirm you are speaking to the right person&#10;3. Ask what they are looking for&#10;4. …">${esc(v.script)}</textarea></label></div>
     <div class="panel"><h2>${ic('link')} CRM connection</h2>
@@ -737,14 +751,199 @@ async function productivityView(arg) {
   bindRowLinks();
 }
 
+
+// ------------------------------------------------------------ CRM: lead page, pipeline, tasks
+const nowIST = () => new Date(Date.now() + 330 * 60000).toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM in India time
+const dueLabel = (d, done = false) => {
+  if (!d) return '<span class="muted">No date</span>';
+  const [date, time] = d.split('T');
+  const t = time ? ' ' + new Date(`2000-01-01T${time}`).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
+  const label = date === me.today ? 'Today' : date === addDays(me.today, 1) ? 'Tomorrow' : new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const late = !done && (time ? d : date + 'T23:59') < nowIST();
+  return `<span class="${late ? 'score lo' : ''}">${label}${t}${late ? ' · overdue' : ''}</span>`;
+};
+const waLink = (phone, text = '') => `https://wa.me/${String(phone || '').replace(/\D/g, '')}${text ? '?text=' + encodeURIComponent(text) : ''}`;
+
+function taskRow(t, { showLead = false } = {}) {
+  return `<li class="task" data-task="${t.id}" style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)">
+    <input type="checkbox" data-done ${t.done ? 'checked' : ''} style="width:20px;height:20px;margin-top:2px;flex:none" aria-label="Done">
+    <div style="flex:1;min-width:0"><div style="${t.done ? 'text-decoration:line-through;color:var(--muted)' : 'font-weight:600'}">${esc(t.title)}</div>
+      <div class="small muted">${dueLabel(t.due_at, t.done)}${showLead && t.lead_id ? ` · <a href="#/lead/${t.lead_id}">${esc(t.lead_name || 'Lead')}</a>` : ''}${isManager() && t.user_name ? ` · ${esc(t.user_name)}` : ''}</div></div>
+    <button class="link small" data-del title="Delete task">${ic('x')}</button></li>`;
+}
+function bindTasks(root, after) {
+  root.querySelectorAll('[data-task]').forEach((li) => {
+    li.querySelector('[data-done]').onchange = async (e) => {
+      try { await api(`/api/tasks/${li.dataset.task}`, { method: 'PATCH', body: { done: e.target.checked } }); toast(e.target.checked ? 'Task done' : 'Task reopened'); after(); } catch (err) { toast(err.message); }
+    };
+    li.querySelector('[data-del]').onclick = async () => {
+      if (!confirm('Delete this task?')) return;
+      try { await api(`/api/tasks/${li.dataset.task}`, { method: 'DELETE' }); after(); } catch (err) { toast(err.message); }
+    };
+  });
+}
+function taskForm(users, leadId = '') {
+  return `<form class="taskform" style="display:grid;gap:8px;margin-top:12px"><input name="title" placeholder="New task, e.g. Send quotation on WhatsApp" required maxlength="200">
+    <div class="row"><input type="datetime-local" name="due_at" style="flex:1;min-width:170px" value="${nowIST().slice(0, 11)}17:00">
+    ${isManager() ? `<select name="user_id" style="flex:1;min-width:140px">${users.filter((u) => u.active).map((u) => `<option value="${u.id}" ${u.id === me.user.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}
+    <input type="hidden" name="lead_id" value="${esc(leadId)}"><button class="primary">${ic('plus')} Add</button></div></form>`;
+}
+function bindTaskForm(root, after) {
+  const f = root.querySelector('.taskform');
+  if (!f) return;
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const b = form(f);
+    if (!b.lead_id) delete b.lead_id;
+    try { await api('/api/tasks', { method: 'POST', body: b }); toast('Task added'); after(); } catch (err) { toast(err.message); }
+  };
+}
+
+async function leadView(id) {
+  shell('leads', loading());
+  const [d, { users }] = await Promise.all([api(`/api/leads/${id}`), api('/api/users')]);
+  const l = d.lead;
+  const agentOpts = `<option value="">Unassigned</option>${users.filter((u) => u.active || u.id === l.owner_id).map((u) => `<option value="${u.id}" ${l.owner_id === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}`;
+  const events = [
+    ...d.calls.map((c) => ({ t: c.started_at, html: `<div class="tl"><span class="tl-ic" style="background:var(--good-soft);color:var(--good)">${ic('phone')}</span><div style="flex:1;min-width:0">
+      <div class="row" style="justify-content:space-between"><b>Call · ${esc(c.agent_name || '')}</b>${outcomePill(c)}</div>
+      <div class="small muted">${when(c.started_at)} · ${dur(c.duration_sec)}${c.skill_score != null ? ` · skill ${c.skill_score}/100` : ''}${c.conversion_chance != null ? ` · ${c.conversion_chance}% chance` : ''}</div>
+      ${c.summary ? `<div class="small" style="margin-top:4px">${esc(c.summary)}</div>` : ''}${c.next_action ? `<div class="small" style="margin-top:4px"><b>Next:</b> ${esc(c.next_action)}</div>` : ''}
+      <a class="small" href="#/calls/${c.id}">Open call report →</a></div></div>` })),
+    ...d.notes.map((n) => ({ t: n.created_at, html: `<div class="tl"><span class="tl-ic" style="background:var(--warn-soft);color:var(--warn)">${ic('file')}</span><div style="flex:1;min-width:0">
+      <div class="row" style="justify-content:space-between"><b>Note · ${esc(n.user_name || '')}</b>${n.user_id === me.user.id || isManager() ? `<button class="link small" data-delnote="${n.id}">Delete</button>` : ''}</div>
+      <div class="small muted">${when(n.created_at)}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(n.body)}</div></div></div>` })),
+    ...d.activities.map((a) => ({ t: a.created_at, html: `<div class="tl"><span class="tl-ic" style="background:var(--lead);color:var(--muted)">${ic(a.kind === 'status' ? 'trend' : a.kind === 'owner' ? 'users' : a.kind === 'task' ? 'check' : 'clock')}</span><div style="flex:1">
+      <div class="small">${esc(a.text)}${a.user_name ? ` <span class="muted">· ${esc(a.user_name)}</span>` : ''}</div><div class="small muted">${when(a.created_at)}</div></div></div>` })),
+  ].sort((a, b) => b.t - a.t);
+  const field = (name, label, value, type = 'text', extra = '') => `<label>${label}<input name="${name}" type="${type}" value="${esc(value ?? '')}" ${extra}></label>`;
+  setMain(`<div class="head"><div><a href="#/leads" class="crumb">${ic('left')} Leads</a><h1>${esc(l.name)}</h1>
+      <div class="row muted"><span class="pill ${esc(l.status)}">${esc(STATUS_LABEL[l.status] || l.status)}</span>${l.company ? `<span>${esc(l.company)}</span>·` : ''}<span>${esc(l.phone)}</span>
+        ${l.deal_value ? `· <b style="color:var(--ink)">${inr(l.deal_value)}</b>` : ''}${l.owner_name ? `· ${avatar(l.owner_name, true)} ${esc(l.owner_name)}` : ''}</div>
+      ${l.tags ? `<div style="margin-top:8px">${tagChips(l.tags)}</div>` : ''}</div>
+      <div class="row"><button class="call" id="callBtn">${ic('phone')} Call</button>
+        <a class="btn" target="_blank" rel="noopener" href="${waLink(l.phone, `Hi ${l.name.split(' ')[0]}, `)}">WhatsApp</a>
+        ${l.email ? `<a class="btn" href="mailto:${esc(l.email)}">Email</a>` : ''}</div></div>
+    ${recNotice()}
+    <div class="grid g4" style="margin-bottom:18px">
+      ${tile('phone', d.calls.length, 'Calls with this lead', 'good')}
+      ${tile('target', d.calls.find((c) => c.conversion_chance != null)?.conversion_chance != null ? d.calls.find((c) => c.conversion_chance != null).conversion_chance + '<small>%</small>' : '–', 'Latest chance to buy', 'info')}
+      ${tile('calendar', l.next_follow_up ? new Date(l.next_follow_up + 'T12:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '–', 'Next follow-up', l.next_follow_up && l.next_follow_up < me.today ? 'bad' : 'warn')}
+      ${tile('trophy', inr(l.deal_value) || '–', l.expected_close ? `Deal · close by ${l.expected_close}` : 'Deal value', 'violet')}
+    </div>
+    <div class="grid g-side">
+      <div>
+        <div class="panel"><h2>${ic('clock')} Timeline</h2>
+          <form id="noteF"><textarea name="body" placeholder="Add a note: what was discussed, what they need…" style="min-height:80px" required></textarea>
+            <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="primary">${ic('plus')} Add note</button></div></form>
+          <div class="timeline" style="margin-top:14px">${events.length ? events.map((e) => e.html).join('') : '<p class="muted">Nothing yet. Calls, notes and changes appear here.</p>'}</div></div>
+      </div>
+      <div>
+        <div class="panel"><h2>${ic('check')} Tasks</h2><ul class="clean" id="taskList">${d.tasks.length ? d.tasks.map((t) => taskRow(t)).join('') : '<li class="muted small">No tasks for this lead.</li>'}</ul>${taskForm(users, l.id)}</div>
+        <form class="panel" id="leadF"><h2>${ic('users')} Details</h2>
+          <div class="grid g2" style="gap:0 12px">${field('name', 'Name', l.name, 'text', 'required')}${field('phone', 'Phone', l.phone, 'tel', 'required')}
+          ${field('email', 'Email', l.email, 'email')}${field('company', 'Company', l.company)}
+          <label>Stage<select name="status">${LEAD_STATUSES.map((s2) => `<option value="${s2}" ${l.status === s2 ? 'selected' : ''}>${STATUS_LABEL[s2]}</option>`).join('')}</select></label>
+          ${isManager() ? `<label>Agent<select name="owner_id">${agentOpts}</select></label>` : field('city', 'City', l.city)}
+          ${field('deal_value', 'Deal value (₹)', l.deal_value || '', 'text', 'inputmode="numeric"')}${field('expected_close', 'Expected close', l.expected_close, 'date')}
+          ${field('next_follow_up', 'Next follow-up', l.next_follow_up, 'date')}${isManager() ? field('city', 'City', l.city) : field('source', 'Source', l.source)}</div>
+          ${isManager() ? field('source', 'Source', l.source) : ''}${field('tags', 'Tags (comma separated)', l.tags)}
+          <label>Notes about this lead<textarea name="notes" style="min-height:70px">${esc(l.notes || '')}</textarea></label>
+          <div class="row" style="justify-content:space-between">${isManager() ? '<button type="button" class="link small" id="delLead" style="color:var(--bad)">Delete lead</button>' : '<span></span>'}<button class="primary">${ic('check')} Save</button></div></form>
+      </div>
+    </div>`);
+  const reload = () => leadView(id);
+  document.getElementById('callBtn').onclick = async () => { try { await startCall(l.id, l.name); } catch (e) { toast(e.message); } };
+  document.getElementById('noteF').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await api(`/api/leads/${id}/notes`, { method: 'POST', body: form(e.target) }); reload(); } catch (err) { toast(err.message); }
+  };
+  document.querySelectorAll('[data-delnote]').forEach((b) => { b.onclick = async () => { if (!confirm('Delete this note?')) return; try { await api(`/api/notes/${b.dataset.delnote}`, { method: 'DELETE' }); reload(); } catch (err) { toast(err.message); } }; });
+  document.getElementById('leadF').onsubmit = async (e) => {
+    e.preventDefault();
+    try { await api(`/api/leads/${id}`, { method: 'PATCH', body: form(e.target) }); toast('Saved'); reload(); } catch (err) { toast(err.message); }
+  };
+  const del = document.getElementById('delLead');
+  if (del) del.onclick = async () => {
+    if (!confirm(`Delete ${l.name}? Their calls stay in Calls, but notes and tasks are removed.`)) return;
+    try { await api(`/api/leads/${id}`, { method: 'DELETE' }); toast('Lead deleted'); location.hash = '#/leads'; } catch (err) { toast(err.message); }
+  };
+  bindTasks(document.getElementById('main'), reload);
+  bindTaskForm(document.getElementById('main'), reload);
+  bindRecFix();
+}
+
+async function pipelineView(_, q) {
+  shell('pipeline', loading());
+  const owner = q.get('owner') || '';
+  const [d, { users }] = await Promise.all([api('/api/pipeline' + (owner ? `?owner=${owner}` : '')), api('/api/users')]);
+  setMain(`<div class="head"><div><h1>Pipeline</h1><div class="muted">Open deals worth <b style="color:var(--ink)">${inr(d.open_value) || '₹0'}</b> · won ${inr(d.won_value) || '₹0'} · drag a card to change its stage</div></div>
+      <div class="row">${isManager() ? `<select id="own"><option value="">All agents</option>${users.map((u) => `<option value="${u.id}" ${owner === u.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select>` : ''}<a class="btn" href="#/leads">${ic('users')} List view</a></div></div>
+    <div class="board">${d.stages.map((st) => `<section class="col" data-stage="${st.key}">
+      <header><span class="pill ${st.key}">${esc(st.label)}</span><span class="small muted">${st.count}${st.value ? ' · ' + inr(st.value) : ''}</span></header>
+      <div class="cards">${st.leads.map((l) => `<article class="card" draggable="true" data-id="${l.id}" data-stage="${st.key}">
+        <a href="#/lead/${l.id}" style="color:inherit;text-decoration:none"><b>${esc(l.name)}</b>${l.company ? `<div class="small muted">${esc(l.company)}</div>` : ''}</a>
+        <div class="row small" style="justify-content:space-between;margin-top:6px">${l.deal_value ? `<b>${inr(l.deal_value)}</b>` : '<span class="muted">No value</span>'}${l.owner_name ? `<span class="muted">${esc(l.owner_name.split(' ')[0])}</span>` : ''}</div>
+        ${l.next_follow_up ? `<div class="small" style="margin-top:4px">${ic('calendar')} ${l.next_follow_up < me.today ? `<span class="score lo">${esc(l.next_follow_up)}</span>` : esc(l.next_follow_up)}</div>` : ''}
+        <select class="mv small" aria-label="Move to stage">${LEAD_STATUSES.map((s2) => `<option value="${s2}" ${s2 === st.key ? 'selected' : ''}>${STATUS_LABEL[s2]}</option>`).join('')}</select></article>`).join('') || '<div class="small muted empty-col">No leads</div>'}
+        ${st.count > st.leads.length ? `<a class="small" href="#/leads?status=${st.key}">+${st.count - st.leads.length} more</a>` : ''}</div></section>`).join('')}</div>`);
+  const own = document.getElementById('own');
+  if (own) own.onchange = () => { location.hash = '#/pipeline' + (own.value ? `?owner=${own.value}` : ''); };
+  const move = async (leadId, stage) => {
+    try { await api(`/api/leads/${leadId}`, { method: 'PATCH', body: { status: stage } }); toast(`Moved to ${STATUS_LABEL[stage]}`); } catch (e) { toast(e.message); }
+    pipelineView(_, q);
+  };
+  document.querySelectorAll('.card').forEach((c) => {
+    c.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', c.dataset.id); c.classList.add('drag'); });
+    c.addEventListener('dragend', () => c.classList.remove('drag'));
+    c.querySelector('.mv').onchange = (e) => move(c.dataset.id, e.target.value);
+  });
+  document.querySelectorAll('.col').forEach((col) => {
+    col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('over'); });
+    col.addEventListener('dragleave', () => col.classList.remove('over'));
+    col.addEventListener('drop', (e) => {
+      e.preventDefault(); col.classList.remove('over');
+      const leadId = e.dataTransfer.getData('text/plain');
+      const card = document.querySelector(`.card[data-id="${leadId}"]`);
+      if (leadId && card && card.dataset.stage !== col.dataset.stage) move(leadId, col.dataset.stage);
+    });
+  });
+}
+
+async function tasksView(_, q) {
+  shell('tasks', loading());
+  const who = q.get('user') || 'me';
+  const [{ tasks }, { users }] = await Promise.all([api(`/api/tasks?user=${encodeURIComponent(who)}`), api('/api/users')]);
+  const now = nowIST(), today = me.today;
+  const open = tasks.filter((t) => !t.done), done = tasks.filter((t) => t.done).slice(0, 30);
+  const due = (t) => t.due_at ? (t.due_at.length === 10 ? t.due_at + 'T23:59' : t.due_at) : null;
+  const groups = [
+    ['Overdue', open.filter((t) => due(t) && due(t) < now)],
+    ['Today', open.filter((t) => due(t) && due(t) >= now && t.due_at.slice(0, 10) === today)],
+    ['Upcoming', open.filter((t) => due(t) && t.due_at.slice(0, 10) > today)],
+    ['No date', open.filter((t) => !t.due_at)],
+  ];
+  setMain(`<div class="head"><div><h1>Tasks</h1><div class="muted">${open.length} open · calls to make, quotes to send, visits to fix</div></div>
+      ${isManager() ? `<div class="seg" style="padding:3px">${[['me', 'Mine'], ['all', 'Everyone']].concat(users.filter((u) => u.id !== me.user.id).map((u) => [u.id, u.name.split(' ')[0]])).map(([k, l]) => `<a href="#/tasks?user=${k}" style="${who === k ? 'background:var(--brand-soft);color:var(--brand-2);font-weight:700' : ''}">${esc(l)}</a>`).join('')}</div>` : ''}</div>
+    <div class="grid g-side">
+      <div class="panel">${groups.map(([label, list]) => list.length ? `<h3 style="margin-top:6px;color:${label === 'Overdue' ? 'var(--bad)' : 'var(--muted)'}">${label} · ${list.length}</h3><ul class="clean">${list.map((t) => taskRow(t, { showLead: true })).join('')}</ul>` : '').join('') || empty('check', 'All clear', 'No open tasks. Add one on the right, or from any lead.')}</div>
+      <div><div class="panel"><h2>${ic('plus')} New task</h2>${taskForm(users)}</div>
+        ${done.length ? `<div class="panel"><h3>Recently done</h3><ul class="clean">${done.map((t) => taskRow(t, { showLead: true })).join('')}</ul></div>` : ''}</div>
+    </div>`);
+  const reload = () => tasksView(_, q);
+  bindTasks(document.getElementById('main'), reload);
+  bindTaskForm(document.getElementById('main'), reload);
+}
+
 // ------------------------------------------------------------ router
-const VIEWS = { leaks: leaksView, productivity: productivityView, dashboard: dashboardView, calls: callsView, leads: leadsView, upload: uploadView, reports: reportsView, team: teamView, settings: settingsView, guide: guideView };
+const VIEWS = { pipeline: pipelineView, tasks: tasksView, leaks: leaksView, productivity: productivityView, dashboard: dashboardView, calls: callsView, leads: leadsView, upload: uploadView, reports: reportsView, team: teamView, settings: settingsView, guide: guideView };
 async function route() {
   const [path, qs] = location.hash.replace(/^#\/?/, '').split('?');
   const [name, arg] = path.split('/');
   const q = new URLSearchParams(qs || '');
   try {
     if (name === 'calls' && arg) return await callView(arg);
+    if (name === 'lead' && arg) return await leadView(arg);
     await (VIEWS[name] || dashboardView)(arg, q);
     window.scrollTo(0, 0);
   } catch (e) {

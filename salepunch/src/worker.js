@@ -1,20 +1,21 @@
 // SalePunch — sales call monitoring. Cloudflare Worker: API + dashboard.
 import { hashPassword, readSession, readToken, requestToken, sessionCookie, signSession, signToken, verifyPassword } from './auth.js';
 import { authUrl, exchangeCode, googleReady } from './google.js';
-import { LEAD_STATUSES } from './constants.js';
-import { mapIncomingLead } from './crm.js';
+import { LEAD_STATUSES, STATUS_LABELS } from './constants.js';
+import { mapIncomingLead, nextAssignee, toCsv } from './crm.js';
 import { dailyReport, getSettings, processCall, retryStuck, today } from './pipeline.js';
 import { productivity, salesLeaks } from './insights.js';
 import { serveStatic } from './static.js';
 import { teamStats } from './stats.js';
-import { exotelDial, exotelReady, fetchRecording, parseExotelCallback } from './telephony.js';
+import { exotelDial, exotelReady, parseExotelCallback } from './telephony.js';
+import { audioResponse, loadRecording, saveRecording } from './storage.js';
 import { parseTextTranscript } from './transcribe.js';
 import { dayOf, fail, json, newId, normalizePhone, parseCsv, safeJson, sameSecret } from './util.js';
 
 const MANAGERS = ['admin', 'manager'];
 const isManager = (u) => MANAGERS.includes(u.role);
 const publicUser = ({ pass_hash, ...u }) => u;
-const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url', 'daily_call_target', 'call_mode'];
+const SETTING_KEYS = ['company', 'product', 'script', 'crm_webhook_url', 'report_webhook_url', 'daily_call_target', 'call_mode', 'auto_assign'];
 const MAX_UPLOAD = 25 * 1024 * 1024;
 
 async function currentUser(request, env) {
@@ -185,8 +186,10 @@ route('GET', '/api/leads', async (req, env, { user, url }) => {
   else if (url.searchParams.get('owner')) { where.push('l.owner_id = ?'); vals.push(url.searchParams.get('owner')); }
   const status = url.searchParams.get('status');
   if (status) { where.push('l.status = ?'); vals.push(status); }
-  const q = url.searchParams.get('q');
-  if (q) { where.push('(l.name LIKE ? OR l.phone LIKE ? OR l.email LIKE ?)'); vals.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  const q = (url.searchParams.get('q') || '').trim().slice(0, 40).replace(/[%_]/g, '');
+  if (q) { where.push('(l.name LIKE ? OR l.phone LIKE ? OR l.email LIKE ? OR l.company LIKE ? OR l.tags LIKE ?)'); vals.push(...Array(5).fill(`%${q}%`)); }
+  const tag = (url.searchParams.get('tag') || '').trim().slice(0, 40).replace(/[%_]/g, '');
+  if (tag) { where.push("(',' || REPLACE(l.tags, ', ', ',') || ',') LIKE ?"); vals.push(`%,${tag},%`); }
   if (url.searchParams.get('due') === '1') { where.push("l.next_follow_up IS NOT NULL AND l.next_follow_up <= ? AND l.status NOT IN ('won','lost')"); vals.push(today(env)); }
   const sql = `SELECT l.*, u.name AS owner_name,
       (SELECT COUNT(*) FROM calls c WHERE c.lead_id = l.id) AS call_count,
@@ -197,13 +200,37 @@ route('GET', '/api/leads', async (req, env, { user, url }) => {
   return json({ leads: results });
 });
 
-async function insertLead(env, l, ownerId) {
+const cleanTags = (t) => [...new Set(String(t || '').split(',').map((x) => x.trim().toLowerCase().slice(0, 30)).filter(Boolean))].slice(0, 12).join(', ') || null;
+const money = (v) => { const n = Math.round(Number(String(v ?? '').replace(/[^\d.]/g, ''))); return Number.isFinite(n) && n > 0 ? Math.min(n, 1e12) : null; };
+const isoDate = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null);
+
+async function logActivity(env, leadId, userId, kind, text) {
+  await env.DB.prepare('INSERT INTO activities (id, lead_id, user_id, kind, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(newId(), leadId, userId || null, kind, String(text).slice(0, 300), Date.now()).run();
+}
+
+/** Round-robin owner for a lead that arrives without one (Settings → Assign new leads). */
+async function autoOwner(env) {
+  const s = await getSettings(env.DB);
+  if (s.auto_assign !== 'round_robin') return null;
+  const { results } = await env.DB.prepare("SELECT id FROM users WHERE active = 1 AND role = 'agent' ORDER BY created_at, id").all();
+  const next = nextAssignee(results, s.rr_last);
+  if (!next) return null;
+  await env.DB.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES ('rr_last', ?)").bind(next.id).run();
+  return next.id;
+}
+
+async function insertLead(env, l, ownerId, byUser = null) {
   const now = Date.now();
   const existing = await env.DB.prepare('SELECT id FROM leads WHERE phone = ?').bind(l.phone).first();
   if (existing) return { id: existing.id, duplicate: true };
   const id = newId();
-  await env.DB.prepare('INSERT INTO leads (id, name, phone, email, source, status, owner_id, notes, external_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(id, l.name, l.phone, l.email || null, l.source || null, LEAD_STATUSES.includes(l.status) ? l.status : 'new', ownerId || null, l.notes || null, l.external_id || null, now, now).run();
+  const owner = ownerId || (await autoOwner(env));
+  await env.DB.prepare(`INSERT INTO leads (id, name, phone, email, source, status, owner_id, notes, external_id, created_at, updated_at, company, city, deal_value, expected_close, tags)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, String(l.name).slice(0, 120), l.phone, l.email || null, l.source || null, LEAD_STATUSES.includes(l.status) ? l.status : 'new', owner || null,
+      l.notes || null, l.external_id || null, now, now, l.company || null, l.city || null, money(l.deal_value), isoDate(l.expected_close), cleanTags(l.tags)).run();
+  await logActivity(env, id, byUser, 'created', `Lead added${l.source ? ` from ${l.source}` : ''}${owner && !ownerId ? ' and assigned automatically' : ''}`);
   return { id };
 }
 
@@ -212,7 +239,7 @@ route('POST', '/api/leads', async (req, env, { user }) => {
   const phone = normalizePhone(b.phone);
   if (!b.name || !phone) return fail(400, 'Name and phone are needed');
   const owner = isManager(user) ? b.owner_id || null : user.id;
-  const r = await insertLead(env, { ...b, phone }, owner);
+  const r = await insertLead(env, { ...b, phone }, owner, user.id);
   return r.duplicate ? fail(409, 'A lead with this phone number already exists') : json(r);
 });
 
@@ -225,7 +252,7 @@ route('POST', '/api/leads/import', async (req, env, { user }) => {
     const l = mapIncomingLead(row);
     if (!l) { skipped++; continue; }
     const owner = isManager(user) ? users.find((u) => u.email === l.owner_email)?.id || b.owner_id || null : user.id;
-    const r = await insertLead(env, l, owner);
+    const r = await insertLead(env, l, owner, user.id);
     r.duplicate ? skipped++ : added++;
   }
   return json({ added, skipped });
@@ -235,21 +262,163 @@ route('PATCH', '/api/leads/:id', async (req, env, { params, user }) => {
   const lead = await env.DB.prepare('SELECT * FROM leads WHERE id = ?').bind(params.id).first();
   if (!lead || (!isManager(user) && lead.owner_id !== user.id)) return fail(404, 'Lead not found');
   const b = await body(req);
-  const sets = [], vals = [];
-  for (const k of ['name', 'email', 'source', 'notes', 'next_follow_up']) if (b[k] !== undefined) { sets.push(`${k} = ?`); vals.push(b[k] || null); }
-  if (b.phone !== undefined) { sets.push('phone = ?'); vals.push(normalizePhone(b.phone)); }
-  if (LEAD_STATUSES.includes(b.status)) { sets.push('status = ?'); vals.push(b.status); }
-  if (b.owner_id !== undefined && isManager(user)) { sets.push('owner_id = ?'); vals.push(b.owner_id || null); }
+  const sets = [], vals = [], log = [];
+  for (const k of ['name', 'email', 'source', 'notes', 'company', 'city']) if (b[k] !== undefined) { sets.push(`${k} = ?`); vals.push(String(b[k] || '').trim().slice(0, k === 'notes' ? 4000 : 200) || null); }
+  if (b.name !== undefined && !String(b.name).trim()) return fail(400, 'Name is needed');
+  for (const k of ['next_follow_up', 'expected_close']) if (b[k] !== undefined) { sets.push(`${k} = ?`); vals.push(isoDate(b[k])); }
+  if (b.phone !== undefined) {
+    const phone = normalizePhone(b.phone);
+    if (!phone) return fail(400, 'Phone is needed');
+    const dup = await env.DB.prepare('SELECT id FROM leads WHERE phone = ? AND id != ?').bind(phone, lead.id).first();
+    if (dup) return fail(409, 'Another lead already has this phone number');
+    sets.push('phone = ?'); vals.push(phone);
+  }
+  if (b.tags !== undefined) { sets.push('tags = ?'); vals.push(cleanTags(b.tags)); }
+  if (b.deal_value !== undefined) {
+    const v = money(b.deal_value);
+    sets.push('deal_value = ?'); vals.push(v);
+    if (v !== lead.deal_value) log.push(['value', v ? `Deal value set to ₹${v.toLocaleString('en-IN')}` : 'Deal value cleared']);
+  }
+  if (LEAD_STATUSES.includes(b.status) && b.status !== lead.status) {
+    sets.push('status = ?'); vals.push(b.status);
+    log.push(['status', `Stage: ${STATUS_LABELS[lead.status] || lead.status} → ${STATUS_LABELS[b.status]}`]);
+  }
+  if (b.owner_id !== undefined && isManager(user) && (b.owner_id || null) !== lead.owner_id) {
+    const o = b.owner_id ? await env.DB.prepare('SELECT name FROM users WHERE id = ?').bind(b.owner_id).first() : null;
+    if (b.owner_id && !o) return fail(400, 'Unknown agent');
+    sets.push('owner_id = ?'); vals.push(b.owner_id || null);
+    log.push(['owner', o ? `Assigned to ${o.name}` : 'Unassigned']);
+  }
   if (!sets.length) return fail(400, 'Nothing to change');
   await env.DB.prepare(`UPDATE leads SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`).bind(...vals, Date.now(), params.id).run();
+  for (const [kind, text] of log) await logActivity(env, lead.id, user.id, kind, text);
   return json({ ok: true });
 });
 
 route('DELETE', '/api/leads/:id', async (req, env, { params }) => {
-  await env.DB.prepare('UPDATE calls SET lead_id = NULL WHERE lead_id = ?').bind(params.id).run();
-  await env.DB.prepare('DELETE FROM leads WHERE id = ?').bind(params.id).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE calls SET lead_id = NULL WHERE lead_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM notes WHERE lead_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM tasks WHERE lead_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM activities WHERE lead_id = ?').bind(params.id),
+    env.DB.prepare('DELETE FROM leads WHERE id = ?').bind(params.id),
+  ]);
   return json({ ok: true });
 }, { manager: true });
+
+// --- CRM: lead page, notes, tasks, pipeline, export
+async function visibleLead(env, user, id) {
+  const l = await env.DB.prepare('SELECT l.*, u.name AS owner_name FROM leads l LEFT JOIN users u ON u.id = l.owner_id WHERE l.id = ?').bind(id).first();
+  return l && (isManager(user) || l.owner_id === user.id) ? l : null;
+}
+
+route('GET', '/api/leads/export', async (req, env, { user }) => {
+  const st = env.DB.prepare(`SELECT l.*, u.name AS owner_name, (SELECT COUNT(*) FROM calls c WHERE c.lead_id = l.id) AS call_count
+    FROM leads l LEFT JOIN users u ON u.id = l.owner_id ${isManager(user) ? '' : 'WHERE l.owner_id = ?'} ORDER BY l.created_at DESC`);
+  const { results } = await (isManager(user) ? st : st.bind(user.id)).all();
+  const day = (ms) => (ms ? dayOf(ms, env.TIMEZONE) : '');
+  const csv = toCsv(results, [['name', 'Name'], ['phone', 'Phone'], ['email', 'Email'], ['company', 'Company'], ['city', 'City'],
+    [(r) => STATUS_LABELS[r.status] || r.status, 'Stage'], ['deal_value', 'Deal value (INR)'], ['expected_close', 'Expected close'],
+    ['owner_name', 'Agent'], ['source', 'Source'], ['tags', 'Tags'], ['next_follow_up', 'Next follow-up'], ['call_count', 'Calls'],
+    [(r) => day(r.created_at), 'Created'], ['notes', 'Notes']]);
+  return new Response(csv, { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="salepunch-leads-${today(env)}.csv"`, 'cache-control': 'no-store' } });
+});
+
+route('GET', '/api/leads/:id', async (req, env, { user, params }) => {
+  const lead = await visibleLead(env, user, params.id);
+  if (!lead) return fail(404, 'Lead not found');
+  const [calls, notes, tasks, acts] = await Promise.all([
+    env.DB.prepare(`SELECT c.id, c.agent_id, c.status, c.processing, c.started_at, c.duration_sec, c.outcome, c.conversion_chance, c.skill_score,
+        json_extract(c.analysis, '$.summary') AS summary, json_extract(c.analysis, '$.next_action') AS next_action, u.name AS agent_name
+      FROM calls c LEFT JOIN users u ON u.id = c.agent_id WHERE c.lead_id = ? ORDER BY c.started_at DESC LIMIT 200`).bind(lead.id).all(),
+    env.DB.prepare('SELECT n.*, u.name AS user_name FROM notes n LEFT JOIN users u ON u.id = n.user_id WHERE n.lead_id = ? ORDER BY n.created_at DESC LIMIT 200').bind(lead.id).all(),
+    env.DB.prepare('SELECT t.*, u.name AS user_name FROM tasks t LEFT JOIN users u ON u.id = t.user_id WHERE t.lead_id = ? ORDER BY t.done, t.due_at LIMIT 200').bind(lead.id).all(),
+    env.DB.prepare('SELECT a.*, u.name AS user_name FROM activities a LEFT JOIN users u ON u.id = a.user_id WHERE a.lead_id = ? ORDER BY a.created_at DESC LIMIT 200').bind(lead.id).all(),
+  ]);
+  return json({ lead, calls: calls.results, notes: notes.results, tasks: tasks.results, activities: acts.results });
+});
+
+route('POST', '/api/leads/:id/notes', async (req, env, { user, params }) => {
+  const lead = await visibleLead(env, user, params.id);
+  if (!lead) return fail(404, 'Lead not found');
+  const text = String((await body(req)).body || '').trim().slice(0, 4000);
+  if (!text) return fail(400, 'Write something first');
+  const id = newId();
+  await env.DB.prepare('INSERT INTO notes (id, lead_id, user_id, body, created_at) VALUES (?, ?, ?, ?, ?)').bind(id, lead.id, user.id, text, Date.now()).run();
+  await env.DB.prepare('UPDATE leads SET updated_at = ? WHERE id = ?').bind(Date.now(), lead.id).run();
+  return json({ id });
+});
+
+route('DELETE', '/api/notes/:id', async (req, env, { user, params }) => {
+  const n = await env.DB.prepare('SELECT * FROM notes WHERE id = ?').bind(params.id).first();
+  if (!n || (n.user_id !== user.id && !isManager(user))) return fail(404, 'Note not found');
+  await env.DB.prepare('DELETE FROM notes WHERE id = ?').bind(n.id).run();
+  return json({ ok: true });
+});
+
+const dueOk = (v) => (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(String(v || '')) ? String(v) : null);
+
+route('GET', '/api/tasks', async (req, env, { user, url }) => {
+  const where = [], vals = [];
+  const who = url.searchParams.get('user');
+  if (!isManager(user)) { where.push('t.user_id = ?'); vals.push(user.id); }
+  else if (who && who !== 'all') { where.push('t.user_id = ?'); vals.push(who === 'me' ? user.id : who); }
+  else if (!who) { where.push('t.user_id = ?'); vals.push(user.id); }
+  const done = url.searchParams.get('done');
+  if (done === '0' || done === '1') { where.push('t.done = ?'); vals.push(Number(done)); }
+  const { results } = await env.DB.prepare(`SELECT t.*, u.name AS user_name, l.name AS lead_name, l.phone AS lead_phone
+    FROM tasks t LEFT JOIN users u ON u.id = t.user_id LEFT JOIN leads l ON l.id = t.lead_id
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY t.done, (t.due_at IS NULL), t.due_at, t.created_at LIMIT 500`).bind(...vals).all();
+  return json({ tasks: results });
+});
+
+route('POST', '/api/tasks', async (req, env, { user }) => {
+  const b = await body(req);
+  const title = String(b.title || '').trim().slice(0, 200);
+  if (!title) return fail(400, 'Give the task a title');
+  if (b.lead_id && !(await visibleLead(env, user, b.lead_id))) return fail(404, 'Lead not found');
+  const assignee = isManager(user) && b.user_id ? b.user_id : user.id;
+  if (!(await env.DB.prepare('SELECT id FROM users WHERE id = ? AND active = 1').bind(assignee).first())) return fail(400, 'Unknown agent');
+  const id = newId();
+  await env.DB.prepare('INSERT INTO tasks (id, lead_id, user_id, title, due_at, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, b.lead_id || null, assignee, title, dueOk(b.due_at), user.id, Date.now()).run();
+  return json({ id });
+});
+
+route('PATCH', '/api/tasks/:id', async (req, env, { user, params }) => {
+  const t = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(params.id).first();
+  if (!t || (t.user_id !== user.id && !isManager(user))) return fail(404, 'Task not found');
+  const b = await body(req);
+  const sets = [], vals = [];
+  if (b.title !== undefined) { const v = String(b.title).trim().slice(0, 200); if (!v) return fail(400, 'Title is needed'); sets.push('title = ?'); vals.push(v); }
+  if (b.due_at !== undefined) { sets.push('due_at = ?'); vals.push(dueOk(b.due_at)); }
+  if (b.done !== undefined) { sets.push('done = ?', 'done_at = ?'); vals.push(b.done ? 1 : 0, b.done ? Date.now() : null); }
+  if (!sets.length) return fail(400, 'Nothing to change');
+  await env.DB.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, t.id).run();
+  if (b.done && !t.done && t.lead_id) await logActivity(env, t.lead_id, user.id, 'task', `Task done: ${t.title}`);
+  return json({ ok: true });
+});
+
+route('DELETE', '/api/tasks/:id', async (req, env, { user, params }) => {
+  const t = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(params.id).first();
+  if (!t || (t.user_id !== user.id && t.created_by !== user.id && !isManager(user))) return fail(404, 'Task not found');
+  await env.DB.prepare('DELETE FROM tasks WHERE id = ?').bind(t.id).run();
+  return json({ ok: true });
+});
+
+route('GET', '/api/pipeline', async (req, env, { user, url }) => {
+  const where = [], vals = [];
+  if (!isManager(user)) { where.push('l.owner_id = ?'); vals.push(user.id); }
+  else if (url.searchParams.get('owner')) { where.push('l.owner_id = ?'); vals.push(url.searchParams.get('owner')); }
+  const { results } = await env.DB.prepare(`SELECT l.id, l.name, l.phone, l.company, l.status, l.deal_value, l.expected_close, l.next_follow_up, l.tags, l.owner_id, l.updated_at, u.name AS owner_name
+    FROM leads l LEFT JOIN users u ON u.id = l.owner_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY l.updated_at DESC LIMIT 2000`).bind(...vals).all();
+  const stages = LEAD_STATUSES.map((s) => {
+    const items = results.filter((l) => l.status === s);
+    return { key: s, label: STATUS_LABELS[s], count: items.length, value: items.reduce((n, l) => n + (l.deal_value || 0), 0), leads: items.slice(0, 200) };
+  });
+  const open = results.filter((l) => !['won', 'lost'].includes(l.status));
+  return json({ stages, open_value: open.reduce((n, l) => n + (l.deal_value || 0), 0), won_value: stages.find((s) => s.key === 'won').value });
+});
 
 // --- calls
 route('POST', '/api/calls/dial', async (req, env, { user }) => {
@@ -328,20 +497,14 @@ route('POST', '/api/calls/:id/finish', async (req, env, { user, params, ctx }) =
   const status = SIM_STATUS.includes(String(form.get('status'))) ? String(form.get('status')) : (hasAudio ? 'completed' : call.status === 'dialing' ? 'completed' : call.status);
   const duration = Math.max(0, Math.round(Number(form.get('duration_sec')) || 0)) || call.duration_sec || 0;
   const startedAt = Date.parse(String(form.get('started_at') || '')) || call.started_at;
-  let key = null, audio;
-  if (hasAudio) {
-    if (env.RECORDINGS) {
-      const ext = (String(file.name || '').split('.').pop() || 'm4a').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'm4a';
-      key = `calls/${call.day}/${call.id}.${ext}`;
-      await env.RECORDINGS.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'audio/mp4' } });
-    } else audio = new Uint8Array(await file.arrayBuffer());
-  }
+  let key = null;
+  if (hasAudio) key = await saveRecording(env, call, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/mp4', file.name);
   const processing = hasAudio ? 'pending' : 'skipped';
   const note = !hasAudio && status === 'completed' ? 'No recording found on the phone. Turn on automatic call recording in the phone dialer (see How it works).' : null;
   await env.DB.prepare('UPDATE calls SET status = ?, duration_sec = ?, started_at = ?, recording_key = COALESCE(?, recording_key), processing = ?, error = ?, transcript = CASE WHEN ? THEN NULL ELSE transcript END WHERE id = ?')
     .bind(status, duration, startedAt, key, processing, note, hasAudio ? 1 : 0, call.id).run();
   if (call.lead_id) await env.DB.prepare("UPDATE leads SET status = CASE WHEN status = 'new' THEN 'contacted' ELSE status END, updated_at = ? WHERE id = ?").bind(Date.now(), call.lead_id).run();
-  if (hasAudio) ctx.waitUntil(processCall(env, call.id, { audio }));
+  if (hasAudio) ctx.waitUntil(processCall(env, call.id));
   return json({ ok: true, status, recording: hasAudio });
 });
 
@@ -368,17 +531,11 @@ route('POST', '/api/calls/upload', async (req, env, { user, ctx }) => {
   const when = Date.parse(String(form.get('started_at') || '')) || Date.now();
   const id = newId();
   const day = dayOf(when, env.TIMEZONE || 'Asia/Kolkata');
-  let key = null, audio;
-  if (file && file.size) {
-    if (env.RECORDINGS) {
-      const ext = (file.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5);
-      key = `calls/${day}/${id}.${ext}`;
-      await env.RECORDINGS.put(key, file.stream(), { httpMetadata: { contentType: file.type || 'audio/mpeg' } });
-    } else audio = new Uint8Array(await file.arrayBuffer()); // no storage: transcribe, don't keep
-  }
+  let key = null;
+  if (file && file.size) key = await saveRecording(env, { id, day }, new Uint8Array(await file.arrayBuffer()), file.type || 'audio/mpeg', file.name);
   await env.DB.prepare("INSERT INTO calls (id, agent_id, lead_id, lead_phone, provider, status, started_at, duration_sec, recording_key, day) VALUES (?, ?, ?, ?, 'upload', 'completed', ?, ?, ?, ?)")
     .bind(id, agentId, leadId, phone || null, when, Math.max(0, Number(form.get('duration_sec')) || 0), key, day).run();
-  ctx.waitUntil(processCall(env, id, (key || audio) ? { audio } : { textSegments: parseTextTranscript(text) }));
+  ctx.waitUntil(processCall(env, id, key ? {} : { textSegments: parseTextTranscript(text) }));
   return json({ id });
 });
 
@@ -420,15 +577,10 @@ route('GET', '/api/calls/:id', async (req, env, { user, params }) => {
 
 route('GET', '/api/calls/:id/audio', async (req, env, { user, params }) => {
   const c = await visibleCall(env, user, params.id);
-  if (c?.recording_key && env.RECORDINGS) {
-    const obj = await env.RECORDINGS.get(c.recording_key);
-    if (obj) return new Response(obj.body, { headers: { 'content-type': obj.httpMetadata?.contentType || 'audio/mpeg', 'cache-control': 'private, max-age=3600' } });
-  }
-  if (c?.recording_url) { // played straight from the telephony provider
-    const rec = await fetchRecording(c.recording_url, env);
-    return new Response(rec.bytes, { headers: { 'content-type': rec.type, 'cache-control': 'private, max-age=3600' } });
-  }
-  return fail(404, 'No recording stored');
+  if (!c) return fail(404, 'Call not found');
+  const rec = await loadRecording(env, c);
+  if (!rec) return fail(404, 'No recording stored');
+  return audioResponse(rec.bytes, rec.type, req.headers.get('range'));
 });
 
 route('POST', '/api/calls/:id/reprocess', async (req, env, { user, params, ctx }) => {

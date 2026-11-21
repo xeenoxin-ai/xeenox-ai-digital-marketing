@@ -24,7 +24,12 @@ CREATE TABLE IF NOT EXISTS leads (
   next_follow_up TEXT,              -- YYYY-MM-DD
   external_id TEXT,                 -- id in an outside CRM
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  company TEXT,
+  city TEXT,
+  deal_value INTEGER,               -- expected deal size in rupees
+  expected_close TEXT,              -- YYYY-MM-DD
+  tags TEXT                         -- comma-separated
 );
 CREATE INDEX IF NOT EXISTS leads_owner ON leads(owner_id, status);
 CREATE INDEX IF NOT EXISTS leads_phone ON leads(phone);
@@ -78,3 +83,45 @@ CREATE TABLE IF NOT EXISTS devices (
   seen_at INTEGER NOT NULL,
   app_version TEXT
 );
+
+-- Call audio kept inside SalePunch when no R2 bucket is bound (1 MB pieces).
+CREATE TABLE IF NOT EXISTS recording_chunks (
+  call_id TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  data BLOB NOT NULL,
+  PRIMARY KEY (call_id, seq)
+);
+
+-- CRM: notes, tasks and the activity history on each lead.
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT NOT NULL,
+  user_id TEXT,
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS notes_lead ON notes(lead_id, created_at);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT,
+  user_id TEXT NOT NULL,            -- who should do it
+  title TEXT NOT NULL,
+  due_at TEXT,                      -- YYYY-MM-DDTHH:MM (India time)
+  done INTEGER NOT NULL DEFAULT 0,
+  done_at INTEGER,
+  created_by TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS tasks_user ON tasks(user_id, done, due_at);
+CREATE INDEX IF NOT EXISTS tasks_lead ON tasks(lead_id);
+
+CREATE TABLE IF NOT EXISTS activities (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT NOT NULL,
+  user_id TEXT,
+  kind TEXT NOT NULL,               -- created | status | owner | value | assigned
+  text TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS activities_lead ON activities(lead_id, created_at);

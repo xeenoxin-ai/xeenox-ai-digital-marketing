@@ -3,7 +3,9 @@
 import { analyzeCall, coachingNote, talkRatio } from './analyze.js';
 import { crmEvent, leadStatusAfterCall, postWebhook } from './crm.js';
 import { agentStats } from './stats.js';
+import { STATUS_LABELS } from './constants.js';
 import { fetchRecording } from './telephony.js';
+import { loadRecording, saveRecording } from './storage.js';
 import { transcribe } from './transcribe.js';
 import { dayOf, safeJson } from './util.js';
 
@@ -21,7 +23,7 @@ const setCall = (db, id, fields) => {
  * Processes one call. `textSegments` is set for pasted transcripts.
  * Safe to run again (Reprocess button / retry job).
  */
-export async function processCall(env, callId, { textSegments, audio, deps = {} } = {}) {
+export async function processCall(env, callId, { textSegments, deps = {} } = {}) {
   const db = env.DB;
   const call = await db.prepare('SELECT * FROM calls WHERE id = ?').bind(callId).first();
   if (!call) return;
@@ -29,26 +31,22 @@ export async function processCall(env, callId, { textSegments, audio, deps = {} 
     let segments = textSegments || safeJson(call.transcript, null);
     let language = call.language || '';
     if (!segments) {
-      if (!call.recording_key && !call.recording_url && !audio) {
+      if (!call.recording_key && !call.recording_url) {
         await setCall(db, callId, { processing: 'skipped', error: null });
         return;
       }
       await setCall(db, callId, { processing: 'transcribing', error: null });
       let bytes;
-      if (audio) {
-        bytes = audio; // uploaded file, no file storage configured
-      } else if (call.recording_key && env.RECORDINGS) {
-        const obj = await env.RECORDINGS.get(call.recording_key);
-        if (!obj) throw new Error('Recording file missing from storage');
-        bytes = new Uint8Array(await obj.arrayBuffer());
+      if (call.recording_key) {
+        const rec = await loadRecording(env, call);
+        if (!rec) throw new Error('Recording file missing from storage');
+        bytes = rec.bytes;
       } else {
+        // Telephony recording (Exotel): fetch it once and keep our own copy inside SalePunch.
         const rec = await (deps.fetchRecording || fetchRecording)(call.recording_url, env);
         bytes = rec.bytes;
-        if (env.RECORDINGS) { // keep our own copy; without R2 we play it from the provider
-          const key = `calls/${call.day}/${call.id}.${rec.type.includes('wav') ? 'wav' : 'mp3'}`;
-          await env.RECORDINGS.put(key, bytes, { httpMetadata: { contentType: rec.type } });
-          await setCall(db, callId, { recording_key: key });
-        }
+        const key = await saveRecording(env, call, bytes, rec.type);
+        await setCall(db, callId, { recording_key: key });
       }
       const t = await (deps.transcribe || transcribe)(bytes, env, { language: env.CALL_LANGUAGE || undefined });
       segments = t.segments;
@@ -83,6 +81,13 @@ export async function processCall(env, callId, { textSegments, audio, deps = {} 
       const status = leadStatusAfterCall(lead.status, analysis.outcome);
       await db.prepare('UPDATE leads SET status = ?, next_follow_up = COALESCE(?, next_follow_up), updated_at = ? WHERE id = ?')
         .bind(status, analysis.follow_up_date || null, Date.now(), lead.id).run();
+      const acts = [];
+      if (status !== lead.status) acts.push(['status', `Stage: ${STATUS_LABELS[lead.status] || lead.status} → ${STATUS_LABELS[status] || status} (from the call)`]);
+      if (analysis.follow_up_date && analysis.follow_up_date !== lead.next_follow_up) acts.push(['followup', `Follow-up set for ${analysis.follow_up_date} (from the call)`]);
+      for (const [kind, text] of acts) {
+        await db.prepare('INSERT INTO activities (id, lead_id, user_id, kind, text, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(crypto.randomUUID().replaceAll('-', '').slice(0, 20), lead.id, call.agent_id || null, kind, text, Date.now()).run();
+      }
       lead.status = status;
     }
     if (settings.crm_webhook_url) {

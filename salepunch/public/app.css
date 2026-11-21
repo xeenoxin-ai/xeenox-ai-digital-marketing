@@ -105,7 +105,21 @@ label > input, label > select, label > textarea { margin-top: 6px; font-weight: 
 .pill.interested, .pill.info { background: var(--info-soft); color: var(--info); }
 .pill.follow_up, .pill.warn, .pill.contacted { background: var(--warn-soft); color: var(--warn); }
 .pill.not_interested, .pill.lost, .pill.bad, .pill.error { background: var(--bad-soft); color: var(--bad); }
-.pill.new { background: var(--violet-soft); color: var(--violet); }
+.pill.new, .pill.negotiation { background: var(--violet-soft); color: var(--violet); }
+.pill.proposal { background: var(--info-soft); color: var(--info); }
+/* CRM */
+.tl { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.tl-ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+.tl-ic svg.i { width: 16px; height: 16px; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: start; }
+.col { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; min-height: 200px; transition: background .15s, border-color .15s; }
+.col.over { border-color: var(--brand); background: var(--brand-soft); }
+.col header { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 10px; }
+.cards { display: grid; gap: 8px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow); cursor: grab; }
+.card.drag { opacity: .5; }
+.card .mv { margin-top: 8px; padding: 4px 6px; font-size: 12px; }
+.empty-col { padding: 14px 6px; text-align: center; }
 .score { font-weight: 750; font-variant-numeric: tabular-nums; } .score.hi { color: var(--good); } .score.mid { color: var(--warn); } .score.lo { color: var(--bad); }
 .bar { height: 8px; background: var(--lead); border-radius: 99px; overflow: hidden; } .bar > i { display: block; height: 100%; background: var(--grad); border-radius: 99px; }
 .bar.hi > i { background: linear-gradient(90deg, #36d27f, #12a150); } .bar.lo > i { background: linear-gradient(90deg, #ff8a7a, #e0352b); } .bar.mid > i { background: linear-gradient(90deg, #ffc85a, #e29a12); }

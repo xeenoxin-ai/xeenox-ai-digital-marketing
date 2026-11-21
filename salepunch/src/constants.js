@@ -10,4 +10,9 @@ export const SKILL_LABELS = {
   tone: 'Tone & politeness',
   listening: 'Listening',
 };
-export const LEAD_STATUSES = ['new', 'contacted', 'interested', 'follow_up', 'won', 'lost'];
+// Pipeline stages, in order (lost is outside the order).
+export const LEAD_STATUSES = ['new', 'contacted', 'follow_up', 'interested', 'proposal', 'negotiation', 'won', 'lost'];
+export const STATUS_LABELS = {
+  new: 'New', contacted: 'Contacted', follow_up: 'Follow-up', interested: 'Interested',
+  proposal: 'Proposal sent', negotiation: 'Negotiation', won: 'Won', lost: 'Lost',
+};

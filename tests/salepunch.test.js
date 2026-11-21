@@ -295,3 +295,74 @@ test('free AI failure falls back to the keyword estimate', async () => {
   const a = await analyzeCall({ segments: segs, durationSec: 90 }, env);
   assert.equal(a.engine, 'keywords');
 });
+
+// ---- CRM helpers & recording storage
+import { nextAssignee, toCsv } from '../salepunch/src/crm.js';
+import { audioResponse, saveRecording, loadRecording, extFor, CHUNK } from '../salepunch/src/storage.js';
+
+test('pipeline stages only move forward after a call', () => {
+  assert.equal(leadStatusAfterCall('proposal', 'interested'), 'proposal');
+  assert.equal(leadStatusAfterCall('negotiation', 'follow_up'), 'negotiation');
+  assert.equal(leadStatusAfterCall('contacted', 'follow_up'), 'follow_up');
+  assert.equal(leadStatusAfterCall('follow_up', 'interested'), 'interested');
+  assert.equal(leadStatusAfterCall('lost', 'interested'), 'interested'); // reopened
+  assert.equal(leadStatusAfterCall('negotiation', 'not_interested'), 'lost');
+  assert.equal(leadStatusAfterCall('proposal', 'converted'), 'won');
+});
+
+test('round-robin assignment cycles through agents', () => {
+  const a = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  assert.equal(nextAssignee(a, null).id, 'a');
+  assert.equal(nextAssignee(a, 'a').id, 'b');
+  assert.equal(nextAssignee(a, 'c').id, 'a');
+  assert.equal(nextAssignee(a, 'gone').id, 'a');
+  assert.equal(nextAssignee([], 'a'), null);
+});
+
+test('CSV export quotes cells, keeps phone numbers and blocks formulas', () => {
+  const csv = toCsv([{ n: 'Menon, Rahul', p: '+919847012345', x: '=HYPERLINK("evil")', q: 'say "hi"' }], [['n', 'Name'], ['p', 'Phone'], ['x', 'X'], ['q', 'Q']]);
+  assert.equal(csv, '﻿Name,Phone,X,Q\r\n"Menon, Rahul",+919847012345,"\'=HYPERLINK(""evil"")","say ""hi"""\r\n');
+});
+
+function fakeD1() {
+  const rows = new Map();
+  const stmt = (sql, args = []) => ({
+    sql, args, bind: (...a) => stmt(sql, a),
+    async all() { return { results: [...rows.entries()].filter(([k]) => k.startsWith(args[0] + '#')).sort((x, y) => Number(x[0].split('#')[1]) - Number(y[0].split('#')[1])).map(([, data]) => ({ data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) })) }; },
+  });
+  return {
+    rows, prepare: (sql) => stmt(sql),
+    async batch(list) {
+      for (const s of list) {
+        if (s.sql.startsWith('DELETE')) for (const k of [...rows.keys()]) if (k.startsWith(s.args[0] + '#')) rows.delete(k);
+        if (s.sql.startsWith('INSERT')) { assert.ok(s.args[2].length <= 2000000, 'D1 row limit'); rows.set(`${s.args[0]}#${s.args[1]}`, new Uint8Array(s.args[2])); }
+      }
+    },
+  };
+}
+
+test('recordings are stored inside SalePunch in pieces and read back intact', async () => {
+  const DB = fakeD1();
+  const audio = new Uint8Array(CHUNK * 2 + 12345).map((_, i) => (i * 7) % 256);
+  const key = await saveRecording({ DB }, { id: 'c1', day: '2026-11-21' }, audio, 'audio/mp4; codecs=aac', 'call.m4a');
+  assert.equal(key, 'db:audio/mp4');
+  assert.equal(DB.rows.size, 3);
+  const back = await loadRecording({ DB }, { id: 'c1', recording_key: key });
+  assert.equal(back.type, 'audio/mp4');
+  assert.deepEqual(back.bytes, audio);
+  await saveRecording({ DB }, { id: 'c1', day: 'x' }, new Uint8Array(10), 'audio/mpeg'); // re-save replaces
+  assert.equal(DB.rows.size, 1);
+});
+
+test('audio supports jumping (HTTP range requests)', async () => {
+  const bytes = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const full = audioResponse(bytes, 'audio/mpeg', null);
+  assert.equal(full.status, 200); assert.equal(full.headers.get('accept-ranges'), 'bytes');
+  const part = audioResponse(bytes, 'audio/mpeg', 'bytes=2-4');
+  assert.equal(part.status, 206); assert.equal(part.headers.get('content-range'), 'bytes 2-4/10');
+  assert.deepEqual(new Uint8Array(await part.arrayBuffer()), new Uint8Array([2, 3, 4]));
+  assert.deepEqual(new Uint8Array(await audioResponse(bytes, 'a', 'bytes=7-').arrayBuffer()), new Uint8Array([7, 8, 9]));
+  assert.deepEqual(new Uint8Array(await audioResponse(bytes, 'a', 'bytes=-2').arrayBuffer()), new Uint8Array([8, 9]));
+  assert.equal(audioResponse(bytes, 'a', 'bytes=20-').status, 416);
+  assert.equal(extFor('audio/amr', ''), 'amr'); assert.equal(extFor('audio/mpeg', 'x.MP3'), 'mp3');
+});

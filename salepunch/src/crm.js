@@ -38,13 +38,49 @@ export function mapIncomingLead(o) {
     external_id: pick(o, ['id', 'leadid', 'externalid', 'recordid']),
     owner_email: pick(o, ['owner', 'owneremail', 'agent', 'agentemail', 'assignedto']).toLowerCase(),
     status: LEAD_STATUSES.includes(status) ? status : 'new',
+    company: pick(o, ['company', 'companyname', 'organisation', 'organization', 'business', 'businessname']),
+    city: pick(o, ['city', 'location', 'town', 'district']),
+    deal_value: Number(String(pick(o, ['dealvalue', 'value', 'amount', 'budget'])).replace(/[^\d.]/g, '')) || null,
+    tags: pick(o, ['tags', 'tag', 'labels']),
   };
 }
 
-/** Lead status after an analysed call (never downgrades a won lead). */
+const RANK = { lost: -1, new: 0, contacted: 1, follow_up: 2, interested: 3, proposal: 4, negotiation: 5, won: 6 };
+
+/**
+ * Lead stage after an analysed call. Stages only move forward (a call never
+ * pulls a lead back from Proposal to Interested), a won lead stays won, and
+ * "not interested" marks it lost.
+ */
 export function leadStatusAfterCall(current, outcome) {
   if (current === 'won') return 'won';
-  return { converted: 'won', interested: 'interested', follow_up: 'follow_up', not_interested: 'lost' }[outcome] || (current === 'new' ? 'contacted' : current);
+  const forward = (to) => ((RANK[current] ?? 0) >= RANK[to] ? current : to);
+  switch (outcome) {
+    case 'converted': return 'won';
+    case 'not_interested': return 'lost';
+    case 'interested': return forward('interested');
+    case 'follow_up': return forward('follow_up');
+    default: return current === 'new' ? 'contacted' : current;
+  }
+}
+
+/** Next agent for round-robin lead assignment (agents in a stable order). */
+export function nextAssignee(agents, lastId) {
+  if (!agents.length) return null;
+  const i = agents.findIndex((a) => a.id === lastId);
+  return agents[(i + 1) % agents.length];
+}
+
+/** CSV text (Excel-friendly: BOM, quoted cells, formulas neutralised). */
+export function toCsv(rows, columns) {
+  const cell = (v) => {
+    let t = v == null ? '' : String(v);
+    if (/^(=|@|[+\-](?![\d\s]))/.test(t)) t = "'" + t; // stop spreadsheet formulas (phone numbers like +91… are kept)
+    return /[",\r\n]/.test(t) || t !== t.trim() ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const lines = [columns.map(([, label]) => cell(label)).join(',')];
+  for (const r of rows) lines.push(columns.map(([key]) => cell(typeof key === 'function' ? key(r) : r[key])).join(','));
+  return '\ufeff' + lines.join('\r\n') + '\r\n';
 }
 
 export function crmEvent({ call, lead, agent, analysis, appUrl }) {
