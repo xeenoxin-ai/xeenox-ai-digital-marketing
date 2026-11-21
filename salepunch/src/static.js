@@ -1,6 +1,7 @@
 // Dashboard files, bundled into the worker (no separate asset upload needed).
 import indexHtml from '../public/index.html';
 import landingHtml from '../public/landing.html';
+import downloadHtml from '../public/download.html';
 import appJs from '../public/app.js';
 import appCss from '../public/app.css';
 import logoSvg from '../public/logo.svg';
@@ -20,6 +21,8 @@ const HTML = 'text/html; charset=utf-8';
 const FILES = {
   '/': [landingHtml, HTML],
   '/app': [appHtml, HTML],
+  '/download': [downloadHtml, HTML],
+  '/download/': [downloadHtml, HTML],
   '/app/': [appHtml, HTML],
   '/app.js': [appJs, 'text/javascript; charset=utf-8'],
   '/app.css': [appCss, 'text/css; charset=utf-8'],
@@ -27,7 +30,7 @@ const FILES = {
 };
 
 export function serveStatic(pathname, search = '') {
-  if (pathname === '/download/salepunch.apk' || pathname === '/download') {
+  if (pathname === '/download/salepunch.apk' || pathname === '/download/SalePunch.apk') {
     return new Response(apk, {
       headers: {
         'content-type': 'application/vnd.android.package-archive',
