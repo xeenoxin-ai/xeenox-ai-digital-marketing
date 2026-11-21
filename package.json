@@ -14,9 +14,13 @@
     "test:rules": "firebase emulators:exec --only firestore --project demo-easyway \"node --test tests/rules.emulator.js\"",
     "test:billx-rules": "firebase emulators:exec --config billx/firebase.json --only firestore --project demo-billx \"node --test tests/billx-rules.emulator.js\"",
     "emulators:billx": "firebase emulators:start --config billx/firebase.json --only firestore,auth --project demo-billx",
-    "emulators": "firebase emulators:start --only firestore,auth --project demo-easyway"
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-easyway",
+    "dev:salepunch": "wrangler dev --config salepunch/wrangler.toml",
+    "db:salepunch": "wrangler d1 execute salepunch --config salepunch/wrangler.toml --file salepunch/schema.sql",
+    "deploy:salepunch": "wrangler deploy --config salepunch/wrangler.toml"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
     "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.5.3",
@@ -31,6 +35,7 @@
     "@capacitor/cli": "^8.5.3",
     "@firebase/rules-unit-testing": "^5.0.2",
     "firebase-tools": "^15.34.1",
-    "vite": "5.4.21"
+    "vite": "5.4.21",
+    "wrangler": "^4.166.0"
   }
 }

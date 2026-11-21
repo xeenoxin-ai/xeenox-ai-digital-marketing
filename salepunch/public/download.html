@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Download SalePunch for Android</title>
+  <meta name="theme-color" content="#0b0d18">
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(600px 400px at 20% 0%, rgba(255,90,31,.22), transparent 70%), #0b0d18; color: #f3f4fb; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: grid; place-items: center; padding: 24px 16px; }
+    .card { width: 100%; max-width: 460px; background: #13162a; border: 1px solid rgba(255,255,255,.08); border-radius: 22px; padding: 28px 22px; text-align: center; box-shadow: 0 30px 80px -30px rgba(0,0,0,.8); }
+    img { width: 72px; height: 72px; border-radius: 20px; box-shadow: 0 12px 30px -10px rgba(255,77,26,.8); }
+    h1 { font-size: 24px; letter-spacing: -.02em; margin: 16px 0 4px; }
+    .muted { color: #9aa0bd; font-size: 14px; margin: 0 0 22px; }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 14px; font-weight: 750; font-size: 17px; text-decoration: none; color: #fff; background: linear-gradient(135deg, #ff8a4c, #ff4d1a 55%, #e0300a); box-shadow: 0 14px 30px -12px rgba(255,77,26,.9); }
+    .note { margin: 14px 0 0; font-size: 13px; color: #9aa0bd; }
+    ol { text-align: left; margin: 24px 0 0; padding-left: 20px; color: #c9cce0; font-size: 14.5px; }
+    ol li { margin-bottom: 10px; } b { color: #fff; }
+    .warn { display: none; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: rgba(242,178,74,.12); color: #f2c56f; font-size: 14px; text-align: left; }
+    .back { display: inline-block; margin-top: 18px; color: #ff8a5c; font-size: 14px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/logo.svg" alt="">
+    <h1>SalePunch for Android</h1>
+    <p class="muted">Calls leads from your SIM and uploads each call's recording automatically. Version 1.2 · 25 KB</p>
+    <a class="btn" href="/download/salepunch.apk" download="SalePunch.apk" id="dl">⬇&nbsp; Download app</a>
+    <p class="note" id="after">After tapping, look for <b>SalePunch.apk</b> at the bottom of the screen or in the notification bar.</p>
+    <div class="warn" id="pc">You're on a computer. Open this page <b>on your Android phone</b> instead, or send this link to the phone on WhatsApp: <b id="link"></b></div>
+    <div class="warn" id="ios">iPhones can't install this app. Use an Android phone, or use SalePunch in the browser.</div>
+    <ol>
+      <li>Tap <b>Download app</b>. If Chrome says the file might be harmful, tap <b>Download anyway</b>.</li>
+      <li>Open <b>SalePunch.apk</b> from the download message (or <b>Files → Downloads</b>).</li>
+      <li>If asked, allow <b>Install unknown apps</b> for Chrome, then go back.</li>
+      <li>Tap <b>Install</b>. If Play Protect asks, tap <b>Install anyway</b>.</li>
+      <li>Open SalePunch, sign in, and allow every permission it asks for.</li>
+    </ol>
+    <a class="back" href="/app">Open SalePunch in the browser →</a>
+  </div>
+  <script>
+    const ua = navigator.userAgent;
+    document.getElementById('link').textContent = location.origin + '/download';
+    if (/iPhone|iPad|iPod/i.test(ua)) document.getElementById('ios').style.display = 'block';
+    else if (!/Android/i.test(ua)) document.getElementById('pc').style.display = 'block';
+  </script>
+</body>
+</html>

@@ -1,6 +1,12 @@
 # xeenox-ai-digital-marketing
 First Fully AI-Powered Digital Marketing Agency in Palakkad
 
+## SalePunch (sales call monitoring)
+
+Records every sales call through your company number, transcribes it, scores
+the agent's selling and the lead's chance to convert, and builds daily reports
+per agent, with a built-in CRM. See [`salepunch/README.md`](salepunch/README.md).
+
 ## EasyWay (v0.1)
 
 **Live: https://easyway-maps.vercel.app** (mirror: https://xeenoxin-ai.github.io/xeenox-ai-digital-marketing/)

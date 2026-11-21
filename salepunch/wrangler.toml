@@ -1,0 +1,64 @@
+# SalePunch — Cloudflare Worker (API + dashboard), D1 database, R2 recordings,
+# Workers AI speech-to-text. See salepunch/README.md for the full setup.
+name = "salepunch"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+# The dashboard (public/) is bundled into the worker as text.
+[[rules]]
+type = "Text"
+globs = ["**/public/*.html", "**/public/*.css", "**/public/*.svg", "**/public/*.js"]
+fallthrough = false
+
+# The Android app (built by GitHub Actions), served at /download/salepunch.apk
+[[rules]]
+type = "Data"
+globs = ["**/public/*.apk"]
+fallthrough = false
+
+[[d1_databases]]
+binding = "DB"
+database_name = "salepunch"
+database_id = "d808f24d-5146-4835-9f20-c40f920427c3"
+
+# Optional: keep our own copy of every recording in R2 (enable R2 in the
+# Cloudflare dashboard, run `npx wrangler r2 bucket create salepunch-recordings`,
+# then uncomment). Without it, Exotel recordings are played from Exotel and
+# uploaded audio is transcribed but not kept.
+# [[r2_buckets]]
+# binding = "RECORDINGS"
+# bucket_name = "salepunch-recordings"
+
+[ai]
+binding = "AI"
+
+# Call processing queue (no 30-second limit, automatic retries).
+[[queues.producers]]
+queue = "salepunch-calls"
+binding = "CALLS"
+
+[[queues.consumers]]
+queue = "salepunch-calls"
+max_batch_size = 1
+max_batch_timeout = 1
+max_retries = 3
+
+[triggers]
+crons = ["0 * * * *"] # hourly: retry stuck calls; daily report at REPORT_HOUR
+
+[vars]
+TIMEZONE = "Asia/Kolkata"
+REPORT_HOUR = "21"
+APP_URL = "https://salepunch.xeenox-in.workers.dev"
+# CALL_LANGUAGE = "ml"   # force Whisper language (ml, hi, ta, en); blank = auto
+# CLAUDE_MODEL = "claude-opus-5-5"
+
+# Secrets (npx wrangler secret put NAME):
+#   SESSION_SECRET      random 32+ characters, signs logins
+#   WEBHOOK_SECRET      random string, protects /hooks/exotel
+#   LEADS_WEBHOOK_KEY   random string, protects /hooks/leads
+#   ANTHROPIC_API_KEY   Claude, for call analysis and coaching
+#   EXOTEL_SID, EXOTEL_API_KEY, EXOTEL_API_TOKEN, EXOTEL_CALLER_ID, EXOTEL_SUBDOMAIN
